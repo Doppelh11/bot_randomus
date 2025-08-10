@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Моя ссылка — рефералы</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root { --bg:#0f1115; --card:#151823; --text:#e8eefc; --muted:#9aa7bd; --accent:#6ea8fe; }
+    html,body { height:100%; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: var(--bg); color: var(--text); }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
+    .card { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,.25); }
+    h1 { font-size: 22px; margin: 0 0 8px; }
+    p { margin: 0 0 12px; color: var(--muted); }
+    .row { display:flex; gap: 8px; align-items: stretch; }
+    input.link { flex:1; background:#0c0f16; color:var(--text); border:1px solid #2a3142; border-radius: 12px; padding: 12px; font-size: 14px; }
+    button { background: var(--accent); color: #0a0f1a; border:0; border-radius:12px; padding: 12px 14px; font-weight: 600; cursor: pointer; }
+    button.secondary { background:#22293a; color:var(--text); }
+    .hint { font-size:12px; color:#8fa0bd; margin-top:8px; }
+    .err { color:#ff7b7b; }
+    .gid { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; color:#c8d4f5; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>🔗 Моя ссылка</h1>
+      <p id="descr">Скопируйте личную реферальную ссылку для конкурса <span class="gid" id="gid">…</span> и делитесь с друзьями.</p>
+      <div class="row" style="margin-top:12px">
+        <input class="link" id="link" readonly value="" />
+        <button id="copy">Копировать</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="secondary" id="openbot">Открыть чат с ботом</button>
+        <button class="secondary" id="share">Поделиться…</button>
+      </div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const WebApp = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+  if (WebApp) {
+    WebApp.ready();
+    WebApp.expand();
+    WebApp.disableVerticalSwipes && WebApp.disableVerticalSwipes();
+  }
+
+  const BOT_USERNAME = 'deepseekrbot';
+  const MINI_APP_SHORT = 'Myssilki';
+
+  const qs = new URLSearchParams(location.search);
+  const startParam = (WebApp && WebApp.initDataUnsafe && WebApp.initDataUnsafe.start_param) || qs.get('tgWebAppStartParam') || '';
+  const gidMatch = /gid-(\d+)/.exec(startParam || '');
+  const gid = gidMatch ? gidMatch[1] : null;
+
+  const user = WebApp && WebApp.initDataUnsafe && WebApp.initDataUnsafe.user ? WebApp.initDataUnsafe.user : null;
+
+  const gidEl = document.getElementById('gid');
+  const linkEl = document.getElementById('link');
+  const hintEl = document.getElementById('hint');
+  const copyBtn = document.getElementById('copy');
+  const openBtn = document.getElementById('openbot');
+  const shareBtn = document.getElementById('share');
+
+  function setError(msg){
+    hintEl.classList.add('err');
+    hintEl.textContent = msg;
+  }
+
+  if (!gid){
+    gidEl.textContent = '—';
+    setError('Нет параметра запуска (gid-<id>). Откройте мини‑апп из поста конкурса.');
+    return;
+  }
+  gidEl.textContent = '#' + gid;
+
+  if (!user){
+    setError('Телеграм не передал профиль пользователя. Откройте мини‑апп в Telegram.');
+  }
+
+  const userId = user ? user.id : '0';
+  const refLink = `https://t.me/${BOT_USERNAME}?start=ref-${gid}-${userId}`;
+  linkEl.value = refLink;
+  hintEl.textContent = 'Ссылка генерируется локально, данные не отправляются на сервер.';
+
+  copyBtn.addEventListener('click', async ()=>{
+    try{
+      await navigator.clipboard.writeText(linkEl.value);
+      if (WebApp) WebApp.HapticFeedback && WebApp.HapticFeedback.notificationOccurred('success');
+      copyBtn.textContent = 'Скопировано!';
+      setTimeout(()=> copyBtn.textContent = 'Копировать', 1400);
+    }catch(e){ setError('Не удалось скопировать: ' + e); }
+  });
+
+  openBtn.addEventListener('click', ()=>{
+    const url = `https://t.me/${BOT_USERNAME}?start=getreflink-${gid}`;
+    if (WebApp && WebApp.openTelegramLink){ WebApp.openTelegramLink(url); }
+    else { location.href = url; }
+  });
+
+  shareBtn.addEventListener('click', ()=>{
+    const text = `Вот моя ссылка на розыгрыш #${gid}: ${refLink}`;
+    if (navigator.share){ navigator.share({ text }); }
+    else {
+      if (WebApp && WebApp.openTelegramLink){ WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent(text)}`); }
+      else { alert(text); }
+    }
+  });
+})();
+</script>
+</body>
+</html>
