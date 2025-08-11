@@ -53,6 +53,10 @@
 
     /* Confetti */
     #fx{position:fixed;inset:0;pointer-events:none}
+
+    /* Banner for fallback mode */
+    .banner{display:none;margin-top:10px;padding:10px;border-radius:12px;background:#0a1426;border:1px solid rgba(255,255,255,.08);color:#b8c7e8;font-size:12px}
+    .banner.show{display:block}
   </style>
 </head>
 <body>
@@ -75,6 +79,7 @@
       <div id="ring" class="ring" aria-hidden="true"><div id="ringOk" class="seg-ok"></div></div>
 
       <div id="need" class="need"></div>
+      <div id="fallback" class="banner"></div>
 
       <div id="resultOk" class="result">
         <div class="big">✅ Поздравляем, вы участвуете в розыгрыше!</div>
@@ -93,8 +98,11 @@
   WebApp && (WebApp.ready(), WebApp.expand(), WebApp.disableVerticalSwipes && WebApp.disableVerticalSwipes());
 
   const BOT_USERNAME = 'deepseekrbot';
-  // URL API можно задавать через window.API_JOIN или параметр ?api=
-  const API_JOIN = (window.API_JOIN || new URLSearchParams(location.search).get('api') || 'https://YOUR-SERVER/api/join');
+  // ВАЖНО: укажи URL API. Можно задать:
+  // 1) напрямую ниже,
+  // 2) через window.API_JOIN до этого скрипта,
+  // 3) или параметром ?api=https://domain/api/join при открытии Mini App.
+  const API_JOIN = (window.API_JOIN || new URLSearchParams(location.search).get('api') || '');
 
   const qs = new URLSearchParams(location.search);
   const startParam = (WebApp && WebApp.initDataUnsafe && WebApp.initDataUnsafe.start_param) || qs.get('tgWebAppStartParam') || '';
@@ -111,6 +119,7 @@
   const res = document.getElementById('resultOk');
   const openBot = document.getElementById('openBot');
   const share = document.getElementById('share');
+  const fallback = document.getElementById('fallback');
 
   // Confetti
   const fx = document.getElementById('fx');
@@ -118,7 +127,7 @@
   let confetti = [], rafId = 0, startTs = 0;
   function resize(){ fx.width = window.innerWidth; fx.height = window.innerHeight; }
   window.addEventListener('resize', resize); resize();
-  function spawnConfetti(n=220){
+  function spawnConfetti(n=240){
     confetti = new Array(n).fill(0).map(()=>({
       x: Math.random()*fx.width,
       y: -20 - Math.random()*fx.height*0.2,
@@ -140,7 +149,7 @@
     });
     if (t < 3){ rafId = requestAnimationFrame(drawConfetti); } else { cancelAnimationFrame(rafId); startTs = 0; confetti=[]; ctx.clearRect(0,0,fx.width,fx.height); }
   }
-  function blast(){ spawnConfetti(240); cancelAnimationFrame(rafId); startTs=0; rafId = requestAnimationFrame(drawConfetti); }
+  function blast(){ spawnConfetti(260); cancelAnimationFrame(rafId); startTs=0; rafId = requestAnimationFrame(drawConfetti); }
 
   function haptic(type){ try{ WebApp && WebApp.HapticFeedback && WebApp.HapticFeedback[type] && WebApp.HapticFeedback[type]('medium'); }catch{} }
 
@@ -188,13 +197,30 @@
 
   async function flow(){
     if (!gid){ label.textContent = 'Нет параметра запуска'; return; }
+
     // 1) spin
     spin();
-    await new Promise(r=>setTimeout(r, 1300));
+    await new Promise(r=>setTimeout(r, 1200));
     ring.style.display = 'block';
     label.textContent = 'Проверяем условия…';
     setRing(0.33); await new Promise(r=>setTimeout(r, 330));
     setRing(0.66); await new Promise(r=>setTimeout(r, 330));
+
+    // Если API не задан — уходим в резервный режим: шлём sendData и показываем мягкое подтверждение
+    if (!API_JOIN){
+      const warn = 'API URL не задан. Использую резервный способ — бот проверит условия в ЛС.';
+      fallback.textContent = warn; fallback.classList.add('show');
+      try {
+        const payload = { action:'join', gid, init: WebApp && WebApp.initData || '' };
+        WebApp && WebApp.sendData && WebApp.sendData(JSON.stringify(payload));
+        label.textContent = 'Заявка отправлена боту…';
+        res.classList.add('ok');
+        blast();
+      } catch(e){
+        label.textContent = 'Не удалось отправить заявку';
+      }
+      return;
+    }
 
     try{
       const data = await joinViaAPI();
