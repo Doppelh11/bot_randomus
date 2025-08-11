@@ -17,28 +17,27 @@
     h1{margin:0 0 6px;font-size:22px}
     .muted{color:var(--muted)}
 
-    /* Capsule button */
-    .cta{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:56px;border-radius:999px;border:none;cursor:pointer;font-weight:700;font-size:16px;background:linear-gradient(180deg,#88b0ff,#6e9bff);color:#0a0f16;box-shadow:0 8px 14px rgba(122,162,255,.35);}
-    .cta:active{transform:translateY(1px)}
-    .cta .shine{position:absolute;inset:0;border-radius:inherit;background:linear-gradient(120deg,rgba(255,255,255,.35),rgba(255,255,255,0) 30% 70%,rgba(255,255,255,.35));mix-blend-mode:soft-light;opacity:.6}
+    /* Roulette */
+    .roulette-wrap{position:relative;margin-top:16px;height:280px}
+    .wheel-box{position:absolute;left:50%;top:0;transform:translateX(-50%);width:260px;height:260px;border-radius:50%;background:radial-gradient(closest-side,#1a2236,#0f1524);display:grid;place-items:center;box-shadow:0 12px 40px rgba(0,0,0,.45), inset 0 0 0 8px #0c1120, inset 0 0 0 12px #222b43}
+    .wheel{width:220px;height:220px;border-radius:50%;overflow:hidden;position:relative}
+    .marker{position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-bottom:14px solid #ffd06b;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
+    .center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:62px;height:62px;border-radius:50%;background:linear-gradient(180deg,#88b0ff,#6e9bff);box-shadow:0 4px 10px rgba(122,162,255,.4)}
+    .label{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);font-weight:700;letter-spacing:.2px}
 
-    /* Lototron */
-    .stage{position:relative;height:180px;margin-top:18px;border-radius:16px;background:rgba(255,255,255,.03);outline:1px solid rgba(255,255,255,.06);overflow:hidden}
-    .drum{position:absolute;left:50%;top:20px;width:220px;height:120px;margin-left:-110px;border-radius:999px;background:rgba(255,255,255,.04);backdrop-filter:blur(2px);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;overflow:hidden}
-    .balls{position:absolute;inset:0}
-    .ball{position:absolute;width:26px;height:26px;border-radius:50%;background:#7aa2ff20;border:1px solid #7aa2ff44}
+    /* Segments */
+    .seg{position:absolute;left:0;top:0;width:100%;height:100%;clip-path:polygon(50% 50%, 100% 50%, 100% 0, 50% 0);transform-origin:50% 50%}
+    .seg:nth-child(odd){background:#203054}
+    .seg:nth-child(even){background:#2a3a64}
+    .seg b{position:absolute;right:10px;top:10px;font-size:12px;color:#a9b7d4;opacity:.8}
 
-    /* Capsule physics */
-    .capsule{position:absolute;left:50%;top:-70px;width:148px;height:46px;margin-left:-74px;border-radius:999px;background:linear-gradient(180deg,#88b0ff,#6e9bff);box-shadow:0 8px 14px rgba(122,162,255,.35);display:flex;align-items:center;justify-content:center;color:#0a0f16;font-weight:800}
-    .drop{animation:drop 600ms cubic-bezier(.2,.9,.2,1) forwards}
-    .bounce{animation:bounce 420ms ease-out forwards}
-    @keyframes drop{0%{transform:translateY(0) scale(1)}100%{transform:translateY(120px) scale(.98)}}
-    @keyframes bounce{0%{transform:translateY(120px) scale(.98)}60%{transform:translateY(108px) scale(1.02)}100%{transform:translateY(112px) scale(1)}}
+    /* Spinner state */
+    .spin{animation:spin 2200ms cubic-bezier(.17,.84,.21,1) forwards}
+    @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(980deg)}} /* ~2.7 turns */
 
-    /* Ring checks */
-    .ring{position:relative;width:72px;height:72px;margin:16px auto;border-radius:50%;box-shadow:inset 0 0 0 6px var(--ring)}
-    .ring .seg{position:absolute;inset:-6px;border-radius:50%;clip-path:polygon(50% 50%, 100% 50%, 100% 0, 50% 0)}
-    .ring .seg.ok{box-shadow:inset 0 0 0 6px var(--ok)}
+    /* Progress ring for checks */
+    .ring{position:relative;width:76px;height:76px;margin:18px auto;border-radius:50%;box-shadow:inset 0 0 0 6px var(--ring)}
+    .ring .seg-ok{position:absolute;inset:-6px;border-radius:50%;background:conic-gradient(var(--ok) 0deg, transparent 0deg)}
 
     .result{display:none;margin-top:14px;text-align:center}
     .result.ok{display:block}
@@ -51,29 +50,26 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>🎉 Участвовать</h1>
-      <div class="muted">Розыгрыш <span id="gid">#…</span></div>
+      <h1>🎰 Участие оформляется…</h1>
+      <div class="muted">Розыгрыш <span id="gid">#…</span> · проверяем условия</div>
 
-      <button id="join" class="cta">
-        <span>Участвовать</span>
-        <span class="shine"></span>
-      </button>
-
-      <div class="stage" id="stage" aria-hidden="true">
-        <div class="drum">
-          <div class="balls" id="balls"></div>
+      <div class="roulette-wrap">
+        <div class="wheel-box">
+          <div class="marker"></div>
+          <div id="wheel" class="wheel"></div>
+          <div class="center"></div>
+          <div class="label" id="label">Проверяем подписки…</div>
         </div>
-        <div class="capsule" id="capsule">Заявка</div>
       </div>
 
-      <div id="ring" class="ring" aria-hidden="true"></div>
+      <div id="ring" class="ring" aria-hidden="true"><div id="ringOk" class="seg-ok"></div></div>
 
       <div id="resultOk" class="result">
-        <div class="big">✅ Вы участвуете!</div>
-        <div class="muted" id="afterText">Заявка отправлена боту. Если условия не выполнены — бот подскажет в личке.</div>
+        <div class="big">✅ Поздравляем, вы участвуете в розыгрыше!</div>
+        <div class="muted" id="afterText">Если условия не выполнены — бот напишет, что ещё нужно сделать.</div>
         <div class="actions">
           <a class="btn" id="openBot">Открыть бота</a>
-          <a class="btn" id="share">Поделиться</a>
+          <a class="btn" id="share">Отправить другу</a>
         </div>
       </div>
     </div>
@@ -90,81 +86,70 @@
   const startParam = (WebApp && WebApp.initDataUnsafe && WebApp.initDataUnsafe.start_param) || qs.get('tgWebAppStartParam') || '';
   const gidMatch = /gid-(\d+)/.exec(startParam || '');
   const gid = gidMatch ? gidMatch[1] : null;
-  const user = WebApp && WebApp.initDataUnsafe && WebApp.initDataUnsafe.user ? WebApp.initDataUnsafe.user : null;
-
   const gidEl = document.getElementById('gid');
   gidEl.textContent = gid ? ('#' + gid) : '#—';
 
-  const joinBtn = document.getElementById('join');
-  const stage = document.getElementById('stage');
-  const capsule = document.getElementById('capsule');
-  const balls = document.getElementById('balls');
+  const wheel = document.getElementById('wheel');
+  const label = document.getElementById('label');
   const ring = document.getElementById('ring');
-  const resultOk = document.getElementById('resultOk');
+  const ringOk = document.getElementById('ringOk');
+  const res = document.getElementById('resultOk');
   const openBot = document.getElementById('openBot');
   const share = document.getElementById('share');
 
   function haptic(type){ try{ WebApp && WebApp.HapticFeedback && WebApp.HapticFeedback[type] && WebApp.HapticFeedback[type]('medium'); }catch{} }
 
-  // Make some "bouncing" balls in the drum
-  function spawnBalls(){
-    balls.innerHTML = '';
-    const n = 14;
-    for(let i=0;i<n;i++){
-      const b = document.createElement('div');
-      b.className = 'ball';
-      b.style.left = (10 + Math.random()*180) + 'px';
-      b.style.top  = (10 + Math.random()*90) + 'px';
-      b.style.transform = 'translate(0,0)';
-      balls.appendChild(b);
-    }
-    // simple perpetual jitter
-    const nodes = Array.from(balls.children);
-    nodes.forEach((el,idx)=>{
-      const dx = (Math.random()*2-1)*20, dy=(Math.random()*2-1)*16;
-      el.animate([{transform:'translate(0,0)'},{transform:`translate(${dx}px,${dy}px)`},{transform:'translate(0,0)'}], {duration:1200+idx*30,iterations:2});
-    });
+  // --- build roulette segments (12 sectors) ---
+  const SEGS = 12;
+  for(let i=0;i<SEGS;i++){
+    const s = document.createElement('div');
+    s.className = 'seg';
+    s.style.transform = `rotate(${(360/SEGS)*i}deg)`;
+    const b = document.createElement('b');
+    b.textContent = i%2? '×' : '✓';
+    s.appendChild(b);
+    wheel.appendChild(s);
   }
 
-  function paintRing(progress){
-    ring.innerHTML = '';
-    const seg = document.createElement('div'); seg.className = 'seg ok';
-    seg.style.background = 'conic-gradient(var(--ok) '+(progress*360)+'deg, transparent '+(progress*360)+'deg)';
-    ring.appendChild(seg);
-  }
-
-  async function playSequence(){
-    // 1) visual: capsule drop into drum
-    stage.style.opacity = 1;
-    capsule.classList.add('drop');
+  // spin immediately on load
+  function spin(){
+    wheel.classList.add('spin');
     haptic('impactOccurred');
-    await new Promise(r=>setTimeout(r,620));
-    capsule.classList.add('bounce');
-    spawnBalls();
+  }
 
-    // 2) ring progress for checks
-    ring.style.display='block';
-    for (let p of [0.33, 0.66, 1]){ paintRing(p); await new Promise(r=>setTimeout(r, 320)); }
+  function setRing(p){
+    ringOk.style.background = `conic-gradient(var(--ok) ${p*360}deg, transparent ${p*360}deg)`;
+  }
 
-    // 3) send to bot
+  function sendJoin(){
     try{
       const payload = { action:'join', gid, init: WebApp && WebApp.initData || '' };
       WebApp && WebApp.sendData && WebApp.sendData(JSON.stringify(payload));
-      haptic('notificationOccurred');
-    }catch(e){ /* ignore */ }
-
-    // 4) show success (optimistic)
-    resultOk.classList.add('ok');
+    }catch(e){}
   }
 
-  joinBtn.addEventListener('click', ()=>{
+  async function flow(){
     if (!gid){
-      alert('Нет параметра запуска. Откройте из поста конкурса.');
+      label.textContent = 'Нет параметра запуска';
       return;
     }
-    joinBtn.disabled = true;
-    playSequence();
-  });
+    // 1) spin ~2.2s
+    spin();
+    await new Promise(r=>setTimeout(r, 2200));
+
+    // 2) show checks progress ~1s
+    ring.style.display = 'block';
+    label.textContent = 'Проверяем условия…';
+    for (let p of [0.33, 0.66, 1]){ setRing(p); await new Promise(r=>setTimeout(r, 330)); }
+
+    // 3) submit to bot and show success
+    sendJoin();
+    haptic('notificationOccurred');
+    label.textContent = 'Готово!';
+    res.classList.add('ok');
+  }
+
+  flow();
 
   openBot.addEventListener('click', ()=>{
     const url = `https://t.me/${BOT_USERNAME}`;
@@ -173,7 +158,7 @@
   });
 
   share.addEventListener('click', ()=>{
-    const text = `Я участвую в розыгрыше #${gid}!`; 
+    const text = gid ? `Я участвую в розыгрыше #${gid}!` : 'Я участвую в розыгрыше!';
     if (navigator.share){ navigator.share({ text }); }
     else if (WebApp && WebApp.openTelegramLink){ WebApp.openTelegramLink(`https://t.me/share/url?text=${encodeURIComponent(text)}`); }
     else { alert(text); }
