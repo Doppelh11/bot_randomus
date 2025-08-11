@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Участвовать — розыгрыш</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Жёстко задаём URL API, чтобы Mini App работал без параметра ?api= -->
+  <script>window.API_JOIN = 'https://doppelh11.github.io/bot_randomus/api/join';</script>
   <style>
     :root{
       --bg:#070a12; --card:#0e1627; --text:#eef3ff; --muted:#9fb0cc;
@@ -98,10 +100,7 @@
   WebApp && (WebApp.ready(), WebApp.expand(), WebApp.disableVerticalSwipes && WebApp.disableVerticalSwipes());
 
   const BOT_USERNAME = 'deepseekrbot';
-  // ВАЖНО: укажи URL API. Можно задать:
-  // 1) напрямую ниже,
-  // 2) через window.API_JOIN до этого скрипта,
-  // 3) или параметром ?api=https://domain/api/join при открытии Mini App.
+  // URL API можно задать через window.API_JOIN (выше) или параметр ?api=
   const API_JOIN = (window.API_JOIN || new URLSearchParams(location.search).get('api') || '');
 
   const qs = new URLSearchParams(location.search);
@@ -206,7 +205,7 @@
     setRing(0.33); await new Promise(r=>setTimeout(r, 330));
     setRing(0.66); await new Promise(r=>setTimeout(r, 330));
 
-    // Если API не задан — уходим в резервный режим: шлём sendData и показываем мягкое подтверждение
+    // Если API не задан — fallback: шлём sendData и показываем мягкое подтверждение
     if (!API_JOIN){
       const warn = 'API URL не задан. Использую резервный способ — бот проверит условия в ЛС.';
       fallback.textContent = warn; fallback.classList.add('show');
