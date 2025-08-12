@@ -32,7 +32,7 @@ from dotenv import load_dotenv
 
 # ========= Config =========
 load_dotenv()
-BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 if not BOT_TOKEN:
     raise SystemExit("BOT_TOKEN is not set. Put it into .env")
 
@@ -53,9 +53,6 @@ ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "*")  # CORS
 PUBLIC_URL = os.getenv("PUBLIC_URL", "https://bot-randomus-1.onrender.com")
 # Уникальный путь вебхука (с токеном), чтобы не принимали чужие POST
 WEBHOOK_PATH = f"/tg-webhook/{BOT_TOKEN}"
-
-# Идентификатор инстанса (для логов/«захвата» заданий)
-INSTANCE_ID = os.getenv("RENDER_INSTANCE", os.getenv("HOSTNAME", "local-instance"))
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
 logger = logging.getLogger("giveaway-bot")
@@ -90,7 +87,7 @@ CREATE TABLE IF NOT EXISTS giveaways (
     post_message_id    INTEGER,
     discussion_chat_id INTEGER,
     thread_message_id  INTEGER,
-    status             TEXT NOT NULL DEFAULT 'scheduled', -- scheduled|finished|canceled|finishing
+    status             TEXT NOT NULL DEFAULT 'scheduled', -- scheduled|finished|canceled
     created_by         INTEGER NOT NULL,
     created_at_utc     TEXT NOT NULL,
     photo_file_id      TEXT
@@ -130,7 +127,6 @@ async def init_db():
             "ALTER TABLE giveaways ADD COLUMN discussion_chat_id INTEGER",
             "ALTER TABLE giveaways ADD COLUMN thread_message_id INTEGER",
             "ALTER TABLE giveaways ADD COLUMN photo_file_id TEXT",
-            "ALTER TABLE giveaways ADD COLUMN status TEXT NOT NULL DEFAULT 'scheduled'",
         ]:
             try:
                 await db.execute(ddl)
@@ -299,7 +295,6 @@ async def giveaway_kb(g: Giveaway) -> InlineKeyboardMarkup:
     if g.type == 'button':
         total = await count_entries(g.id)
         startapp_payload = f"gid-{g.id}"
-        # Кнопка-URL, которая открывает мини-аппу внутри Telegram
         kb.button(
             text="🎉 Участвовать",
             url=f"https://t.me/{BOT_USERNAME}/{MINI_APP_JOIN_SHORT}?startapp={startapp_payload}",
@@ -749,20 +744,6 @@ async def catch_comments(m: Message):
     await add_entry(g.id, m.from_user)
 
 # ========= Draw logic =========
-
-async def claim_draw(gid: int) -> bool:
-    """
-    Атомарно переводит розыгрыш из 'scheduled' в 'finishing'.
-    Возвращает True, если текущий инстанс «захватил» выполнение.
-    """
-    async with aiosqlite.connect(DB_PATH) as db:
-        cur = await db.execute("UPDATE giveaways SET status='finishing' WHERE id=? AND status='scheduled'", (gid,))
-        await db.commit()
-        ok = cur.rowcount and cur.rowcount > 0
-        if ok:
-            logger.info(f"draw #{gid}: claimed by {INSTANCE_ID}")
-        return bool(ok)
-
 async def schedule_draw_job(gid: int):
     g = await fetch_giveaway(gid)
     if not g or g.status != 'scheduled':
@@ -785,20 +766,6 @@ async def schedule_draw_job(gid: int):
 async def run_draw(gid: int, manual: bool = False):
     g = await fetch_giveaway(gid)
     if not g or g.status != 'scheduled':
-        # возможно уже обрабатывается/завершён
-        if g and g.status == 'finishing' and manual:
-            # подождём чуть-чуть и выйти
-            await asyncio.sleep(0.5)
-        return
-
-    # Захватываем выполнение (важно при рестартах и нескольких инстансах)
-    got = await claim_draw(gid)
-    if not got:
-        return  # другой инстанс уже обрабатывает
-
-    # Повторно загрузим (статус уже 'finishing')
-    g = await fetch_giveaway(gid)
-    if not g:
         return
 
     winners: List[int] = []
@@ -877,157 +844,68 @@ async def announce_results(g: Giveaway, winners: List[int]):
 
 # ========= HTTP API =========
 
-def _calc_webapp_hash_raw(check_string: str, bot_token: str) -> str:
-    """
-    HMAC-SHA256(secret_key=sha256(bot_token), data=check_string) → hex
-    """
-    secret_key = hashlib.sha256(bot_token.encode("utf-8")).digest()
-    return hmac.new(secret_key, check_string.encode("utf-8"), hashlib.sha256).hexdigest()
+def _calc_webapp_hash(data_check_string: str, bot_token: str) -> str:
+    secret_key = hashlib.sha256(bot_token.encode()).digest()
+    return hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
-def validate_webapp_init(init_data: str, bot_token: str):
+def validate_webapp_init(init_data: str, bot_token: str) -> Optional[int]:
     """
     Валидация подписи Telegram WebApp.initData + проверка свежести auth_date.
-    Возвращает кортеж (uid, reason, auth_date):
-      - uid: int | None
-      - reason: 'ok' | 'empty' | 'bad_signature' | 'stale' | 'no_user' | 'bad_json'
-      - auth_date: int (0, если нет)
+    init_data — это строка querystring из Telegram.WebApp.initData
     """
-    if not init_data:
-        return (None, "empty", 0)
+    params = urllib.parse.parse_qs(init_data, keep_blank_values=True)
+    if 'hash' not in params:
+        return None
+    got_hash = params['hash'][0]
 
-    # ——— Парсим вручную, НЕ декодируя '+', исключаем 'signature', отдельный захват 'hash'
-    items_raw = []  # List[Tuple[str, str]]
-    got_hash = None
-    for part in init_data.split("&"):
-        if not part:
+    pairs = []
+    for k, v in params.items():
+        if k == 'hash':
             continue
-        k, sep, v = part.partition("=")
-        if not sep:
-            continue
-        if k == "hash":
-            got_hash = v
-        elif k == "signature":
-            # 'signature' НЕ входит в check_string
-            continue
-        else:
-            items_raw.append((k, v))
+        pairs.append(f"{k}={v[0]}")
+    pairs.sort()
+    check_string = "\n".join(pairs)
 
-    # Собираем check_string из сырых пар (без signature), сортировка по ключу
-    items_raw.sort(key=lambda x: x[0])
-    check_string = "\n".join(f"{k}={v}" for k, v in items_raw)
-
-    # auth_date (как есть из сырых пар; если нет — 0)
-    auth_date_str = next((v for k, v in items_raw if k == "auth_date"), "0")
-    try:
-        auth_date = int(auth_date_str)
-    except Exception:
-        auth_date = 0
-
-    # Вычисляем контрольный хэш
     calc = _calc_webapp_hash(check_string, bot_token)
-
-    # Подпись должна быть и совпадать
-    if not got_hash or not hmac.compare_digest(calc, got_hash):
-        return (None, "bad_signature", auth_date)
+    if not hmac.compare_digest(calc, got_hash):
+        return None
 
     # Свежесть initData (2 минуты)
     try:
+        auth_date = int(params.get('auth_date', ['0'])[0])
         from time import time as _now
-        if auth_date and (_now() - auth_date > 120):
-            return (None, "stale", auth_date)
+        if _now() - auth_date > 120:
+            return None
     except Exception:
-        pass
+        return None
 
-    # Достаём user
-    user_enc = next((v for k, v in items_raw if k == "user"), None)
-    if not user_enc:
-        return (None, "no_user", auth_date)
-
+    user_json = params.get('user', [None])[0]
+    if not user_json:
+        return None
     try:
-        user_json = urllib.parse.unquote(user_enc)
-        user_obj = json.loads(user_json)
-        uid = int(user_obj.get("id"))
-        return (uid, "ok", auth_date)
+        user_obj = json.loads(urllib.parse.unquote(user_json))
+        return int(user_obj.get('id'))
     except Exception:
-        return (None, "bad_json", auth_date)
+        return None
 
 @web.middleware
 async def cors_mw(request, handler):
+    # Универсальный preflight и CORS заголовки
     if request.method == 'OPTIONS':
         return web.Response(headers={
             'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-            'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
+            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type',
+            'Vary': 'Origin',
         })
     resp = await handler(request)
     resp.headers['Access-Control-Allow-Origin'] = ALLOWED_ORIGIN
+    resp.headers['Vary'] = 'Origin'
     return resp
 
 # healthcheck
 async def root(request: web.Request):
     return web.Response(text="ok")
-
-async def api_whoami(request: web.Request):
-    global BOT_USERNAME
-    if not BOT_USERNAME:
-        me = await bot.get_me()
-        BOT_USERNAME = me.username
-    return web.json_response({
-        "bot_username": BOT_USERNAME,
-        "bot_id": (await bot.get_me()).id,
-        "instance": INSTANCE_ID,
-    })
-
-async def api_debug_init(request: web.Request):
-    """
-    Отладочный эндпоинт для сверки подписи initData.
-    Принимает JSON: { "init": "<initData>" }
-    """
-    try:
-        data = await request.json()
-    except Exception:
-        return web.json_response({"ok": False, "reason": "bad json"}, status=400)
-
-    init = data.get("init") or ""
-    if not init:
-        return web.json_response({"ok": False, "reason": "empty"}, status=400)
-
-    # ——— Парсим вручную, НЕ декодируя '+', исключаем 'signature'
-    items_raw = []
-    got_hash = None
-    for part in init.split("&"):
-        if not part:
-            continue
-        k, sep, v = part.partition("=")
-        if not sep:
-            continue
-        if k == "hash":
-            got_hash = v
-        elif k == "signature":
-            continue
-        else:
-            items_raw.append((k, v))
-
-    items_raw.sort(key=lambda x: x[0])
-    check_string = "\n".join(f"{k}={v}" for k, v in items_raw)
-    calc = _calc_webapp_hash(check_string, BOT_TOKEN)
-
-    auth_date_str = next((v for k, v in items_raw if k == "auth_date"), "0")
-    try:
-        auth_date = int(auth_date_str)
-    except Exception:
-        auth_date = 0
-
-    ok = bool(got_hash and hmac.compare_digest(calc, got_hash))
-    return web.json_response({
-        "ok": ok,
-        "reason": "ok" if ok else "bad_signature",
-        "got_hash_prefix": (got_hash or "")[:12],
-        "calc_hash_prefix": calc[:12],
-        "check_string_len": len(check_string),
-        "check_string_head": check_string[:120],
-        "auth_date": auth_date,
-    }, status=200 if ok else 401)
 
 async def api_join(request: web.Request):
     try:
@@ -1040,10 +918,9 @@ async def api_join(request: web.Request):
     if not gid or not init:
         return web.json_response({"ok": False, "reason": "bad params"}, status=400)
 
-    uid, v_reason, auth_date = validate_webapp_init(init, BOT_TOKEN)
-    if v_reason != "ok" or not uid:
-        logger.warning(f"api_join 401: {v_reason}; len={len(init)}; gid={gid}; auth_date={auth_date}")
-        return web.json_response({"ok": False, "reason": v_reason}, status=401)
+    uid = validate_webapp_init(init, BOT_TOKEN)
+    if not uid:
+        return web.json_response({"ok": False, "reason": "auth failed"}, status=401)
 
     g = await fetch_giveaway(gid)
     if not g or g.status != "scheduled" or g.type != "button":
@@ -1073,6 +950,39 @@ async def api_join(request: web.Request):
     total = await count_entries(gid)
     return web.json_response({"ok": True, "total": total})
 
+async def api_debug_init(request: web.Request):
+    """
+    Диагностика initData: валидирует подпись и возвращает разбёрнутые поля.
+    """
+    try:
+        payload = await request.json()
+    except Exception:
+        return web.Response(text="bad json", status=400)
+
+    init = payload.get("init") or ""
+    if not init:
+        return web.Response(text="no init", status=400)
+
+    # Пытаемся провалидировать и заодно распарсить
+    params = urllib.parse.parse_qs(init, keep_blank_values=True)
+    uid = validate_webapp_init(init, BOT_TOKEN)
+    ok = bool(uid)
+
+    def get_one(key: str) -> str:
+        v = params.get(key, [""])[0]
+        return urllib.parse.unquote(v)
+
+    resp = {
+        "ok": ok,
+        "uid": uid if ok else None,
+        "auth_date": params.get("auth_date", [""])[0],
+        "query_id": get_one("query_id"),
+        "start_param": get_one("start_param"),
+        "user_raw": get_one("user"),
+        "hash": params.get("hash", [""])[0]
+    }
+    return web.Response(text=json.dumps(resp, ensure_ascii=False, indent=2), content_type="application/json")
+
 # Webhook endpoint
 async def tg_webhook(request: web.Request):
     try:
@@ -1089,9 +999,7 @@ async def start_http():
     # healthcheck
     app.router.add_get('/', root)
     # API
-    app.router.add_route('OPTIONS', '/api/join', lambda r: web.Response())
     app.router.add_post('/api/join', api_join)
-    app.router.add_get('/api/whoami', api_whoami)
     app.router.add_post('/api/debug-init', api_debug_init)
     # webhook receiver
     app.router.add_post(WEBHOOK_PATH, tg_webhook)
@@ -1151,5 +1059,3 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
-
-
