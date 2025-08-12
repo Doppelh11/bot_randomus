@@ -954,6 +954,13 @@ async def restore_schedules():
         await schedule_draw_job(g.id)
 
 async def main():
+    try:
+    info = await bot.get_webhook_info()
+    if info.url:
+        logger.warning(f"Webhook was set to: {info.url} — deleting...")
+    await bot.delete_webhook(drop_pending_updates=True)
+except Exception as e:
+    logger.warning(f"Webhook check/delete failed: {e}")
     await init_db()
     scheduler.start()
 
@@ -978,4 +985,5 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
+
 
