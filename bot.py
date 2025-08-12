@@ -954,21 +954,17 @@ async def restore_schedules():
         await schedule_draw_job(g.id)
 
 async def main():
-    try:
-    info = await bot.get_webhook_info()
-    if info.url:
-        logger.warning(f"Webhook was set to: {info.url} — deleting...")
-    await bot.delete_webhook(drop_pending_updates=True)
-except Exception as e:
-    logger.warning(f"Webhook check/delete failed: {e}")
     await init_db()
     scheduler.start()
 
-    # 🔧 гарантированно выключаем webhook перед long-polling
+    # Снимаем вебхук, если он вдруг остался
     try:
+        info = await bot.get_webhook_info()
+        if info.url:
+            logger.warning(f"Webhook was set to: {info.url} — deleting...")
         await bot.delete_webhook(drop_pending_updates=True)
     except Exception as e:
-        logger.warning(f"delete_webhook failed: {e}")
+        logger.warning(f"Webhook check/delete failed: {e}")
 
     global BOT_USERNAME
     if not BOT_USERNAME:
@@ -979,11 +975,11 @@ except Exception as e:
     await restore_schedules()
     await dp.start_polling(bot)
 
-
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
+
 
 
