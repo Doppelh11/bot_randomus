@@ -880,77 +880,76 @@ def _parse_raw_pairs(init_data: str):
         pairs.append((k, v, dec_k, dec_v))
     return pairs
 
-def validate_webapp_init(init_data: str, bot_token: str) -> Optional[int]:
+def validate_webapp_init(init_data: str, bot_token: str) -> Tuple[Optional[int], str, Optional[int]]:
     """
-    Валидируем подпись Telegram WebApp.initData.
-    ВАЖНО: нельзя парсить init_data через parse_qs/parse_qsl,
-    иначе '+' превратятся в пробелы и подпись не сойдётся.
+    Проверяем Telegram WebApp.initData.
+
+    Возвращаем всегда кортеж:
+      (uid, reason, auth_date)
+    где reason один из: 'ok' | 'no_data' | 'no_hash' | 'bad_signature' | 'stale' | 'bad_user' | 'json_error'
+
+    ВАЖНО: не используем parse_qs/parse_qsl, чтобы '+' не превращались в пробелы.
     """
     if not init_data:
-        return None
+        return None, "no_data", None
 
-    got_hash = None
-    items_decoded = []  # (k_dec, v_dec)
+    got_hash: Optional[str] = None
+    items_decoded: List[Tuple[str, str]] = []
 
-    # Ручной парсинг: разбираем "a=b&c=d" не трогая плюсы
+    # Ручной парсинг "a=b&c=d", с percent-decoding, но БЕЗ замены '+' на пробел
     for part in init_data.split("&"):
         if not part:
             continue
         k_raw, sep, v_raw = part.partition("=")
         if not sep:
-            # ключ без '=', пропускаем
             continue
 
-        # Значения для сравнения должны быть percent-decoded,
-        # но '+' оставляем как есть (НЕ превращаем в пробел).
         k_dec = urllib.parse.unquote(k_raw)
         v_dec = urllib.parse.unquote(v_raw)
 
         if k_dec == "hash":
-            # hash нельзя включать в check_string
             got_hash = v_dec
             continue
-
         items_decoded.append((k_dec, v_dec))
 
     if not got_hash:
-        return None
+        return None, "no_hash", None
 
-    # Строим data_check_string
-    items_decoded.sort(key=lambda x: x[0])  # сортируем по ключу (уже декодированному)
+    # Сортировка по ключу и сборка check_string из ДЕКОДИРОВАННЫХ пар (без замены '+')
+    items_decoded.sort(key=lambda x: x[0])
     check_string = "\n".join(f"{k}={v}" for k, v in items_decoded)
 
-    # Вычисляем HMAC-SHA256 по инструкции Telegram:
-    # secret_key = sha256(bot_token)
     secret_key = hashlib.sha256(bot_token.encode("utf-8")).digest()
     calc_hash = hmac.new(secret_key, check_string.encode("utf-8"), hashlib.sha256).hexdigest()
 
     if not hmac.compare_digest(calc_hash, got_hash):
-        return None
+        # Попутно вытащим auth_date для логов (если он есть)
+        auth_date_str = next((v for k, v in items_decoded if k == "auth_date"), None)
+        auth_date_val = int(auth_date_str) if (auth_date_str and auth_date_str.isdigit()) else None
+        return None, "bad_signature", auth_date_val
 
-    # Свежесть (180 сек)
+    # Свежесть
     try:
-        # в init_data уже был percent-decoded, ищем auth_date среди items_decoded
         auth_date_str = next((v for k, v in items_decoded if k == "auth_date"), None)
         if not auth_date_str:
-            return None
+            return None, "bad_user", None
         auth_date = int(auth_date_str)
         from time import time as _now
         if _now() - auth_date > 180:
-            return None
+            return None, "stale", auth_date
     except Exception:
-        return None
+        return None, "bad_user", None
 
     # user обязателен
     user_json = next((v for k, v in items_decoded if k == "user"), None)
     if not user_json:
-        return None
-
+        return None, "bad_user", None
     try:
         user_obj = json.loads(user_json)
-        return int(user_obj.get("id"))
+        uid = int(user_obj.get("id"))
+        return uid, "ok", auth_date
     except Exception:
-        return None
+        return None, "json_error", None
 
 @web.middleware
 async def cors_mw(request, handler):
@@ -1135,4 +1134,5 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
+
 
