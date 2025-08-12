@@ -926,16 +926,16 @@ async def announce_results(g: Giveaway, winners: List[int]):
 
 # ========= HTTP API =========
 
-def validate_webapp_init(init_data: str, bot_token: str) -> Optional[int]:
+def validate_webapp_init(init_data: str, bot_token: str) -> tuple[Optional[int], str]:
     """
-    Валидация Telegram WebApp.initData.
-    Сбор data_check_string — из URL-РАСКОДИРОВАННЫХ значений (parse_qsl),
-    как в официальных примерах Telegram для Login Widget/WebApp.
+    Проверяем initData из Telegram WebApp.
+    Возвращает (user_id, reason), где reason пустая строка при успехе или
+    'no_hash' | 'bad_signature' | 'stale' | 'bad_user' при ошибке.
     """
     if not init_data or "hash=" not in init_data:
-        return None
+        return None, "no_hash"
 
-    # Разбираем строку в пары (значения уже URL-decoded)
+    # Разбираем как querystring с URL-декодированием (официальная рекомендация)
     pairs = urllib.parse.parse_qsl(init_data, keep_blank_values=True)
     got_hash = None
     filtered = []
@@ -945,36 +945,35 @@ def validate_webapp_init(init_data: str, bot_token: str) -> Optional[int]:
         else:
             filtered.append((k, v))
     if not got_hash:
-        return None
+        return None, "no_hash"
 
-    # Сортируем по ключу и собираем "k=v" построчно
     filtered.sort(key=lambda x: x[0])
     data_check_string = "\n".join(f"{k}={v}" for k, v in filtered)
 
-    # Секрет и подпись
     secret_key = hashlib.sha256(bot_token.encode()).digest()
     calc = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(calc, got_hash):
-        return None
+        return None, "bad_signature"
 
-    # Свежесть 10 минут
+    # Свежесть — даём большой люфт (24 часа)
     try:
-        # здесь используем уже распарсенные пары
         params = dict(filtered)
         auth_date = int(params.get("auth_date", "0"))
         from time import time as _now
-        if _now() - auth_date > 600:
-            return None
+        delta = int(_now() - auth_date)
+        if delta > 86400:  # 24h
+            return None, "stale"
     except Exception:
-        return None
+        return None, "stale"
 
-    # user.id из JSON
-    user_json = dict(filtered).get("user") or ""
+    # user.id
     try:
+        user_json = dict(filtered).get("user") or ""
         user_obj = json.loads(user_json)
-        return int(user_obj.get("id"))
+        uid = int(user_obj.get("id"))
+        return uid, ""
     except Exception:
-        return None
+        return None, "bad_user"
 
     # Отсортировать по ключу и собрать data_check_string из raw-значений
     pairs_raw.sort(key=lambda x: x[0])
@@ -1142,4 +1141,5 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
+
 
