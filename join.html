@@ -182,18 +182,32 @@
     const payload = { action: 'join', gid, init: WebApp && WebApp.initData || '' };
     const ctrl = new AbortController();
     const to = setTimeout(()=>ctrl.abort(), 8000);
-    try{
-      const r = await fetch(API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        credentials: 'omit',
-        signal: ctrl.signal
-      });
+    const r = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      credentials: 'omit',
+      signal: ctrl.signal
+    }).catch(e=>{
       clearTimeout(to);
-      if(!r.ok) throw new Error('HTTP '+r.status);
-      return await r.json(); // { ok, total, need?, reason? }
-    }catch(e){ clearTimeout(to); throw e; }
+      throw e;
+    });
+    clearTimeout(to);
+
+    // ЯВНАЯ проверка 401 — открыто вне Telegram, или подпись не совпала
+    if (r.status === 401) {
+      label.textContent = 'Откройте мини-аппу из Telegram';
+      const diag = document.createElement('div');
+      diag.className = 'muted';
+      diag.style.fontSize = '12px';
+      diag.style.marginTop = '6px';
+      diag.textContent = 'Похоже, страница открыта вне Telegram (нет подписи initData) или токен бота не совпадает.';
+      needBox.after(diag);
+      return { ok:false, reason:'auth failed' };
+    }
+
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    return await r.json(); // {ok, total, need?, reason?}
   }
 
   // === Main flow ===
@@ -225,6 +239,8 @@
 
     try{
       const data = await joinViaAPI();
+      if (data && data.reason === 'auth failed') return; // уже показали подсказку
+
       setRing(1);
       if (data.ok){
         haptic('notificationOccurred');
