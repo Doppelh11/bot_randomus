@@ -26,6 +26,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message, User
 from aiogram.types import Update
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types.web_app_info import WebAppInfo  # <-- ДОБАВЛЕНО
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.date import DateTrigger
 from dotenv import load_dotenv
@@ -49,7 +50,7 @@ HTTP_HOST = os.getenv("HOST", "0.0.0.0")
 HTTP_PORT = int(os.getenv("PORT", "10000"))
 ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "*")  # CORS
 
-# Публичный URL сервиса (для вебхука)
+# Публичный URL сервиса (для вебхука и фронта Mini App)
 PUBLIC_URL = os.getenv("PUBLIC_URL", "https://bot-randomus-1.onrender.com")
 # Уникальный путь вебхука (с токеном), чтобы не принимали чужие POST
 WEBHOOK_PATH = f"/tg-webhook/{BOT_TOKEN}"
@@ -295,13 +296,18 @@ async def giveaway_kb(g: Giveaway) -> InlineKeyboardMarkup:
     if g.type == 'button':
         total = await count_entries(g.id)
         startapp_payload = f"gid-{g.id}"
+
+        # ВАЖНО: открываем Mini App как web_app, чтобы получить валидный initData
+        # Предполагаем, что join.html доступен по PUBLIC_URL/join.html
+        join_url = f"{PUBLIC_URL}/join.html?tgWebAppStartParam={startapp_payload}"
         kb.button(
             text="🎉 Участвовать",
-            url=f"https://t.me/{BOT_USERNAME}/{MINI_APP_JOIN_SHORT}?startapp={startapp_payload}",
+            web_app=WebAppInfo(url=join_url),
         )
         kb.button(text=f"👥 Участники: {total}", callback_data=f"count:{g.id}")
 
     elif g.type == 'referrals':
+        # Оставляем как было (если захотите — можно тоже перевести на web_app свою страницу рефералок)
         startapp_payload = f"gid-{g.id}"
         kb.button(
             text="🔗 Моя ссылка",
