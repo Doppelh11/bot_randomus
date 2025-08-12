@@ -884,77 +884,72 @@ def _calc_webapp_hash_raw(check_string: str, bot_token: str) -> str:
     secret_key = hashlib.sha256(bot_token.encode("utf-8")).digest()
     return hmac.new(secret_key, check_string.encode("utf-8"), hashlib.sha256).hexdigest()
 
-def validate_webapp_init(init_data: str, bot_token: str) -> Tuple[Optional[int], str, Optional[int]]:
+def validate_webapp_init(init_data: str, bot_token: str):
     """
-    Проверяем Telegram WebApp.initData по СЫРЫМ парам k=v (без percent-decoding, без замены '+').
-
-    Возвращаем всегда (uid, reason, auth_date)
-    reason ∈ {'ok','no_data','no_hash','bad_signature','stale','bad_user','json_error'}
+    Валидация подписи Telegram WebApp.initData + проверка свежести auth_date.
+    Возвращает кортеж (uid, reason, auth_date):
+      - uid: int | None
+      - reason: 'ok' | 'empty' | 'bad_signature' | 'stale' | 'no_user' | 'bad_json'
+      - auth_date: int (0, если нет)
     """
     if not init_data:
-        return None, "no_data", None
+        return (None, "empty", 0)
 
-    # Ручной парсинг без трогания '+', исключая 'signature'
-items_raw: List[Tuple[str, str]] = []
-got_hash: Optional[str] = None
+    # ——— Парсим вручную, НЕ декодируя '+', исключаем 'signature', отдельный захват 'hash'
+    items_raw = []  # List[Tuple[str, str]]
+    got_hash = None
+    for part in init_data.split("&"):
+        if not part:
+            continue
+        k, sep, v = part.partition("=")
+        if not sep:
+            continue
+        if k == "hash":
+            got_hash = v
+        elif k == "signature":
+            # 'signature' НЕ входит в check_string
+            continue
+        else:
+            items_raw.append((k, v))
 
-for part in init.split("&"):  # или init, если в api_debug_init
-    if not part:
-        continue
-    k_raw, sep, v_raw = part.partition("=")
-    if not sep:
-        continue
-    if k_raw == "hash":
-        got_hash = v_raw
-    elif k_raw == "signature":
-        # В check_string НЕ ДОЛЖНО быть 'signature'
-        continue
-    else:
-        items_raw.append((k_raw, v_raw))
+    # Собираем check_string из сырых пар (без signature), сортировка по ключу
+    items_raw.sort(key=lambda x: x[0])
+    check_string = "\n".join(f"{k}={v}" for k, v in items_raw)
 
-# Собираем check_string из сырых пар (без signature)
-items_raw.sort(key=lambda x: x[0])
-check_string = "\n".join(f"{k}={v}" for k, v in items_raw)
-
-
-    calc_hash = _calc_webapp_hash_raw(check_string, bot_token)
-    if not hmac.compare_digest(calc_hash, got_hash):
-        # попробуем достать auth_date (уже можно декодировать)
-        try:
-            auth_raw = next((v for k, v in items_raw if k == "auth_date"), None)
-            auth_dec = urllib.parse.unquote(auth_raw) if auth_raw is not None else None
-            auth_val = int(auth_dec) if (auth_dec and auth_dec.isdigit()) else None
-        except Exception:
-            auth_val = None
-        return None, "bad_signature", auth_val
-
-    # Подпись сошлась — аккуратно декодируем только нужные поля
-    def get_decoded(name: str) -> Optional[str]:
-        raw = next((v for k, v in items_raw if k == name), None)
-        return urllib.parse.unquote(raw) if raw is not None else None
-
-    # Свежесть (180 сек)
+    # auth_date (как есть из сырых пар; если нет — 0)
+    auth_date_str = next((v for k, v in items_raw if k == "auth_date"), "0")
     try:
-        auth_date_str = get_decoded("auth_date")
-        if not auth_date_str:
-            return None, "bad_user", None
         auth_date = int(auth_date_str)
-        from time import time as _now
-        if _now() - auth_date > 180:
-            return None, "stale", auth_date
     except Exception:
-        return None, "bad_user", None
+        auth_date = 0
 
-    # user обязателен
-    user_json = get_decoded("user")
-    if not user_json:
-        return None, "bad_user", None
+    # Вычисляем контрольный хэш
+    calc = _calc_webapp_hash(check_string, bot_token)
+
+    # Подпись должна быть и совпадать
+    if not got_hash or not hmac.compare_digest(calc, got_hash):
+        return (None, "bad_signature", auth_date)
+
+    # Свежесть initData (2 минуты)
     try:
+        from time import time as _now
+        if auth_date and (_now() - auth_date > 120):
+            return (None, "stale", auth_date)
+    except Exception:
+        pass
+
+    # Достаём user
+    user_enc = next((v for k, v in items_raw if k == "user"), None)
+    if not user_enc:
+        return (None, "no_user", auth_date)
+
+    try:
+        user_json = urllib.parse.unquote(user_enc)
         user_obj = json.loads(user_json)
         uid = int(user_obj.get("id"))
-        return uid, "ok", auth_date
+        return (uid, "ok", auth_date)
     except Exception:
-        return None, "json_error", None
+        return (None, "bad_json", auth_date)
 
 @web.middleware
 async def cors_mw(request, handler):
@@ -984,37 +979,54 @@ async def api_whoami(request: web.Request):
     })
 
 async def api_debug_init(request: web.Request):
+    """
+    Отладочный эндпоинт для сверки подписи initData.
+    Принимает JSON: { "init": "<initData>" }
+    """
     try:
-        payload = await request.json()
+        data = await request.json()
     except Exception:
         return web.json_response({"ok": False, "reason": "bad json"}, status=400)
 
-    init = payload.get("init") or ""
-    # Сборка по сырым парам — как в validate_webapp_init
-    items_raw: List[Tuple[str, str]] = []
-    got_hash: Optional[str] = None
+    init = data.get("init") or ""
+    if not init:
+        return web.json_response({"ok": False, "reason": "empty"}, status=400)
+
+    # ——— Парсим вручную, НЕ декодируя '+', исключаем 'signature'
+    items_raw = []
+    got_hash = None
     for part in init.split("&"):
         if not part:
             continue
-        k_raw, sep, v_raw = part.partition("=")
+        k, sep, v = part.partition("=")
         if not sep:
             continue
-        if k_raw == "hash":
-            got_hash = v_raw
+        if k == "hash":
+            got_hash = v
+        elif k == "signature":
+            continue
         else:
-            items_raw.append((k_raw, v_raw))
+            items_raw.append((k, v))
 
     items_raw.sort(key=lambda x: x[0])
     check_string = "\n".join(f"{k}={v}" for k, v in items_raw)
-    calc_hash = _calc_webapp_hash_raw(check_string, BOT_TOKEN)
-    ok = bool(got_hash and hmac.compare_digest(calc_hash, got_hash))
+    calc = _calc_webapp_hash(check_string, BOT_TOKEN)
+
+    auth_date_str = next((v for k, v in items_raw if k == "auth_date"), "0")
+    try:
+        auth_date = int(auth_date_str)
+    except Exception:
+        auth_date = 0
+
+    ok = bool(got_hash and hmac.compare_digest(calc, got_hash))
     return web.json_response({
         "ok": ok,
-        "reason": None if ok else "bad_signature",
+        "reason": "ok" if ok else "bad_signature",
         "got_hash_prefix": (got_hash or "")[:12],
-        "calc_hash_prefix": calc_hash[:12],
+        "calc_hash_prefix": calc[:12],
         "check_string_len": len(check_string),
-        "check_string_head": check_string[:200]
+        "check_string_head": check_string[:120],
+        "auth_date": auth_date,
     }, status=200 if ok else 401)
 
 async def api_join(request: web.Request):
@@ -1139,4 +1151,5 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
+
 
