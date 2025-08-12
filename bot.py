@@ -880,59 +880,77 @@ def _parse_raw_pairs(init_data: str):
         pairs.append((k, v, dec_k, dec_v))
     return pairs
 
-def validate_webapp_init(init_data: str, bot_token: str) -> Tuple[Optional[int], str, Optional[int]]:
+def validate_webapp_init(init_data: str, bot_token: str) -> Optional[int]:
     """
-    Валидация подписи Telegram WebApp.initData + свежесть auth_date.
-    Важно: data_check_string строим из НЕРАЗКОДИРОВАННЫХ пар key=value, отсортированных по ДЕКОДИРОВАННОМУ ключу.
-    Возвращает: (user_id|None, reason, auth_date|None)
-    reason: 'ok' | 'no_hash' | 'bad_signature' | 'stale' | 'bad_user' | 'bad_parse'
+    Валидируем подпись Telegram WebApp.initData.
+    ВАЖНО: нельзя парсить init_data через parse_qs/parse_qsl,
+    иначе '+' превратятся в пробелы и подпись не сойдётся.
     """
-    try:
-        pairs = _parse_raw_pairs(init_data)  # [(raw_k, raw_v, dec_k, dec_v), ...]
-    except Exception:
-        return None, "bad_parse", None
+    if not init_data:
+        return None
 
     got_hash = None
-    rows_for_hmac = []   # (dec_k, "raw_k=raw_v")
-    user_json_dec = None
-    auth_date_dec: Optional[int] = None
+    items_decoded = []  # (k_dec, v_dec)
 
-    for raw_k, raw_v, dec_k, dec_v in pairs:
-        if dec_k == 'hash':
-            got_hash = dec_v  # hash само приходит уже «как строка» (можно брать decoded)
+    # Ручной парсинг: разбираем "a=b&c=d" не трогая плюсы
+    for part in init_data.split("&"):
+        if not part:
             continue
-        rows_for_hmac.append((dec_k, f"{raw_k}={raw_v}"))
-        if dec_k == 'user':
-            user_json_dec = dec_v  # для извлечения uid
-        if dec_k == 'auth_date':
-            try:
-                auth_date_dec = int(dec_v)
-            except Exception:
-                auth_date_dec = None
+        k_raw, sep, v_raw = part.partition("=")
+        if not sep:
+            # ключ без '=', пропускаем
+            continue
+
+        # Значения для сравнения должны быть percent-decoded,
+        # но '+' оставляем как есть (НЕ превращаем в пробел).
+        k_dec = urllib.parse.unquote(k_raw)
+        v_dec = urllib.parse.unquote(v_raw)
+
+        if k_dec == "hash":
+            # hash нельзя включать в check_string
+            got_hash = v_dec
+            continue
+
+        items_decoded.append((k_dec, v_dec))
 
     if not got_hash:
-        return None, "no_hash", auth_date_dec
+        return None
 
-    # Сортируем по декодированному ключу, но в строку кладём raw "k=v"
-    rows_for_hmac.sort(key=lambda t: t[0])
-    data_check_string = "\n".join(row for _, row in rows_for_hmac)
+    # Строим data_check_string
+    items_decoded.sort(key=lambda x: x[0])  # сортируем по ключу (уже декодированному)
+    check_string = "\n".join(f"{k}={v}" for k, v in items_decoded)
 
-    calc = _calc_webapp_hash(data_check_string, bot_token)
-    if not hmac.compare_digest(calc, got_hash):
-        return None, "bad_signature", auth_date_dec
+    # Вычисляем HMAC-SHA256 по инструкции Telegram:
+    # secret_key = sha256(bot_token)
+    secret_key = hashlib.sha256(bot_token.encode("utf-8")).digest()
+    calc_hash = hmac.new(secret_key, check_string.encode("utf-8"), hashlib.sha256).hexdigest()
 
-    if auth_date_dec is not None and time.time() - auth_date_dec > 180:
-        return None, "stale", auth_date_dec
+    if not hmac.compare_digest(calc_hash, got_hash):
+        return None
 
-    if not user_json_dec:
-        return None, "bad_user", auth_date_dec
+    # Свежесть (180 сек)
+    try:
+        # в init_data уже был percent-decoded, ищем auth_date среди items_decoded
+        auth_date_str = next((v for k, v in items_decoded if k == "auth_date"), None)
+        if not auth_date_str:
+            return None
+        auth_date = int(auth_date_str)
+        from time import time as _now
+        if _now() - auth_date > 180:
+            return None
+    except Exception:
+        return None
+
+    # user обязателен
+    user_json = next((v for k, v in items_decoded if k == "user"), None)
+    if not user_json:
+        return None
 
     try:
-        user_obj = json.loads(user_json_dec)
-        uid = int(user_obj.get('id'))
-        return uid, "ok", auth_date_dec
+        user_obj = json.loads(user_json)
+        return int(user_obj.get("id"))
     except Exception:
-        return None, "bad_user", auth_date_dec
+        return None
 
 @web.middleware
 async def cors_mw(request, handler):
@@ -1117,3 +1135,4 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
+
