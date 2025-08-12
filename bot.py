@@ -956,16 +956,26 @@ async def restore_schedules():
 async def main():
     await init_db()
     scheduler.start()
+
+    # 🔧 гарантированно выключаем webhook перед long-polling
+    try:
+        await bot.delete_webhook(drop_pending_updates=True)
+    except Exception as e:
+        logger.warning(f"delete_webhook failed: {e}")
+
     global BOT_USERNAME
     if not BOT_USERNAME:
         me = await bot.get_me()
         BOT_USERNAME = me.username
-    await start_http()  # стартуем HTTP API
+
+    await start_http()
     await restore_schedules()
     await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
+
