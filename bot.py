@@ -8,6 +8,8 @@ import logging
 import os
 import random
 import re
+import socket
+import time
 import urllib.parse
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -49,12 +51,10 @@ HTTP_HOST = os.getenv("HOST", "0.0.0.0")
 HTTP_PORT = int(os.getenv("PORT", "10000"))
 ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "*")  # CORS
 
-# Публичный URL сервиса (для вебхука)
 PUBLIC_URL = os.getenv("PUBLIC_URL", "https://bot-randomus-1.onrender.com")
 WEBHOOK_PATH = f"/tg-webhook/{BOT_TOKEN}"
 
-# Идентификатор инстанса (для блокировки розыгрыша при гонке нескольких инстансов)
-INSTANCE_ID = os.getenv("RENDER_INSTANCE_ID") or os.getenv("DYNO") or f"pid-{os.getpid()}"
+INSTANCE_ID = os.getenv("RENDER_INSTANCE_ID") or socket.gethostname()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
 logger = logging.getLogger("giveaway-bot")
@@ -92,9 +92,7 @@ CREATE TABLE IF NOT EXISTS giveaways (
     status             TEXT NOT NULL DEFAULT 'scheduled', -- scheduled|drawing|finished|canceled
     created_by         INTEGER NOT NULL,
     created_at_utc     TEXT NOT NULL,
-    photo_file_id      TEXT,
-    announced          INTEGER NOT NULL DEFAULT 0,
-    draw_lock          TEXT
+    photo_file_id      TEXT
 );
 
 CREATE TABLE IF NOT EXISTS entries (
@@ -125,13 +123,12 @@ CREATE TABLE IF NOT EXISTS winners (
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript(INIT_SQL)
+        # мягкие миграции
         for ddl in [
             "ALTER TABLE giveaways ADD COLUMN type TEXT NOT NULL DEFAULT 'button'",
             "ALTER TABLE giveaways ADD COLUMN discussion_chat_id INTEGER",
             "ALTER TABLE giveaways ADD COLUMN thread_message_id INTEGER",
             "ALTER TABLE giveaways ADD COLUMN photo_file_id TEXT",
-            "ALTER TABLE giveaways ADD COLUMN announced INTEGER NOT NULL DEFAULT 0",
-            "ALTER TABLE giveaways ADD COLUMN draw_lock TEXT",
         ]:
             try:
                 await db.execute(ddl)
@@ -174,8 +171,6 @@ class Giveaway:
     created_by: int
     created_at_utc: str
     photo_file_id: Optional[str]
-    announced: int = 0
-    draw_lock: Optional[str] = None
 
     @property
     def start_dt(self) -> datetime:
@@ -202,7 +197,7 @@ async def fetch_giveaway(gid: int) -> Optional[Giveaway]:
 async def list_active_giveaways() -> List[Giveaway]:
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        cur = await db.execute("SELECT * FROM giveaways WHERE status IN ('scheduled','drawing') ORDER BY end_at_utc ASC")
+        cur = await db.execute("SELECT * FROM giveaways WHERE status='scheduled' ORDER BY end_at_utc ASC")
         rows = await cur.fetchall()
         return [Giveaway(**dict(r)) for r in rows]
 
@@ -236,6 +231,8 @@ async def save_winners(gid: int, winners: List[int]):
         await db.execute("DELETE FROM winners WHERE giveaway_id=?", (gid,))
         for idx, uid in enumerate(winners, start=1):
             await db.execute("INSERT INTO winners (giveaway_id, user_id, place) VALUES (?,?,?)", (gid, uid, idx))
+        # Статус в finished — финальный штамп
+        await db.execute("UPDATE giveaways SET status='finished' WHERE id=?", (gid,))
         await db.commit()
 
 async def get_winners(gid: int) -> List[int]:
@@ -301,6 +298,7 @@ async def giveaway_kb(g: Giveaway) -> InlineKeyboardMarkup:
     if g.type == 'button':
         total = await count_entries(g.id)
         startapp_payload = f"gid-{g.id}"
+        # Кнопка запуска мини-аппы по шортнейму
         kb.button(
             text="🎉 Участвовать",
             url=f"https://t.me/{BOT_USERNAME}/{MINI_APP_JOIN_SHORT}?startapp={startapp_payload}",
@@ -361,6 +359,7 @@ async def cmd_start(m: Message, command: CommandObject):
         me = await bot.get_me()
         BOT_USERNAME = me.username
 
+    # deep links for referrals
     if command.args:
         args = command.args
         mobj = re.match(r"ref-(\d+)-(\d+)", args)
@@ -368,7 +367,7 @@ async def cmd_start(m: Message, command: CommandObject):
             gid = int(mobj.group(1))
             ref = int(mobj.group(2))
             g = await fetch_giveaway(gid)
-            if g and g.type == 'referrals' and g.status in ('scheduled','drawing'):
+            if g and g.type == 'referrals' and g.status == 'scheduled':
                 try:
                     await add_referral(gid, ref, m.from_user.id)
                 except Exception:
@@ -408,7 +407,7 @@ async def menu_list(c: CallbackQuery):
         end_local = datetime.fromisoformat(g.end_at_utc).astimezone(TZ)
         lines.append(
             f"#{g.id} • {g.title} • тип: {g.type} • до {end_local:%Y-%m-%d %H:%M} {DEFAULT_TZ} "
-            f"(UTC: {g.end_dt:%Y-%m-%d %H:%M}Z) • status={g.status} • announced={g.announced}"
+            f"(UTC: {g.end_dt:%Y-%m-%d %H:%M}Z)"
         )
     await c.message.edit_text("\n".join(lines), reply_markup=await main_menu_kb())
 
@@ -543,10 +542,11 @@ async def g_confirm(m: Message, state: FSMContext):
 
     gtype = data['gtype']
 
+    # Save to DB
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute(
-            "INSERT INTO giveaways (title, description, winners_count, type, start_at_utc, end_at_utc, required_channels, target_chat, status, created_by, created_at_utc, photo_file_id, announced) "
-            "VALUES (?,?,?,?,?,?,?,?, 'scheduled', ?, ?, ?, 0)",
+            "INSERT INTO giveaways (title, description, winners_count, type, start_at_utc, end_at_utc, required_channels, target_chat, status, created_by, created_at_utc, photo_file_id) "
+            "VALUES (?,?,?,?,?,?,?,?, 'scheduled', ?, ?, ?)",
             (
                 data['title'], data['description'], data['winners'], gtype,
                 data['start_at_utc'], data['end_at_utc'], data['required_channels'], data['target_chat'],
@@ -556,6 +556,7 @@ async def g_confirm(m: Message, state: FSMContext):
         gid = cur.lastrowid
         await db.commit()
 
+    # Build post text
     gid_text = f"ID: <code>{gid}</code>"
     end_local = datetime.fromisoformat(data['end_at_utc']).astimezone(TZ)
     post_text = (
@@ -565,13 +566,14 @@ async def g_confirm(m: Message, state: FSMContext):
         f"Победителей: <b>{data['winners']}</b>\n{gid_text}"
     )
 
+    # keyboard preview via a fake Giveaway instance
     g_preview = Giveaway(
         id=gid, title=data['title'], description=data['description'], winners_count=data['winners'],
         type=gtype, start_at_utc=data['start_at_utc'], end_at_utc=data['end_at_utc'],
         required_channels=data['required_channels'], target_chat=data['target_chat'],
         post_chat_id=None, post_message_id=None, discussion_chat_id=None, thread_message_id=None,
         status='scheduled', created_by=m.from_user.id, created_at_utc=datetime.now(timezone.utc).isoformat(),
-        photo_file_id=data.get('photo_file_id'), announced=0, draw_lock=None
+        photo_file_id=data.get('photo_file_id')
     )
 
     sent = None
@@ -624,7 +626,7 @@ async def on_webapp_data(m: Message):
         return await m.answer("Некорректные данные Mini App.")
 
     g = await fetch_giveaway(gid)
-    if not g or g.status not in ('scheduled','drawing') or g.type != 'button':
+    if not g or g.status != 'scheduled' or g.type != 'button':
         return await m.answer("Этот розыгрыш недоступен для участия.")
 
     if await has_entry(gid, m.from_user.id):
@@ -681,7 +683,7 @@ async def cb_refcount(c: CallbackQuery):
 async def cb_boost(c: CallbackQuery):
     gid = int(c.data.split(":")[1])
     g = await fetch_giveaway(gid)
-    if not g or g.status not in ('scheduled','drawing'):
+    if not g or g.status != 'scheduled':
         return await c.answer("Розыгрыш недоступен", show_alert=True)
     if g.type != 'boosts':
         return await c.answer("Этот розыгрыш не по голосам Premium", show_alert=True)
@@ -720,7 +722,7 @@ async def catch_comments(m: Message):
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cur = await db.execute(
-            "SELECT * FROM giveaways WHERE status IN ('scheduled','drawing') AND type='comments' AND discussion_chat_id=? AND thread_message_id=?",
+            "SELECT * FROM giveaways WHERE status='scheduled' AND type='comments' AND discussion_chat_id=? AND thread_message_id=?",
             (chat_id, replied_id),
         )
         row = await cur.fetchone()
@@ -745,12 +747,12 @@ async def catch_comments(m: Message):
 
     await add_entry(g.id, m.from_user)
 
-# ========= Draw logic =========
+# ========= Draw logic (с защитой от дублей) =========
 async def schedule_draw_job(gid: int):
     g = await fetch_giveaway(gid)
-    if not g or g.status not in ('scheduled','drawing'):
+    if not g or g.status != 'scheduled':
         return
-    end_dt_utc = datetime.fromisoformat(g.end_at_utc)
+    end_dt_utc = datetime.fromisoformat(g.end_at_utc)  # aware UTC
     scheduler.add_job(
         run_draw,
         DateTrigger(run_date=end_dt_utc, timezone=pytz.utc),
@@ -765,48 +767,22 @@ async def schedule_draw_job(gid: int):
         f"local={end_dt_utc.astimezone(TZ).strftime('%Y-%m-%d %H:%M')} {DEFAULT_TZ}"
     )
 
-async def try_claim_draw(gid: int) -> bool:
+async def run_draw(gid: int, manual: bool = False):
+    # Атомарная попытка захвата розыгрыша: scheduled -> drawing
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute(
-            """
-            UPDATE giveaways
-               SET status='drawing', draw_lock=?
-             WHERE id=? AND status='scheduled'
-            """,
-            (INSTANCE_ID, gid),
-        )
-        await db.commit()
-        return cur.rowcount == 1
-
-async def mark_announced_once(gid: int) -> bool:
-    async with aiosqlite.connect(DB_PATH) as db:
-        cur = await db.execute(
-            "UPDATE giveaways SET announced=1 WHERE id=? AND announced=0",
+            "UPDATE giveaways SET status='drawing' WHERE id=? AND status='scheduled'",
             (gid,),
         )
         await db.commit()
-        return cur.rowcount == 1
-
-async def finish_draw(gid: int):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("UPDATE giveaways SET status='finished' WHERE id=?", (gid,))
-        await db.commit()
-
-async def run_draw(gid: int, manual: bool = False):
-    g = await fetch_giveaway(gid)
-    if not g or g.status not in ('scheduled','drawing'):
-        return
-
-    if g.status == 'scheduled':
-        claimed = await try_claim_draw(gid)
-        if not claimed:
-            logger.info(f"draw #{gid}: not claimed by {INSTANCE_ID}, skipping")
+        if cur.rowcount == 0:
+            # Уже кем-то забрано или завершено — выходим
             return
-        else:
-            logger.info(f"draw #{gid}: claimed by {INSTANCE_ID}")
+
+    logger.info(f"draw #{gid}: claimed by {INSTANCE_ID}")
 
     g = await fetch_giveaway(gid)
-    if not g or g.status not in ('scheduled','drawing'):
+    if not g:
         return
 
     winners: List[int] = []
@@ -816,10 +792,7 @@ async def run_draw(gid: int, manual: bool = False):
         pool = [e[0] for e in entries_list]
         if not pool:
             await save_winners(gid, [])
-            if await mark_announced_once(gid):
-                await announce_results(g, [])
-            await finish_draw(gid)
-            return
+            return await announce_results(g, [])
         k = min(g.winners_count, len(pool))
         winners = random.sample(pool, k)
 
@@ -827,10 +800,7 @@ async def run_draw(gid: int, manual: bool = False):
         top = await referral_top(gid)
         if not top:
             await save_winners(gid, [])
-            if await mark_announced_once(gid):
-                await announce_results(g, [])
-            await finish_draw(gid)
-            return
+            return await announce_results(g, [])
         grouped = {}
         for uid, cnt in top:
             grouped.setdefault(cnt, []).append(uid)
@@ -854,19 +824,12 @@ async def run_draw(gid: int, manual: bool = False):
                 pool.append(uid)
         if not pool:
             await save_winners(gid, [])
-            if await mark_announced_once(gid):
-                await announce_results(g, [])
-            await finish_draw(gid)
-            return
+            return await announce_results(g, [])
         k = min(g.winners_count, 200, len(pool))
         winners = random.sample(pool, k)
 
     await save_winners(gid, winners)
-    if await mark_announced_once(gid):
-        await announce_results(g, winners)
-    else:
-        logger.info(f"announce #{gid}: already announced — skipping")
-    await finish_draw(gid)
+    await announce_results(g, winners)
 
 async def announce_results(g: Giveaway, winners: List[int]):
     if winners:
@@ -898,51 +861,62 @@ async def announce_results(g: Giveaway, winners: List[int]):
 
 # ========= HTTP API =========
 
-def validate_webapp_init(init_data: str, bot_token: str) -> tuple[Optional[int], str]:
-    """
-    Проверяем initData из Telegram WebApp.
-    Возвращает (user_id, reason), reason: '' | 'no_hash' | 'bad_signature' | 'stale' | 'bad_user'
-    Сбор строки — из URL-раскодированных пар (parse_qsl).
-    """
-    if not init_data or "hash=" not in init_data:
-        return None, "no_hash"
+def _calc_webapp_hash(data_check_string: str, bot_token: str) -> str:
+    secret_key = hashlib.sha256(bot_token.encode()).digest()
+    return hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
-    pairs = urllib.parse.parse_qsl(init_data, keep_blank_values=True)
+def validate_webapp_init(init_data: str, bot_token: str) -> Tuple[Optional[int], str, Optional[int]]:
+    """
+    Валидация подписи Telegram WebApp.initData + проверка свежести auth_date.
+    Возвращает: (user_id|None, reason, auth_date|None)
+    reason: 'ok' | 'no_hash' | 'bad_signature' | 'stale' | 'bad_user'
+    """
+    try:
+        pairs = urllib.parse.parse_qsl(init_data, keep_blank_values=True)
+    except Exception:
+        return None, "bad_parse", None
+
     got_hash = None
     filtered = []
+    user_json = None
+    auth_date = None
+
     for k, v in pairs:
-        if k == "hash":
+        if k == 'hash':
             got_hash = v
         else:
             filtered.append((k, v))
+        if k == 'user':
+            user_json = v
+        if k == 'auth_date':
+            try:
+                auth_date = int(v)
+            except Exception:
+                auth_date = None
+
     if not got_hash:
-        return None, "no_hash"
+        return None, "no_hash", auth_date
 
     filtered.sort(key=lambda x: x[0])
     data_check_string = "\n".join(f"{k}={v}" for k, v in filtered)
-
-    secret_key = hashlib.sha256(bot_token.encode()).digest()
-    calc = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    calc = _calc_webapp_hash(data_check_string, bot_token)
     if not hmac.compare_digest(calc, got_hash):
-        return None, "bad_signature"
+        return None, "bad_signature", auth_date
+
+    # Свежесть initData (3 минуты)
+    if auth_date is not None:
+        if time.time() - auth_date > 180:
+            return None, "stale", auth_date
+
+    if not user_json:
+        return None, "bad_user", auth_date
 
     try:
-        params = dict(filtered)
-        auth_date = int(params.get("auth_date", "0"))
-        from time import time as _now
-        delta = int(_now() - auth_date)
-        if delta > 86400:  # 24 часа
-            return None, "stale"
+        user_obj = json.loads(urllib.parse.unquote(user_json))
+        uid = int(user_obj.get('id'))
+        return uid, "ok", auth_date
     except Exception:
-        return None, "stale"
-
-    try:
-        user_json = dict(filtered).get("user") or ""
-        user_obj = json.loads(user_json)
-        uid = int(user_obj.get("id"))
-        return uid, ""
-    except Exception:
-        return None, "bad_user"
+        return None, "bad_user", auth_date
 
 @web.middleware
 async def cors_mw(request, handler):
@@ -960,6 +934,62 @@ async def cors_mw(request, handler):
 async def root(request: web.Request):
     return web.Response(text="ok")
 
+async def whoami(request: web.Request):
+    try:
+        me = await bot.get_me()
+        return web.json_response({
+            "bot_username": me.username,
+            "bot_id": me.id,
+            "instance": INSTANCE_ID,
+        })
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)
+
+async def debug_init(request: web.Request):
+    try:
+        payload = await request.json()
+    except Exception:
+        return web.json_response({"ok": False, "reason": "bad json"}, status=400)
+
+    init = payload.get("init") or ""
+    if not init:
+        return web.json_response({"ok": False, "reason": "no init"}, status=400)
+
+    try:
+        pairs = urllib.parse.parse_qsl(init, keep_blank_values=True)
+    except Exception:
+        return web.json_response({"ok": False, "reason": "bad_parse"}, status=400)
+
+    got_hash = None
+    filtered = []
+    auth_date = None
+    for k, v in pairs:
+        if k == "hash":
+            got_hash = v
+        else:
+            filtered.append((k, v))
+        if k == "auth_date":
+            try:
+                auth_date = int(v)
+            except Exception:
+                auth_date = None
+
+    filtered.sort(key=lambda x: x[0])
+    data_check_string = "\n".join(f"{k}={v}" for k, v in filtered)
+    secret_key = hashlib.sha256(BOT_TOKEN.encode()).digest()
+    calc = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    same = (got_hash == calc)
+
+    info = {
+        "ok": same,
+        "reason": "" if same else "bad_signature",
+        "got_hash_prefix": (got_hash or "")[:12],
+        "calc_hash_prefix": calc[:12],
+        "has_hash": bool(got_hash),
+        "auth_date": auth_date,
+    }
+    return web.json_response(info, status=200 if same else 401)
+
 async def api_join(request: web.Request):
     try:
         payload = await request.json()
@@ -971,17 +1001,13 @@ async def api_join(request: web.Request):
     if not gid or not init:
         return web.json_response({"ok": False, "reason": "bad params"}, status=400)
 
-    uid, v_reason = validate_webapp_init(init, BOT_TOKEN)
+    uid, v_reason, auth_date = validate_webapp_init(init, BOT_TOKEN)
     if not uid:
-        try:
-            auth_date = int(dict(urllib.parse.parse_qsl(init, keep_blank_values=True)).get("auth_date", "0"))
-        except Exception:
-            auth_date = 0
         logger.warning("api_join 401: %s; len=%s; gid=%s; auth_date=%s", v_reason, len(init or ""), gid, auth_date)
-        return web.json_response({"ok": False, "reason": "auth failed"}, status=401)
+        return web.json_response({"ok": False, "reason": v_reason}, status=401)
 
     g = await fetch_giveaway(gid)
-    if not g or g.status not in ("scheduled","drawing") or g.type != "button":
+    if not g or g.status != "scheduled" or g.type != "button":
         return web.json_response({"ok": False, "reason": "unavailable"}, status=404)
 
     if await has_entry(gid, uid):
@@ -1021,9 +1047,14 @@ async def tg_webhook(request: web.Request):
 
 async def start_http():
     app = web.Application(middlewares=[cors_mw])
+    # healthcheck & diag
     app.router.add_get('/', root)
+    app.router.add_get('/api/whoami', whoami)
+    app.router.add_post('/api/debug-init', debug_init)
+    # API
     app.router.add_route('OPTIONS', '/api/join', lambda r: web.Response())
     app.router.add_post('/api/join', api_join)
+    # webhook receiver
     app.router.add_post(WEBHOOK_PATH, tg_webhook)
 
     runner = web.AppRunner(app)
@@ -1052,11 +1083,11 @@ async def main():
     if not BOT_USERNAME:
         me = await bot.get_me()
         BOT_USERNAME = me.username
-        logger.info("Bot online: @%s (id=%s) | instance=%s", me.username, me.id, INSTANCE_ID)
 
     await start_http()
     await restore_schedules()
 
+    # Чистим возможный старый вебхук и ставим новый
     try:
         await bot.delete_webhook(drop_pending_updates=True)
         webhook_url = f"{PUBLIC_URL}{WEBHOOK_PATH}"
@@ -1069,6 +1100,7 @@ async def main():
         logger.exception("set_webhook failed: %s", e)
         raise
 
+    # Держим процесс живым
     try:
         while True:
             await asyncio.sleep(3600)
