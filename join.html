@@ -1,358 +1,71 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Участвовать — розыгрыш</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Join Giveaway</title>
   <style>
-    :root{
-      --bg:#070a12; --card:#0e1627; --text:#eef3ff; --muted:#9fb0cc;
-      --ok:#34d399; --err:#ff7b7b; --ring:#233049;
-      --seg:#1f3a83; --divider:rgba(255,255,255,.14);
-      --gold:#ffd166; --neon:#84a9ff; --cyan:#22d3ee; --vio:#8b5cf6;
-    }
-    html,body{height:100%}
-    body{margin:0;background:radial-gradient(1200px 680px at 50% -10%, #111934 0%, #0a0f1d 55%, #070a12 100%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial}
-    .wrap{max-width:840px;margin:0 auto;padding:22px}
-    .card{position:relative;background:linear-gradient(180deg,rgba(22,30,52,.92),rgba(12,18,34,.96));border-radius:22px;padding:22px;box-shadow:0 24px 80px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.06)}
-    .glow{position:absolute;inset:-20px;pointer-events:none;filter:blur(42px);opacity:.9;background:conic-gradient(from 0deg, rgba(132,169,255,.18), rgba(34,211,238,.08), rgba(139,92,246,.14), rgba(132,169,255,.18));border-radius:28px}
-    h1{margin:0 0 6px;font-size:22px}
-    .muted{color:var(--muted)}
-
-    .roulette-wrap{position:relative;margin-top:18px;height:340px}
-    .wheel-box{position:absolute;left:50%;top:8px;transform:translateX(-50%);width:320px;height:320px;border-radius:50%;background:radial-gradient(closest-side,#142752,#0e1a3a);display:grid;place-items:center;box-shadow:0 22px 60px rgba(0,0,0,.6), inset 0 0 0 12px #0e1c3b, inset 0 0 0 18px #1f2f54}
-    .wheel{width:280px;height:280px;border-radius:50%;position:relative;box-shadow:inset 0 0 60px rgba(0,0,0,.35);background:
-      repeating-conic-gradient(var(--seg) 0deg 14.5deg, var(--divider) 14.5deg 15deg)
-    }
-    .marker{position:absolute;left:50%;top:-2px;transform:translateX(-50%);width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:18px solid var(--gold);filter:drop-shadow(0 2px 2px rgba(0,0,0,.5)) drop-shadow(0 0 10px rgba(255,209,102,.6))}
-    .center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:78px;height:78px;border-radius:50%;background:radial-gradient(circle at 35% 30%, #fff 0 2px, #9bb8ff 12%, #6ea0ff 60%, #3a65ff 100%);box-shadow:0 6px 18px rgba(132,169,255,.6), inset 0 0 14px rgba(255,255,255,.85)}
-    .label{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);font-weight:900;letter-spacing:.2px;text-shadow:0 1px 0 rgba(0,0,0,.4)}
-
-    .spin{animation:spin 2600ms cubic-bezier(.17,.84,.21,1) forwards}
-    @keyframes spin{0%{transform:rotate(0)}80%{transform:rotate(1100deg)}100%{transform:rotate(1090deg)}}
-
-    .ring{position:relative;width:86px;height:86px;margin:18px auto;border-radius:50%;box-shadow:inset 0 0 0 6px var(--ring)}
-    .ring .seg-ok{position:absolute;inset:-6px;border-radius:50%;background:conic-gradient(var(--ok) 0deg, transparent 0deg);filter:drop-shadow(0 0 8px rgba(52,211,153,.35))}
-
-    .result{display:none;margin-top:14px;text-align:center}
-    .result.ok{display:block}
-    .result .big{font-weight:900;font-size:18px}
-
-    .need{display:none;margin-top:12px;text-align:center}
-    .need.show{display:block}
-    .need a{color:#a8c0ff;margin:0 6px;text-decoration:none;border-bottom:1px dashed rgba(168,192,255,.55)}
-
-    .actions{display:flex;gap:8px;margin-top:14px}
-    .btn{flex:1;border-radius:14px;border:1px solid #2a3247;background:linear-gradient(180deg,#162239,#0f182b);color:var(--text);padding:12px;font-weight:800;cursor:pointer;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.35)}
-
-    #fx{position:fixed;inset:0;pointer-events:none}
-
-    .banner{display:none;margin-top:10px;padding:10px;border-radius:12px;background:#0a1426;border:1px solid rgba(255,255,255,.08);color:#b8c7e8;font-size:12px}
-    .banner.show{display:block}
-
-    .diag{margin-top:10px;padding:8px;border-radius:10px;background:#0b1428;border:1px dashed rgba(255,255,255,.15);color:#b7c6e6;font-size:12px;line-height:1.4}
-    .diag b{color:#eaf1ff}
-    .diag code{color:#e6f3ff}
-
-    /* Баннер «Открыть в Telegram» */
-    #openInTg{display:none;margin-top:12px;padding:12px;border-radius:12px;background:#081127;border:1px solid rgba(255,255,255,.1);color:#cfe0ff}
-    #openInTg a{display:inline-block;margin-top:8px;padding:10px 14px;border-radius:10px;border:1px solid #2a3247;background:#162239;color:#eef3ff;text-decoration:none;font-weight:800}
+    body { font-family: sans-serif; background: #f5f5f5; padding: 10px; }
+    pre { background: #eee; padding: 8px; border-radius: 4px; }
+    button { padding: 6px 10px; margin: 5px 0; border: none; background: #4CAF50; color: white; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #45a049; }
+    #debug-result { white-space: pre-wrap; background: #fff; padding: 8px; margin-top: 5px; border-radius: 4px; border: 1px solid #ddd; }
   </style>
 </head>
 <body>
-  <canvas id="fx"></canvas>
-  <div class="wrap">
-    <div class="card">
-      <div class="glow"></div>
-      <h1>🎰 Участие оформляется…</h1>
-      <div class="muted">Розыгрыш <span id="gid">#…</span> · проверяем условия</div>
+  <h2>Присоединение к розыгрышу</h2>
+  <pre id="diag"></pre>
 
-      <div class="roulette-wrap">
-        <div class="wheel-box">
-          <div class="marker"></div>
-          <div id="wheel" class="wheel"></div>
-          <div class="center"></div>
-          <div class="label" id="label">Проверяем подписки…</div>
-        </div>
-      </div>
+  <button id="btnCopy">Скопировать initData</button>
+  <button id="btnDebug">Отправить в /api/debug-init</button>
 
-      <div id="ring" class="ring" aria-hidden="true"><div id="ringOk" class="seg-ok"></div></div>
+  <div id="debug-result"></div>
 
-      <div id="need" class="need"></div>
-      <div id="fallback" class="banner"></div>
-      <div id="openInTg" class="banner">
-        Похоже, вы открыли страницу в браузере. Мини-аппа должна открываться из Telegram, чтобы подтянулась подпись.
-        <br/>Нажмите кнопку ниже:
-        <div><a id="tgLink" href="#" target="_blank" rel="noopener">Открыть в Telegram</a></div>
-      </div>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
 
-      <div id="diag" class="diag" style="display:none"></div>
+    const diag = document.getElementById('diag');
+    const debugResult = document.getElementById('debug-result');
 
-      <div id="resultOk" class="result">
-        <div class="big">✅ Поздравляем, вы участвуете в розыгрыше!</div>
-        <div class="muted" id="afterText">Если условия не выполнены — бот подскажет, что нужно сделать.</div>
-        <div class="actions">
-          <a class="btn" id="openBot">Открыть бота</a>
-          <a class="btn" id="share">Отправить другу</a>
-        </div>
-      </div>
-    </div>
-  </div>
+    const initData = tg.initData || "";
+    const initDataUnsafe = tg.initDataUnsafe || {};
+    const urlParams = new URLSearchParams(window.location.search);
+    const startParam = initDataUnsafe.start_param || urlParams.get('startapp') || urlParams.get('start') || '';
 
-<script>
-(function(){
-  // ---- Конфиг через query-параметры ----
-  const qs = new URLSearchParams(location.search);
-  const API_DEFAULT = 'https://bot-randomus-1.onrender.com/api/join'; // можно переопределить ?api=
-  const API = qs.get('api') || API_DEFAULT;
+    const gid = startParam.startsWith('gid-') ? startParam.slice(4) : startParam;
 
-  // можно переопределить бота и шортнейм через ?bot=&short=
-  const BOT_USERNAME = qs.get('bot') || 'deepseekrbot';
-  const SHORT = qs.get('short') || 'myapp';
+    diag.textContent =
+      `WebApp?: ${!!tg.initData}\n` +
+      `initData length: ${initData.length}\n` +
+      `start_param: ${startParam}\n` +
+      `API: ${window.location.origin}/api/join\n` +
+      `gid: ${gid}\n` +
+      `deepLink: https://t.me/${tg.initDataUnsafe?.user?.username || 'YOUR_BOT'}/myapp?startapp=gid-${gid}`;
 
-  // ---- Telegram WebApp ----
-  const WebApp = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-  WebApp && (WebApp.ready(), WebApp.expand(), WebApp.disableVerticalSwipes && WebApp.disableVerticalSwipes());
-
-  // gid берём из initDataUnsafe.start_param или tgWebAppStartParam
-  const startParam = (WebApp && WebApp.initDataUnsafe && WebApp.initDataUnsafe.start_param) || qs.get('tgWebAppStartParam') || '';
-  const gidMatch = /gid-(\d+)/.exec(startParam || '');
-  const gid = gidMatch ? gidMatch[1] : null;
-  document.getElementById('gid').textContent = gid ? ('#' + gid) : '#—';
-
-  // Ссылка «Открыть в Telegram»
-  const tgLink = document.getElementById('tgLink');
-  const deepLink = `https://t.me/${BOT_USERNAME}/${SHORT}?startapp=${gid ? 'gid-' + gid : ''}`;
-  tgLink.href = deepLink;
-
-  // UI refs
-  const wheel = document.getElementById('wheel');
-  const label = document.getElementById('label');
-  const ring = document.getElementById('ring');
-  const ringOk = document.getElementById('ringOk');
-  const needBox = document.getElementById('need');
-  const res = document.getElementById('resultOk');
-  const openBot = document.getElementById('openBot');
-  const share = document.getElementById('share');
-  const fallback = document.getElementById('fallback');
-  const diagBox = document.getElementById('diag');
-  const openInTg = document.getElementById('openInTg');
-
-  // Confetti
-  const fx = document.getElementById('fx');
-  const ctx = fx.getContext('2d');
-  let confetti = [], rafId = 0, startTs = 0;
-  function resize(){ fx.width = window.innerWidth; fx.height = window.innerHeight; }
-  window.addEventListener('resize', resize); resize();
-  function spawnConfetti(n=240){
-    confetti = new Array(n).fill(0).map(()=>({
-      x: Math.random()*fx.width,
-      y: -20 - Math.random()*fx.height*0.2,
-      r: 6+Math.random()*6,
-      a: Math.random()*Math.PI*2,
-      s: 1.6+Math.random()*2.2,
-      c: [ '#ffd166','#84a9ff','#22d3ee','#8b5cf6','#34d399' ][Math.floor(Math.random()*5)],
-      spin: (Math.random()*.12+.05) * (Math.random()<.5?-1:1)
-    }));
-  }
-  function drawConfetti(ts){
-    if(!startTs) startTs = ts; const t = (ts-startTs)/1000;
-    ctx.clearRect(0,0,fx.width,fx.height);
-    confetti.forEach(p=>{
-      p.y += p.s*3.2; p.x += Math.sin(p.a+=0.02)*1.25; p.r += p.spin;
-      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r);
-      ctx.fillStyle = p.c; ctx.fillRect(-4,-8,8,16);
-      ctx.restore();
-    });
-    if (t < 3){ rafId = requestAnimationFrame(drawConfetti); } else { cancelAnimationFrame(rafId); startTs = 0; confetti=[]; ctx.clearRect(0,0,fx.width,fx.height); }
-  }
-  function blast(){ spawnConfetti(260); cancelAnimationFrame(rafId); startTs=0; rafId = requestAnimationFrame(drawConfetti); }
-  function haptic(type){ try{ WebApp && WebApp.HapticFeedback && WebApp.HapticFeedback[type] && WebApp.HapticFeedback[type]('medium'); }catch{} }
-
-  function spin(){ wheel.classList.add('spin'); haptic('impactOccurred'); }
-  function setRing(p){ ringOk.style.background = `conic-gradient(var(--ok) ${p*360}deg, transparent ${p*360}deg)`; }
-  function showNeed(chans){
-    needBox.innerHTML = '';
-    if(!chans || !chans.length){ needBox.classList.remove('show'); return; }
-    const title = document.createElement('div');
-    title.textContent = 'Условия не выполнены. Подпишитесь:';
-    needBox.appendChild(title);
-    const row = document.createElement('div');
-    (chans||[]).forEach(c=>{
-      const a = document.createElement('a');
-      a.textContent = c; a.href = `https://t.me/${c.replace('@','')}`; a.target = '_blank';
-      a.addEventListener('click', e=>{
-        e.preventDefault();
-        const url = `https://t.me/${c.replace('@','')}`;
-        if (WebApp && WebApp.openTelegramLink) WebApp.openTelegramLink(url); else window.open(url,'_blank');
+    // Кнопка копирования initData
+    document.getElementById('btnCopy').addEventListener('click', () => {
+      navigator.clipboard.writeText(initData).then(() => {
+        alert('initData скопирован!');
       });
-      row.appendChild(a);
-    });
-    needBox.appendChild(row);
-    needBox.classList.add('show');
-  }
-
-  function showDiag(items){
-    const lines = items.map(([k,v])=>`<b>${k}:</b> <code>${String(v)}</code>`);
-    diagBox.innerHTML = lines.join('<br>');
-    diagBox.style.display = 'block';
-  }
-
-  async function joinViaAPI(){
-    const initData = (WebApp && WebApp.initData) || '';
-    const payload = { action: 'join', gid, init: initData };
-
-    showDiag([
-      ['WebApp?', !!WebApp],
-      ['initData length', initData ? initData.length : 0],
-      ['start_param', (WebApp && WebApp.initDataUnsafe && WebApp.initDataUnsafe.start_param) || ''],
-      ['API', API],
-      ['gid', gid || '—'],
-      ['deepLink', deepLink]
-    ]);
-
-    const ctrl = new AbortController();
-    const to = setTimeout(()=>ctrl.abort(), 10000);
-    const r = await fetch(API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      credentials: 'omit',
-      signal: ctrl.signal
-    }).catch(e=>{ clearTimeout(to); throw e; });
-    clearTimeout(to);
-
-    if (r.status === 401) {
-      label.textContent = 'Откройте мини-аппу из Telegram';
-      openInTg.classList.add('show');
-      return { ok:false, reason:'auth failed' };
-    }
-    if (!r.ok) throw new Error('HTTP '+r.status);
-    return await r.json();
-  }
-
-  async function flow(){
-    // Если нет WebApp — явно показываем кнопку «Открыть в Telegram»
-    if (!WebApp) {
-      openInTg.classList.add('show');
-      document.getElementById('label').textContent = 'Откройте мини-аппу из Telegram';
-      showDiag([['Ошибка','window.Telegram.WebApp недоступен (браузер)'], ['deepLink', deepLink]]);
-      return;
-    }
-
-    if (!gid){
-      document.getElementById('label').textContent = 'Нет параметра запуска (gid)';
-      showDiag([['Ошибка','tgWebAppStartParam/start_param пуст']]);
-      return;
-    }
-
-    spin();
-    await new Promise(r=>setTimeout(r, 1200));
-    ring.style.display = 'block';
-    label.textContent = 'Проверяем условия…';
-    setRing(0.33); await new Promise(r=>setTimeout(r, 330));
-    setRing(0.66); await new Promise(r=>setTimeout(r, 330));
-
-    try{
-      const data = await joinViaAPI();
-      if (data && data.reason === 'auth failed') return;
-
-      setRing(1);
-      if (data.ok){
-        haptic('notificationOccurred');
-        label.textContent = 'Готово!';
-        needBox.classList.remove('show');
-        res.classList.add('ok');
-        blast();
-      } else {
-        label.textContent = data.reason === 'conditions' ? 'Нужно подписаться' : 'Условия не выполнены';
-        showNeed(data.need);
-      }
-    }catch(e){
-      console.error('joinViaAPI failed', e);
-      label.textContent = 'Не удалось связаться с сервером';
-      showDiag([['Network error', (e && e.message) || 'unknown']]);
-    }
-  }
-
-  flow();
-  <!-- === DEBUG UI (временный) === -->
-<div id="debugControls" style="margin-top:12px; display:none">
-  <div style="display:flex; gap:8px; margin-bottom:8px">
-    <button id="btnCopyInit" class="btn" style="flex:1">Скопировать initData</button>
-    <button id="btnSendDebug" class="btn" style="flex:1">Отправить в /api/debug-init</button>
-  </div>
-  <div id="debugOut" class="diag" style="display:none"></div>
-</div>
-
-<script>
-(function(){
-  const WebApp = window.Telegram?.WebApp;
-  const API_DEBUG = 'https://bot-randomus-1.onrender.com/api/debug-init';
-
-  // Показываем блок отладки только если это Telegram WebView
-  const dbg = document.getElementById('debugControls');
-  const out = document.getElementById('debugOut');
-  const btnCopy = document.getElementById('btnCopyInit');
-  const btnSend = document.getElementById('btnSendDebug');
-
-  if (WebApp && WebApp.initData) {
-    dbg.style.display = 'block';
-
-    btnCopy.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(WebApp.initData);
-        out.style.display = 'block';
-        out.innerHTML = '<b>initData скопирован в буфер.</b><br>Длина: ' + WebApp.initData.length;
-      } catch (e) {
-        out.style.display = 'block';
-        out.textContent = 'Не удалось скопировать: ' + (e?.message || e);
-      }
     });
 
-    btnSend.addEventListener('click', async () => {
-      out.style.display = 'block';
-      out.textContent = 'Шлю initData в /api/debug-init…';
+    // Кнопка отправки в debug-init
+    document.getElementById('btnDebug').addEventListener('click', async () => {
+      debugResult.textContent = 'Отправка...';
       try {
-        const r = await fetch(API_DEBUG, {
+        const resp = await fetch(`https://bot-randomus-1.onrender.com/api/debug-init`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ init: WebApp.initData }),
-          credentials: 'omit'
+          body: JSON.stringify({ init: initData })
         });
-        const j = await r.json();
-        out.innerHTML =
-          '<b>Ответ /api/debug-init</b><br>' +
-          'ok: <code>' + j.ok + '</code><br>' +
-          'reason: <code>' + (j.reason ?? '—') + '</code><br>' +
-          'got_hash_prefix: <code>' + (j.got_hash_prefix || '') + '</code><br>' +
-          'calc_hash_prefix: <code>' + (j.calc_hash_prefix || '') + '</code><br>' +
-          'check_string_len: <code>' + (j.check_string_len || 0) + '</code><br>' +
-          'check_string_head: <code>' + (j.check_string_head || '').replace(/</g,'&lt;') + '</code>';
-      } catch (e) {
-        out.textContent = 'Запрос не удался: ' + (e?.message || e);
+        const data = await resp.text();
+        debugResult.textContent = data;
+      } catch (err) {
+        debugResult.textContent = 'Ошибка: ' + err;
       }
     });
-  }
-})();
-</script>
-<!-- === /DEBUG UI === -->
-
-  openBot.addEventListener('click', ()=>{
-    const url = `https://t.me/${BOT_USERNAME}`;
-    if (WebApp && WebApp.openTelegramLink){ WebApp.openTelegramLink(url); }
-    else { location.href = url; }
-  });
-
-  share.addEventListener('click', ()=>{
-    const text = gid ? `Я участвую в розыгрыше #${gid}!` : 'Я участвую в розыгрыше!';
-    if (navigator.share){ navigator.share({ text }); }
-    else if (WebApp && WebApp.openTelegramLink){ WebApp.openTelegramLink(`https://t.me/share/url?text=${encodeURIComponent(text)}`); }
-    else { alert(text); }
-  });
-})();
-</script>
+  </script>
 </body>
 </html>
-
