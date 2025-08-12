@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Участвовать — розыгрыш</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- Жёстко задаём URL API, чтобы Mini App работал без параметра ?api= -->
-  <script>window.API_JOIN = 'https://doppelh11.github.io/bot_randomus/api/join';</script>
   <style>
     :root{
       --bg:#070a12; --card:#0e1627; --text:#eef3ff; --muted:#9fb0cc;
@@ -22,7 +20,7 @@
     h1{margin:0 0 6px;font-size:22px}
     .muted{color:var(--muted)}
 
-    /* Roulette (identical segments) */
+    /* Roulette */
     .roulette-wrap{position:relative;margin-top:18px;height:340px}
     .wheel-box{position:absolute;left:50%;top:8px;transform:translateX(-50%);width:320px;height:320px;border-radius:50%;background:radial-gradient(closest-side,#142752,#0e1a3a);display:grid;place-items:center;box-shadow:0 22px 60px rgba(0,0,0,.6), inset 0 0 0 12px #0e1c3b, inset 0 0 0 18px #1f2f54}
     .wheel{width:280px;height:280px;border-radius:50%;position:relative;box-shadow:inset 0 0 60px rgba(0,0,0,.35);background:
@@ -96,21 +94,24 @@
 
 <script>
 (function(){
+  // === Telegram WebApp boot ===
   const WebApp = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
   WebApp && (WebApp.ready(), WebApp.expand(), WebApp.disableVerticalSwipes && WebApp.disableVerticalSwipes());
 
-  const BOT_USERNAME = 'deepseekrbot';
-  const API_JOIN = 'https://bot-randomus-1.onrender.com/api/join';
-  // URL API можно задать через window.API_JOIN (выше) или параметр ?api=
-  const API_JOIN = (window.API_JOIN || new URLSearchParams(location.search).get('api') || '');
+  // === Конфиг ===
+  const BOT_USERNAME = 'deepseekrbot'; // <-- имя твоего бота без @
+  const API_DEFAULT = 'https://bot-randomus-1.onrender.com/api/join'; // <-- твой бекенд на Render
+  const apiParam = new URLSearchParams(location.search).get('api');
+  const API = apiParam || API_DEFAULT; // можно переопределить ?api=...
 
+  // === GID из start_param ===
   const qs = new URLSearchParams(location.search);
   const startParam = (WebApp && WebApp.initDataUnsafe && WebApp.initDataUnsafe.start_param) || qs.get('tgWebAppStartParam') || '';
   const gidMatch = /gid-(\d+)/.exec(startParam || '');
   const gid = gidMatch ? gidMatch[1] : null;
-  const gidEl = document.getElementById('gid');
-  gidEl.textContent = gid ? ('#' + gid) : '#—';
+  document.getElementById('gid').textContent = gid ? ('#' + gid) : '#—';
 
+  // === UI refs ===
   const wheel = document.getElementById('wheel');
   const label = document.getElementById('label');
   const ring = document.getElementById('ring');
@@ -121,7 +122,7 @@
   const share = document.getElementById('share');
   const fallback = document.getElementById('fallback');
 
-  // Confetti
+  // === Confetti ===
   const fx = document.getElementById('fx');
   const ctx = fx.getContext('2d');
   let confetti = [], rafId = 0, startTs = 0;
@@ -150,30 +151,11 @@
     if (t < 3){ rafId = requestAnimationFrame(drawConfetti); } else { cancelAnimationFrame(rafId); startTs = 0; confetti=[]; ctx.clearRect(0,0,fx.width,fx.height); }
   }
   function blast(){ spawnConfetti(260); cancelAnimationFrame(rafId); startTs=0; rafId = requestAnimationFrame(drawConfetti); }
-
   function haptic(type){ try{ WebApp && WebApp.HapticFeedback && WebApp.HapticFeedback[type] && WebApp.HapticFeedback[type]('medium'); }catch{} }
 
+  // === UI helpers ===
   function spin(){ wheel.classList.add('spin'); haptic('impactOccurred'); }
   function setRing(p){ ringOk.style.background = `conic-gradient(var(--ok) ${p*360}deg, transparent ${p*360}deg)`; }
-
-  async function joinViaAPI(){
-    const payload = { action: 'join', gid, init: WebApp && WebApp.initData || '' };
-    const ctrl = new AbortController();
-    const to = setTimeout(()=>ctrl.abort(), 7000); // таймаут 7с
-    try{
-      const r = await fetch(API_JOIN, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        credentials: 'omit',
-        signal: ctrl.signal
-      });
-      clearTimeout(to);
-      if(!r.ok) throw new Error('HTTP '+r.status);
-      return await r.json(); // { ok, total, need?, reason? }
-    }catch(e){ clearTimeout(to); throw e; }
-  }
-
   function showNeed(chans){
     needBox.innerHTML = '';
     if(!chans || !chans.length){ needBox.classList.remove('show'); return; }
@@ -195,10 +177,29 @@
     needBox.classList.add('show');
   }
 
+  // === API call ===
+  async function joinViaAPI(){
+    const payload = { action: 'join', gid, init: WebApp && WebApp.initData || '' };
+    const ctrl = new AbortController();
+    const to = setTimeout(()=>ctrl.abort(), 8000);
+    try{
+      const r = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        credentials: 'omit',
+        signal: ctrl.signal
+      });
+      clearTimeout(to);
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return await r.json(); // { ok, total, need?, reason? }
+    }catch(e){ clearTimeout(to); throw e; }
+  }
+
+  // === Main flow ===
   async function flow(){
     if (!gid){ label.textContent = 'Нет параметра запуска'; return; }
 
-    // 1) spin
     spin();
     await new Promise(r=>setTimeout(r, 1200));
     ring.style.display = 'block';
@@ -206,8 +207,8 @@
     setRing(0.33); await new Promise(r=>setTimeout(r, 330));
     setRing(0.66); await new Promise(r=>setTimeout(r, 330));
 
-    // Если API не задан — fallback: шлём sendData и показываем мягкое подтверждение
-    if (!API_JOIN){
+    // Если API пуст (на всякий случай) — мягкий fallback через sendData
+    if (!API){
       const warn = 'API URL не задан. Использую резервный способ — бот проверит условия в ЛС.';
       fallback.textContent = warn; fallback.classList.add('show');
       try {
@@ -230,7 +231,7 @@
         label.textContent = 'Готово!';
         needBox.classList.remove('show');
         res.classList.add('ok');
-        blast(); // 🎉 конфетти на успех
+        blast(); // 🎉
       } else {
         label.textContent = data.reason === 'conditions' ? 'Нужно подписаться' : 'Условия не выполнены';
         showNeed(data.need);
@@ -240,13 +241,14 @@
       label.textContent = 'Не удалось связаться с сервером';
       const diag = document.createElement('div');
       diag.className = 'muted'; diag.style.fontSize = '12px'; diag.style.marginTop = '6px';
-      diag.textContent = 'URL: '+API_JOIN+' • Ошибка: '+(e && e.message ? e.message : 'network');
+      diag.textContent = 'URL: '+API+' • Ошибка: '+(e && e.message ? e.message : 'network');
       needBox.after(diag);
     }
   }
 
   flow();
 
+  // === Actions ===
   openBot.addEventListener('click', ()=>{
     const url = `https://t.me/${BOT_USERNAME}`;
     if (WebApp && WebApp.openTelegramLink){ WebApp.openTelegramLink(url); }
@@ -263,4 +265,3 @@
 </script>
 </body>
 </html>
-
