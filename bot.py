@@ -957,29 +957,27 @@ async def main():
     await init_db()
     scheduler.start()
 
-    # Снимаем вебхук, если он вдруг остался
-    try:
-        info = await bot.get_webhook_info()
-        if info.url:
-            logger.warning(f"Webhook was set to: {info.url} — deleting...")
-        await bot.delete_webhook(drop_pending_updates=True)
-    except Exception as e:
-        logger.warning(f"Webhook check/delete failed: {e}")
-
-    global BOT_USERNAME
-    if not BOT_USERNAME:
-        me = await bot.get_me()
-        BOT_USERNAME = me.username
-
+    public_url = os.getenv("PUBLIC_URL", "https://bot-randomus-1.onrender.com")
     await start_http()
     await restore_schedules()
-    await dp.start_polling(bot)
+
+    # на всякий случай чистим и ставим webhook
+    await bot.delete_webhook(drop_pending_updates=True)
+    await bot.set_webhook(
+        url=f"{public_url}{WEBHOOK_PATH}",
+        allowed_updates=["message","callback_query"]
+    )
+
+    # держим процесс живым
+    while True:
+        await asyncio.sleep(3600)
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
+
 
 
 
