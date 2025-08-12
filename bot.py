@@ -928,25 +928,52 @@ async def announce_results(g: Giveaway, winners: List[int]):
 
 def validate_webapp_init(init_data: str, bot_token: str) -> Optional[int]:
     """
-    Валидируем подпись Telegram WebApp.initData без декодирования значений.
-    Важно: HMAC должен считаться по исходной строке (url-encoded).
-    Возвращает user_id при успехе, иначе None.
+    Валидация Telegram WebApp.initData.
+    Сбор data_check_string — из URL-РАСКОДИРОВАННЫХ значений (parse_qsl),
+    как в официальных примерах Telegram для Login Widget/WebApp.
     """
     if not init_data or "hash=" not in init_data:
         return None
 
+    # Разбираем строку в пары (значения уже URL-decoded)
+    pairs = urllib.parse.parse_qsl(init_data, keep_blank_values=True)
     got_hash = None
-    pairs_raw = []
-    for part in init_data.split("&"):
-        if "=" not in part:
-            continue
-        k, v = part.split("=", 1)
+    filtered = []
+    for k, v in pairs:
         if k == "hash":
             got_hash = v
         else:
-            pairs_raw.append((k, v))  # v оставляем raw (url-encoded)
-
+            filtered.append((k, v))
     if not got_hash:
+        return None
+
+    # Сортируем по ключу и собираем "k=v" построчно
+    filtered.sort(key=lambda x: x[0])
+    data_check_string = "\n".join(f"{k}={v}" for k, v in filtered)
+
+    # Секрет и подпись
+    secret_key = hashlib.sha256(bot_token.encode()).digest()
+    calc = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(calc, got_hash):
+        return None
+
+    # Свежесть 10 минут
+    try:
+        # здесь используем уже распарсенные пары
+        params = dict(filtered)
+        auth_date = int(params.get("auth_date", "0"))
+        from time import time as _now
+        if _now() - auth_date > 600:
+            return None
+    except Exception:
+        return None
+
+    # user.id из JSON
+    user_json = dict(filtered).get("user") or ""
+    try:
+        user_obj = json.loads(user_json)
+        return int(user_obj.get("id"))
+    except Exception:
         return None
 
     # Отсортировать по ключу и собрать data_check_string из raw-значений
@@ -1115,3 +1142,4 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
+
