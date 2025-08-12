@@ -1024,8 +1024,11 @@ async def api_join(request: web.Request):
         return web.json_response({"ok": False, "reason": "bad params"}, status=400)
 
     uid, v_reason, auth_date = validate_webapp_init(init, BOT_TOKEN)
-    if not uid:
-        logger.warning("api_join 401: %s; len=%s; gid=%s; auth_date=%s", v_reason, len(init or ""), gid, auth_date)
+    if v_reason != "ok" or not uid:
+        # Более информативный лог
+        logger.warning(
+            f"api_join 401: {v_reason}; len={len(init)}; gid={gid}; auth_date={auth_date}"
+        )
         return web.json_response({"ok": False, "reason": v_reason}, status=401)
 
     g = await fetch_giveaway(gid)
@@ -1134,5 +1137,6 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
+
 
 
