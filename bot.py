@@ -26,7 +26,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message, User
 from aiogram.types import Update
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types.web_app_info import WebAppInfo  # <-- ДОБАВЛЕНО
+from aiogram.types.web_app_info import WebAppInfo  # ВАЖНО: для web_app кнопки
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.date import DateTrigger
 from dotenv import load_dotenv
@@ -45,14 +45,14 @@ DB_PATH = os.getenv("DB_PATH", "giveaway.db")
 MINI_APP_SHORT = os.getenv("MINI_APP_SHORT", "Myssilki")          # t.me/<bot>/Myssilki
 MINI_APP_JOIN_SHORT = os.getenv("MINI_APP_JOIN_SHORT", "myapp")   # t.me/<bot>/myapp
 
-# Render/хостинг: порт должен браться из окружения (Render сам выдаёт PORT).
+# Render/хостинг
 HTTP_HOST = os.getenv("HOST", "0.0.0.0")
 HTTP_PORT = int(os.getenv("PORT", "10000"))
 ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "*")  # CORS
 
-# Публичный URL сервиса (для вебхука и фронта Mini App)
+# Публичный URL (тот же домен должен быть в BotFather /setdomain)
 PUBLIC_URL = os.getenv("PUBLIC_URL", "https://bot-randomus-1.onrender.com")
-# Уникальный путь вебхука (с токеном), чтобы не принимали чужие POST
+# Уникальный путь вебхука
 WEBHOOK_PATH = f"/tg-webhook/{BOT_TOKEN}"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
@@ -239,6 +239,12 @@ async def get_winners(gid: int) -> List[int]:
         rows = await cur.fetchall()
         return [r[0] for r in rows]
 
+# ДОБАВЛЕНО: ручная смена статуса
+async def mark_finished(gid: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE giveaways SET status='finished' WHERE id=?", (gid,))
+        await db.commit()
+
 # referrals
 async def add_referral(gid: int, referrer_id: int, referred_id: int):
     if referrer_id == referred_id:
@@ -296,18 +302,13 @@ async def giveaway_kb(g: Giveaway) -> InlineKeyboardMarkup:
     if g.type == 'button':
         total = await count_entries(g.id)
         startapp_payload = f"gid-{g.id}"
-
         # ВАЖНО: открываем Mini App как web_app, чтобы получить валидный initData
-        # Предполагаем, что join.html доступен по PUBLIC_URL/join.html
         join_url = f"{PUBLIC_URL}/join.html?tgWebAppStartParam={startapp_payload}"
-        kb.button(
-            text="🎉 Участвовать",
-            web_app=WebAppInfo(url=join_url),
-        )
+        kb.button(text="🎉 Участвовать", web_app=WebAppInfo(url=join_url))
         kb.button(text=f"👥 Участники: {total}", callback_data=f"count:{g.id}")
 
     elif g.type == 'referrals':
-        # Оставляем как было (если захотите — можно тоже перевести на web_app свою страницу рефералок)
+        # Можно тоже перевести на web_app свою страницу рефералок, пока оставлено как было
         startapp_payload = f"gid-{g.id}"
         kb.button(
             text="🔗 Моя ссылка",
@@ -333,7 +334,7 @@ async def check_requirements(user_id: int, required: List[str]) -> Tuple[bool, L
         try:
             chat_id = ch
             if isinstance(chat_id, str) and chat_id.startswith('@'):
-                chat_id = chat_id  # username указывать можно
+                chat_id = chat_id  # username можно
             member = await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
             if member.status not in ("member", "administrator", "creator"):
                 failed.append(ch)
@@ -774,6 +775,14 @@ async def run_draw(gid: int, manual: bool = False):
     if not g or g.status != 'scheduled':
         return
 
+    # ИДЕМПОТЕНТНОСТЬ: при ручном запуске (рестарт) не дублируем итоги
+    if manual:
+        existing = await get_winners(gid)
+        if existing:
+            await mark_finished(gid)
+            logger.info(f"run_draw({gid}): winners already exist, marking finished and skipping announce")
+            return
+
     winners: List[int] = []
 
     if g.type in ('button', 'comments'):
@@ -987,7 +996,14 @@ async def restore_schedules():
     for g in gs:
         end_dt_utc = datetime.fromisoformat(g.end_at_utc)
         if end_dt_utc <= now:
-            logger.warning(f"Giveaway #{g.id} deadline passed — running draw now")
+            # ИДЕМПОТЕНТНОСТЬ: если победители уже есть — просто отмечаем finished и не публикуем снова
+            existing = await get_winners(g.id)
+            if existing:
+                await mark_finished(g.id)
+                logger.warning(f"Giveaway #{g.id} already has winners saved — marking finished, skipping announce")
+                continue
+
+            logger.warning(f"Giveaway #{g.id} deadline passed — running draw now (manual)")
             await run_draw(g.id, manual=True)
         else:
             await schedule_draw_job(g.id)
@@ -1004,7 +1020,7 @@ async def main():
     await start_http()
     await restore_schedules()
 
-    # Чистим возможный старый вебхук и ставим новый (работаем по вебхуку, без polling)
+    # Чистим возможный старый вебхук и ставим новый
     try:
         await bot.delete_webhook(drop_pending_updates=True)
         webhook_url = f"{PUBLIC_URL}{WEBHOOK_PATH}"
