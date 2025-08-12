@@ -99,10 +99,10 @@
   WebApp && (WebApp.ready(), WebApp.expand(), WebApp.disableVerticalSwipes && WebApp.disableVerticalSwipes());
 
   // === Конфиг ===
-  const BOT_USERNAME = 'deepseekrbot'; // <-- имя твоего бота без @
-  const API_DEFAULT = 'https://bot-randomus-1.onrender.com/api/join'; // <-- твой бекенд на Render
+  const BOT_USERNAME = 'deepseekrbot'; // имя твоего бота без @
+  const API_DEFAULT = 'https://bot-randomus-1.onrender.com/api/join'; // бекенд на Render
   const apiParam = new URLSearchParams(location.search).get('api');
-  const API = apiParam || API_DEFAULT; // можно переопределить ?api=...
+  const API = apiParam || API_DEFAULT; // можно переопределить ?api=
 
   // === GID из start_param ===
   const qs = new URLSearchParams(location.search);
@@ -207,7 +207,7 @@
     setRing(0.33); await new Promise(r=>setTimeout(r, 330));
     setRing(0.66); await new Promise(r=>setTimeout(r, 330));
 
-    // Если API пуст (на всякий случай) — мягкий fallback через sendData
+    // Если API пуст (страховка) — мягкий fallback через sendData
     if (!API){
       const warn = 'API URL не задан. Использую резервный способ — бот проверит условия в ЛС.';
       fallback.textContent = warn; fallback.classList.add('show');
