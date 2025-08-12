@@ -894,27 +894,28 @@ def validate_webapp_init(init_data: str, bot_token: str) -> Tuple[Optional[int],
     if not init_data:
         return None, "no_data", None
 
-    items_raw: List[Tuple[str, str]] = []
-    got_hash: Optional[str] = None
+    # Ручной парсинг без трогания '+', исключая 'signature'
+items_raw: List[Tuple[str, str]] = []
+got_hash: Optional[str] = None
 
-    # Ручной парсинг без трогания '+'
-    for part in init_data.split("&"):
-        if not part:
-            continue
-        k_raw, sep, v_raw = part.partition("=")
-        if not sep:
-            continue
-        if k_raw == "hash":
-            got_hash = v_raw
-        else:
-            items_raw.append((k_raw, v_raw))
+for part in init.split("&"):  # или init, если в api_debug_init
+    if not part:
+        continue
+    k_raw, sep, v_raw = part.partition("=")
+    if not sep:
+        continue
+    if k_raw == "hash":
+        got_hash = v_raw
+    elif k_raw == "signature":
+        # В check_string НЕ ДОЛЖНО быть 'signature'
+        continue
+    else:
+        items_raw.append((k_raw, v_raw))
 
-    if not got_hash:
-        return None, "no_hash", None
+# Собираем check_string из сырых пар (без signature)
+items_raw.sort(key=lambda x: x[0])
+check_string = "\n".join(f"{k}={v}" for k, v in items_raw)
 
-    # Собираем check_string из СЫРЫХ пар
-    items_raw.sort(key=lambda x: x[0])
-    check_string = "\n".join(f"{k}={v}" for k, v in items_raw)
 
     calc_hash = _calc_webapp_hash_raw(check_string, bot_token)
     if not hmac.compare_digest(calc_hash, got_hash):
@@ -1138,3 +1139,4 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
+
