@@ -321,8 +321,11 @@ async def giveaway_kb(g: Giveaway) -> InlineKeyboardMarkup:
     if g.type == 'button':
         total = await count_entries(g.id)
         startapp_payload = f"gid-{g.id}"
-        join_url = f"{PUBLIC_URL}/join.html?tgWebAppStartParam={startapp_payload}"
-        kb.button(text="🎉 Участвовать", web_app=WebAppInfo(url=join_url))
+        # ВАЖНО: вместо web_app используем URL на мини-аппу (BotFather -> Web App Short Name)
+        kb.button(
+            text="🎉 Участвовать",
+            url=f"https://t.me/{BOT_USERNAME}/{MINI_APP_JOIN_SHORT}?startapp={startapp_payload}",
+        )
         kb.button(text=f"👥 Участники: {total}", callback_data=f"count:{g.id}")
 
     elif g.type == 'referrals':
@@ -1075,3 +1078,4 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
+
