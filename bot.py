@@ -1,12 +1,3 @@
-# bot.py — полный новый код с Mini Apps:
-# 1) Myssilki (рефералы) — t.me/<bot>/<MINI_APP_SHORT>
-# 2) Join (рулетка + проверка условий через HTTP API) — t.me/<bot>/<MINI_APP_JOIN_SHORT>
-#
-# Изменения:
-# - Добавлен HTTP API /api/join (aiohttp) с проверкой Telegram WebApp initData
-# - Корректная проверка подписки, запись участника и обновление счётчика «Участники»
-# - Логирование ошибок редактирования клавиатуры
-
 from __future__ import annotations
 
 import asyncio
@@ -33,6 +24,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message, User
+from aiogram.types import Update
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.date import DateTrigger
@@ -50,11 +42,17 @@ DB_PATH = os.getenv("DB_PATH", "giveaway.db")
 
 # Mini App short names (настраиваются в BotFather)
 MINI_APP_SHORT = os.getenv("MINI_APP_SHORT", "Myssilki")          # t.me/<bot>/Myssilki
-MINI_APP_JOIN_SHORT = os.getenv("MINI_APP_JOIN_SHORT", "myapp")     # t.me/<bot>/myapp
+MINI_APP_JOIN_SHORT = os.getenv("MINI_APP_JOIN_SHORT", "myapp")   # t.me/<bot>/myapp
 
+# Render/хостинг: порт должен браться из окружения (Render сам выдаёт PORT).
 HTTP_HOST = os.getenv("HOST", "0.0.0.0")
-HTTP_PORT = int(os.getenv("PORT", "8080"))
-ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "*")  # для CORS, если мини-апп хостится на другом домене
+HTTP_PORT = int(os.getenv("PORT", "10000"))
+ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "*")  # CORS
+
+# Публичный URL сервиса (для вебхука)
+PUBLIC_URL = os.getenv("PUBLIC_URL", "https://bot-randomus-1.onrender.com")
+# Уникальный путь вебхука (с токеном), чтобы не принимали чужие POST
+WEBHOOK_PATH = f"/tg-webhook/{BOT_TOKEN}"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
 logger = logging.getLogger("giveaway-bot")
@@ -184,7 +182,6 @@ class Giveaway:
     def required_list(self) -> List[str]:
         if not self.required_channels:
             return []
-        # поддержим @username и numeric id, приведём к тому же виду
         return [c.strip() for c in self.required_channels.split(',') if c.strip()]
 
 # ---- DB helpers
@@ -297,7 +294,6 @@ async def giveaway_kb(g: Giveaway) -> InlineKeyboardMarkup:
 
     if g.type == 'button':
         total = await count_entries(g.id)
-        # «Участвовать» открывает Mini App Join
         startapp_payload = f"gid-{g.id}"
         kb.button(
             text="🎉 Участвовать",
@@ -330,9 +326,8 @@ async def check_requirements(user_id: int, required: List[str]) -> Tuple[bool, L
     for ch in required:
         try:
             chat_id = ch
-            # убрать пробелы и @
             if isinstance(chat_id, str) and chat_id.startswith('@'):
-                chat_id = chat_id
+                chat_id = chat_id  # username указывать можно
             member = await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
             if member.status not in ("member", "administrator", "creator"):
                 failed.append(ch)
@@ -424,7 +419,7 @@ async def choose_type(c: CallbackQuery, state: FSMContext):
     await state.set_state(NewGiveaway.title)
     await c.message.edit_text("🎯 Введите заголовок розыгрыша:")
 
-# ---- Wizard (дальше без изменений по сути) ----
+# ---- Wizard ----
 from datetime import datetime as dt
 
 @dp.message(NewGiveaway.title)
@@ -613,7 +608,7 @@ async def g_confirm(m: Message, state: FSMContext):
     await schedule_draw_job(gid)
     await m.answer(f"Готово! Розыгрыш #{gid} опубликован в {data['target_chat']}")
 
-# ------ Mini App Join → sendData (fallback, можно оставить) ------
+# ------ Mini App Join → sendData (fallback) ------
 @dp.message(F.web_app_data)
 async def on_webapp_data(m: Message):
     try:
@@ -854,13 +849,15 @@ def _calc_webapp_hash(data_check_string: str, bot_token: str) -> str:
     return hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
 def validate_webapp_init(init_data: str, bot_token: str) -> Optional[int]:
-    # init_data — это строка querystring из Telegram.WebApp.initData
+    """
+    Валидация подписи Telegram WebApp.initData + проверка свежести auth_date.
+    init_data — это строка querystring из Telegram.WebApp.initData
+    """
     params = urllib.parse.parse_qs(init_data, keep_blank_values=True)
     if 'hash' not in params:
         return None
     got_hash = params['hash'][0]
 
-    # Соберём data_check_string
     pairs = []
     for k, v in params.items():
         if k == 'hash':
@@ -871,6 +868,15 @@ def validate_webapp_init(init_data: str, bot_token: str) -> Optional[int]:
 
     calc = _calc_webapp_hash(check_string, bot_token)
     if not hmac.compare_digest(calc, got_hash):
+        return None
+
+    # Свежесть initData (2 минуты)
+    try:
+        auth_date = int(params.get('auth_date', ['0'])[0])
+        from time import time as _now
+        if _now() - auth_date > 120:
+            return None
+    except Exception:
         return None
 
     user_json = params.get('user', [None])[0]
@@ -893,6 +899,10 @@ async def cors_mw(request, handler):
     resp = await handler(request)
     resp.headers['Access-Control-Allow-Origin'] = ALLOWED_ORIGIN
     return resp
+
+# healthcheck
+async def root(request: web.Request):
+    return web.Response(text="ok")
 
 async def api_join(request: web.Request):
     try:
@@ -937,10 +947,27 @@ async def api_join(request: web.Request):
     total = await count_entries(gid)
     return web.json_response({"ok": True, "total": total})
 
+# Webhook endpoint
+async def tg_webhook(request: web.Request):
+    try:
+        data = await request.json()
+        update = Update.model_validate(data)
+        await dp.feed_update(bot, update)
+        return web.Response(text="ok")
+    except Exception as e:
+        logger.exception("webhook handle failed: %s", e)
+        return web.Response(status=500, text="error")
+
 async def start_http():
     app = web.Application(middlewares=[cors_mw])
+    # healthcheck
+    app.router.add_get('/', root)
+    # API
     app.router.add_route('OPTIONS', '/api/join', lambda r: web.Response())
     app.router.add_post('/api/join', api_join)
+    # webhook receiver
+    app.router.add_post(WEBHOOK_PATH, tg_webhook)
+
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, host=HTTP_HOST, port=HTTP_PORT)
@@ -950,34 +977,49 @@ async def start_http():
 # ========= Startup =========
 async def restore_schedules():
     gs = await list_active_giveaways()
+    now = datetime.now(timezone.utc)
     for g in gs:
-        await schedule_draw_job(g.id)
+        end_dt_utc = datetime.fromisoformat(g.end_at_utc)
+        if end_dt_utc <= now:
+            logger.warning(f"Giveaway #{g.id} deadline passed — running draw now")
+            await run_draw(g.id, manual=True)
+        else:
+            await schedule_draw_job(g.id)
 
 async def main():
     await init_db()
     scheduler.start()
 
-    public_url = os.getenv("PUBLIC_URL", "https://bot-randomus-1.onrender.com")
+    global BOT_USERNAME
+    if not BOT_USERNAME:
+        me = await bot.get_me()
+        BOT_USERNAME = me.username
+
     await start_http()
     await restore_schedules()
 
-    # на всякий случай чистим и ставим webhook
-    await bot.delete_webhook(drop_pending_updates=True)
-    await bot.set_webhook(
-        url=f"{public_url}{WEBHOOK_PATH}",
-        allowed_updates=["message","callback_query"]
-    )
+    # Чистим возможный старый вебхук и ставим новый (работаем по вебхуку, без polling)
+    try:
+        await bot.delete_webhook(drop_pending_updates=True)
+        webhook_url = f"{PUBLIC_URL}{WEBHOOK_PATH}"
+        await bot.set_webhook(
+            url=webhook_url,
+            allowed_updates=["message", "callback_query"]
+        )
+        logger.info(f"Webhook set to {webhook_url}")
+    except Exception as e:
+        logger.exception("set_webhook failed: %s", e)
+        raise
 
-    # держим процесс живым
-    while True:
-        await asyncio.sleep(3600)
+    # Держим процесс живым
+    try:
+        while True:
+            await asyncio.sleep(3600)
+    finally:
+        await bot.session.close()
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
-
-
-
-
