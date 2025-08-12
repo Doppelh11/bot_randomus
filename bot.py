@@ -880,57 +880,65 @@ def _parse_raw_pairs(init_data: str):
         pairs.append((k, v, dec_k, dec_v))
     return pairs
 
-def validate_webapp_init(init_data: str, bot_token: str) -> Tuple[Optional[int], str, Optional[int]]:
+def validate_webapp_init(init_data: str, bot_token: str):
     """
-    Проверяем Telegram WebApp.initData.
+    Валидируем Telegram WebApp.initData.
 
-    Возвращаем всегда кортеж:
-      (uid, reason, auth_date)
-    где reason один из: 'ok' | 'no_data' | 'no_hash' | 'bad_signature' | 'stale' | 'bad_user' | 'json_error'
-
-    ВАЖНО: не используем parse_qs/parse_qsl, чтобы '+' не превращались в пробелы.
+    ВАЖНО:
+    - Хэш считаем по СЫРЫМ парам k=v (как в init_data, без percent-decoding и без замены '+').
+    - 'hash' из строки исключаем.
+    - Сортировка по ключу (он и так ASCII, можно по raw).
+    - После успешной проверки отдельно декодируем только то, что нужно (auth_date, user).
+    Возвращаем кортеж: (uid, reason, auth_date)
     """
     if not init_data:
         return None, "no_data", None
 
-    got_hash: Optional[str] = None
-    items_decoded: List[Tuple[str, str]] = []
+    items_raw = []       # (k_raw, v_raw) — для check_string
+    got_hash = None
 
-    # Ручной парсинг "a=b&c=d", с percent-decoding, но БЕЗ замены '+' на пробел
+    # ручной парсинг без трогания '+'
     for part in init_data.split("&"):
         if not part:
             continue
         k_raw, sep, v_raw = part.partition("=")
         if not sep:
             continue
-
-        k_dec = urllib.parse.unquote(k_raw)
-        v_dec = urllib.parse.unquote(v_raw)
-
-        if k_dec == "hash":
-            got_hash = v_dec
-            continue
-        items_decoded.append((k_dec, v_dec))
+        if k_raw == "hash":
+            # hash в check_string не включаем — но значение надо запомнить как есть
+            got_hash = v_raw
+        else:
+            items_raw.append((k_raw, v_raw))
 
     if not got_hash:
         return None, "no_hash", None
 
-    # Сортировка по ключу и сборка check_string из ДЕКОДИРОВАННЫХ пар (без замены '+')
-    items_decoded.sort(key=lambda x: x[0])
-    check_string = "\n".join(f"{k}={v}" for k, v in items_decoded)
+    # Собираем data_check_string из СЫРЫХ пар
+    items_raw.sort(key=lambda x: x[0])
+    check_string = "\n".join(f"{k}={v}" for k, v in items_raw)
 
+    # HMAC-SHA256(secret_key=sha256(bot_token), data=check_string)
     secret_key = hashlib.sha256(bot_token.encode("utf-8")).digest()
     calc_hash = hmac.new(secret_key, check_string.encode("utf-8"), hashlib.sha256).hexdigest()
 
     if not hmac.compare_digest(calc_hash, got_hash):
-        # Попутно вытащим auth_date для логов (если он есть)
-        auth_date_str = next((v for k, v in items_decoded if k == "auth_date"), None)
-        auth_date_val = int(auth_date_str) if (auth_date_str and auth_date_str.isdigit()) else None
-        return None, "bad_signature", auth_date_val
+        # Для лога попробуем вытащить auth_date (его уже можно декодировать)
+        try:
+            auth_raw = next((v for k, v in items_raw if k == "auth_date"), None)
+            auth_dec = urllib.parse.unquote(auth_raw) if auth_raw is not None else None
+            auth_val = int(auth_dec) if (auth_dec and auth_dec.isdigit()) else None
+        except Exception:
+            auth_val = None
+        return None, "bad_signature", auth_val
+
+    # Подпись сошлась — теперь можно аккуратно декодировать
+    def get_decoded(name: str) -> str | None:
+        raw = next((v for k, v in items_raw if k == name), None)
+        return urllib.parse.unquote(raw) if raw is not None else None
 
     # Свежесть
     try:
-        auth_date_str = next((v for k, v in items_decoded if k == "auth_date"), None)
+        auth_date_str = get_decoded("auth_date")
         if not auth_date_str:
             return None, "bad_user", None
         auth_date = int(auth_date_str)
@@ -941,7 +949,7 @@ def validate_webapp_init(init_data: str, bot_token: str) -> Tuple[Optional[int],
         return None, "bad_user", None
 
     # user обязателен
-    user_json = next((v for k, v in items_decoded if k == "user"), None)
+    user_json = get_decoded("user")
     if not user_json:
         return None, "bad_user", None
     try:
@@ -1137,6 +1145,7 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
+
 
 
 
