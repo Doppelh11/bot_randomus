@@ -44,14 +44,13 @@ DB_PATH = os.getenv("DB_PATH", "giveaway.db")
 MINI_APP_SHORT = os.getenv("MINI_APP_SHORT", "Myssilki")          # t.me/<bot>/Myssilki
 MINI_APP_JOIN_SHORT = os.getenv("MINI_APP_JOIN_SHORT", "myapp")   # t.me/<bot>/myapp
 
-# Render/хостинг: порт должен браться из окружения (Render сам выдаёт PORT).
+# Render/хостинг
 HTTP_HOST = os.getenv("HOST", "0.0.0.0")
 HTTP_PORT = int(os.getenv("PORT", "10000"))
 ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "*")  # CORS
 
 # Публичный URL сервиса (для вебхука)
 PUBLIC_URL = os.getenv("PUBLIC_URL", "https://bot-randomus-1.onrender.com")
-# Уникальный путь вебхука (с токеном), чтобы не принимали чужие POST
 WEBHOOK_PATH = f"/tg-webhook/{BOT_TOKEN}"
 
 # Идентификатор инстанса (для блокировки розыгрыша при гонке нескольких инстансов)
@@ -94,8 +93,8 @@ CREATE TABLE IF NOT EXISTS giveaways (
     created_by         INTEGER NOT NULL,
     created_at_utc     TEXT NOT NULL,
     photo_file_id      TEXT,
-    announced          INTEGER NOT NULL DEFAULT 0, -- 0/1: итоги опубликованы
-    draw_lock          TEXT                       -- id инстанса, «захватившего» розыгрыш
+    announced          INTEGER NOT NULL DEFAULT 0,
+    draw_lock          TEXT
 );
 
 CREATE TABLE IF NOT EXISTS entries (
@@ -126,7 +125,6 @@ CREATE TABLE IF NOT EXISTS winners (
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript(INIT_SQL)
-        # мягкие миграции
         for ddl in [
             "ALTER TABLE giveaways ADD COLUMN type TEXT NOT NULL DEFAULT 'button'",
             "ALTER TABLE giveaways ADD COLUMN discussion_chat_id INTEGER",
@@ -335,7 +333,7 @@ async def check_requirements(user_id: int, required: List[str]) -> Tuple[bool, L
         try:
             chat_id = ch
             if isinstance(chat_id, str) and chat_id.startswith('@'):
-                chat_id = chat_id  # username указывать можно
+                chat_id = chat_id
             member = await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
             if member.status not in ("member", "administrator", "creator"):
                 failed.append(ch)
@@ -363,7 +361,6 @@ async def cmd_start(m: Message, command: CommandObject):
         me = await bot.get_me()
         BOT_USERNAME = me.username
 
-    # deep links for referrals
     if command.args:
         args = command.args
         mobj = re.match(r"ref-(\d+)-(\d+)", args)
@@ -546,7 +543,6 @@ async def g_confirm(m: Message, state: FSMContext):
 
     gtype = data['gtype']
 
-    # Save to DB
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute(
             "INSERT INTO giveaways (title, description, winners_count, type, start_at_utc, end_at_utc, required_channels, target_chat, status, created_by, created_at_utc, photo_file_id, announced) "
@@ -560,7 +556,6 @@ async def g_confirm(m: Message, state: FSMContext):
         gid = cur.lastrowid
         await db.commit()
 
-    # Build post text
     gid_text = f"ID: <code>{gid}</code>"
     end_local = datetime.fromisoformat(data['end_at_utc']).astimezone(TZ)
     post_text = (
@@ -570,7 +565,6 @@ async def g_confirm(m: Message, state: FSMContext):
         f"Победителей: <b>{data['winners']}</b>\n{gid_text}"
     )
 
-    # keyboard preview via a fake Giveaway instance
     g_preview = Giveaway(
         id=gid, title=data['title'], description=data['description'], winners_count=data['winners'],
         type=gtype, start_at_utc=data['start_at_utc'], end_at_utc=data['end_at_utc'],
@@ -756,7 +750,7 @@ async def schedule_draw_job(gid: int):
     g = await fetch_giveaway(gid)
     if not g or g.status not in ('scheduled','drawing'):
         return
-    end_dt_utc = datetime.fromisoformat(g.end_at_utc)  # aware UTC
+    end_dt_utc = datetime.fromisoformat(g.end_at_utc)
     scheduler.add_job(
         run_draw,
         DateTrigger(run_date=end_dt_utc, timezone=pytz.utc),
@@ -772,12 +766,7 @@ async def schedule_draw_job(gid: int):
     )
 
 async def try_claim_draw(gid: int) -> bool:
-    """
-    Пытаемся «захватить» розыгрыш, чтобы только один инстанс сделал draw.
-    Меняем status на 'drawing' и проставляем draw_lock=INSTANCE_ID.
-    """
     async with aiosqlite.connect(DB_PATH) as db:
-        now_iso = datetime.now(timezone.utc).isoformat()
         cur = await db.execute(
             """
             UPDATE giveaways
@@ -790,9 +779,6 @@ async def try_claim_draw(gid: int) -> bool:
         return cur.rowcount == 1
 
 async def mark_announced_once(gid: int) -> bool:
-    """
-    Ставим announced=1 атомарно. Если уже 1 — вернёт False.
-    """
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute(
             "UPDATE giveaways SET announced=1 WHERE id=? AND announced=0",
@@ -803,10 +789,7 @@ async def mark_announced_once(gid: int) -> bool:
 
 async def finish_draw(gid: int):
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            "UPDATE giveaways SET status='finished' WHERE id=?",
-            (gid,),
-        )
+        await db.execute("UPDATE giveaways SET status='finished' WHERE id=?", (gid,))
         await db.commit()
 
 async def run_draw(gid: int, manual: bool = False):
@@ -814,17 +797,14 @@ async def run_draw(gid: int, manual: bool = False):
     if not g or g.status not in ('scheduled','drawing'):
         return
 
-    # Захватить розыгрыш, если он ещё scheduled
     if g.status == 'scheduled':
         claimed = await try_claim_draw(gid)
         if not claimed:
-            # Кто-то другой уже начал или завершил
             logger.info(f"draw #{gid}: not claimed by {INSTANCE_ID}, skipping")
             return
         else:
             logger.info(f"draw #{gid}: claimed by {INSTANCE_ID}")
 
-    # Перечитываем состояние после claim
     g = await fetch_giveaway(gid)
     if not g or g.status not in ('scheduled','drawing'):
         return
@@ -836,9 +816,7 @@ async def run_draw(gid: int, manual: bool = False):
         pool = [e[0] for e in entries_list]
         if not pool:
             await save_winners(gid, [])
-            # Публикуем «нет участников» один раз
-            published = await mark_announced_once(gid)
-            if published:
+            if await mark_announced_once(gid):
                 await announce_results(g, [])
             await finish_draw(gid)
             return
@@ -849,8 +827,7 @@ async def run_draw(gid: int, manual: bool = False):
         top = await referral_top(gid)
         if not top:
             await save_winners(gid, [])
-            published = await mark_announced_once(gid)
-            if published:
+            if await mark_announced_once(gid):
                 await announce_results(g, [])
             await finish_draw(gid)
             return
@@ -877,8 +854,7 @@ async def run_draw(gid: int, manual: bool = False):
                 pool.append(uid)
         if not pool:
             await save_winners(gid, [])
-            published = await mark_announced_once(gid)
-            if published:
+            if await mark_announced_once(gid):
                 await announce_results(g, [])
             await finish_draw(gid)
             return
@@ -886,14 +862,10 @@ async def run_draw(gid: int, manual: bool = False):
         winners = random.sample(pool, k)
 
     await save_winners(gid, winners)
-
-    # Публикация итогов только один раз
-    published = await mark_announced_once(gid)
-    if published:
+    if await mark_announced_once(gid):
         await announce_results(g, winners)
     else:
         logger.info(f"announce #{gid}: already announced — skipping")
-
     await finish_draw(gid)
 
 async def announce_results(g: Giveaway, winners: List[int]):
@@ -929,13 +901,12 @@ async def announce_results(g: Giveaway, winners: List[int]):
 def validate_webapp_init(init_data: str, bot_token: str) -> tuple[Optional[int], str]:
     """
     Проверяем initData из Telegram WebApp.
-    Возвращает (user_id, reason), где reason пустая строка при успехе или
-    'no_hash' | 'bad_signature' | 'stale' | 'bad_user' при ошибке.
+    Возвращает (user_id, reason), reason: '' | 'no_hash' | 'bad_signature' | 'stale' | 'bad_user'
+    Сбор строки — из URL-раскодированных пар (parse_qsl).
     """
     if not init_data or "hash=" not in init_data:
         return None, "no_hash"
 
-    # Разбираем как querystring с URL-декодированием (официальная рекомендация)
     pairs = urllib.parse.parse_qsl(init_data, keep_blank_values=True)
     got_hash = None
     filtered = []
@@ -955,18 +926,16 @@ def validate_webapp_init(init_data: str, bot_token: str) -> tuple[Optional[int],
     if not hmac.compare_digest(calc, got_hash):
         return None, "bad_signature"
 
-    # Свежесть — даём большой люфт (24 часа)
     try:
         params = dict(filtered)
         auth_date = int(params.get("auth_date", "0"))
         from time import time as _now
         delta = int(_now() - auth_date)
-        if delta > 86400:  # 24h
+        if delta > 86400:  # 24 часа
             return None, "stale"
     except Exception:
         return None, "stale"
 
-    # user.id
     try:
         user_json = dict(filtered).get("user") or ""
         user_obj = json.loads(user_json)
@@ -974,34 +943,6 @@ def validate_webapp_init(init_data: str, bot_token: str) -> tuple[Optional[int],
         return uid, ""
     except Exception:
         return None, "bad_user"
-
-    # Отсортировать по ключу и собрать data_check_string из raw-значений
-    pairs_raw.sort(key=lambda x: x[0])
-    data_check_string = "\n".join(f"{k}={v}" for k, v in pairs_raw)
-
-    # Посчитать HMAC
-    secret_key = hashlib.sha256(bot_token.encode()).digest()
-    calc = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(calc, got_hash):
-        return None
-
-    # Проверим свежесть (10 минут)
-    try:
-        params = urllib.parse.parse_qs(init_data, keep_blank_values=True)
-        auth_date = int(params.get("auth_date", ["0"])[0])
-        from time import time as _now
-        if _now() - auth_date > 600:
-            return None
-    except Exception:
-        return None
-
-    # Достаём user.id
-    user_json = (params.get("user", [None])[0]) or ""
-    try:
-        user_obj = json.loads(urllib.parse.unquote(user_json))
-        return int(user_obj.get("id"))
-    except Exception:
-        return None
 
 @web.middleware
 async def cors_mw(request, handler):
@@ -1030,9 +971,13 @@ async def api_join(request: web.Request):
     if not gid or not init:
         return web.json_response({"ok": False, "reason": "bad params"}, status=400)
 
-    uid = validate_webapp_init(init, BOT_TOKEN)
+    uid, v_reason = validate_webapp_init(init, BOT_TOKEN)
     if not uid:
-        logger.warning("api_join 401: bad initData; len=%s; gid=%s", len(init or ""), gid)
+        try:
+            auth_date = int(dict(urllib.parse.parse_qsl(init, keep_blank_values=True)).get("auth_date", "0"))
+        except Exception:
+            auth_date = 0
+        logger.warning("api_join 401: %s; len=%s; gid=%s; auth_date=%s", v_reason, len(init or ""), gid, auth_date)
         return web.json_response({"ok": False, "reason": "auth failed"}, status=401)
 
     g = await fetch_giveaway(gid)
@@ -1076,12 +1021,9 @@ async def tg_webhook(request: web.Request):
 
 async def start_http():
     app = web.Application(middlewares=[cors_mw])
-    # healthcheck
     app.router.add_get('/', root)
-    # API
     app.router.add_route('OPTIONS', '/api/join', lambda r: web.Response())
     app.router.add_post('/api/join', api_join)
-    # webhook receiver
     app.router.add_post(WEBHOOK_PATH, tg_webhook)
 
     runner = web.AppRunner(app)
@@ -1098,7 +1040,6 @@ async def restore_schedules():
         end_dt_utc = datetime.fromisoformat(g.end_at_utc)
         if end_dt_utc <= now:
             logger.warning(f"Giveaway #{g.id} deadline passed — running draw now")
-            # draw сам защитится через try_claim_draw() и announced флаг
             await run_draw(g.id, manual=True)
         else:
             await schedule_draw_job(g.id)
@@ -1116,7 +1057,6 @@ async def main():
     await start_http()
     await restore_schedules()
 
-    # Чистим возможный старый вебхук и ставим новый (работаем по вебхуку, без polling)
     try:
         await bot.delete_webhook(drop_pending_updates=True)
         webhook_url = f"{PUBLIC_URL}{WEBHOOK_PATH}"
@@ -1129,7 +1069,6 @@ async def main():
         logger.exception("set_webhook failed: %s", e)
         raise
 
-    # Держим процесс живым
     try:
         while True:
             await asyncio.sleep(3600)
@@ -1141,5 +1080,3 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
-
-
