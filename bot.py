@@ -231,7 +231,6 @@ async def save_winners(gid: int, winners: List[int]):
         await db.execute("DELETE FROM winners WHERE giveaway_id=?", (gid,))
         for idx, uid in enumerate(winners, start=1):
             await db.execute("INSERT INTO winners (giveaway_id, user_id, place) VALUES (?,?,?)", (gid, uid, idx))
-        # Статус в finished — финальный штамп
         await db.execute("UPDATE giveaways SET status='finished' WHERE id=?", (gid,))
         await db.commit()
 
@@ -298,7 +297,6 @@ async def giveaway_kb(g: Giveaway) -> InlineKeyboardMarkup:
     if g.type == 'button':
         total = await count_entries(g.id)
         startapp_payload = f"gid-{g.id}"
-        # Кнопка запуска мини-аппы по шортнейму
         kb.button(
             text="🎉 Участвовать",
             url=f"https://t.me/{BOT_USERNAME}/{MINI_APP_JOIN_SHORT}?startapp={startapp_payload}",
@@ -776,7 +774,6 @@ async def run_draw(gid: int, manual: bool = False):
         )
         await db.commit()
         if cur.rowcount == 0:
-            # Уже кем-то забрано или завершено — выходим
             return
 
     logger.info(f"draw #{gid}: claimed by {INSTANCE_ID}")
@@ -865,58 +862,77 @@ def _calc_webapp_hash(data_check_string: str, bot_token: str) -> str:
     secret_key = hashlib.sha256(bot_token.encode()).digest()
     return hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
+def _parse_raw_pairs(init_data: str):
+    """
+    Возвращает список (raw_k, raw_v, dec_k, dec_v) БЕЗ повторного декодирования.
+    raw_* — как в строке (после split по & и =), dec_* — однократно urllib.parse.unquote_plus.
+    """
+    pairs = []
+    if not init_data:
+        return pairs
+    for part in init_data.split('&'):
+        if '=' in part:
+            k, v = part.split('=', 1)
+        else:
+            k, v = part, ''
+        dec_k = urllib.parse.unquote_plus(k)
+        dec_v = urllib.parse.unquote_plus(v)
+        pairs.append((k, v, dec_k, dec_v))
+    return pairs
+
 def validate_webapp_init(init_data: str, bot_token: str) -> Tuple[Optional[int], str, Optional[int]]:
     """
-    Валидация подписи Telegram WebApp.initData + проверка свежести auth_date.
+    Валидация подписи Telegram WebApp.initData + свежесть auth_date.
+    Важно: data_check_string строим из НЕРАЗКОДИРОВАННЫХ пар key=value, отсортированных по ДЕКОДИРОВАННОМУ ключу.
     Возвращает: (user_id|None, reason, auth_date|None)
-    reason: 'ok' | 'no_hash' | 'bad_signature' | 'stale' | 'bad_user'
+    reason: 'ok' | 'no_hash' | 'bad_signature' | 'stale' | 'bad_user' | 'bad_parse'
     """
     try:
-        pairs = urllib.parse.parse_qsl(init_data, keep_blank_values=True)
+        pairs = _parse_raw_pairs(init_data)  # [(raw_k, raw_v, dec_k, dec_v), ...]
     except Exception:
         return None, "bad_parse", None
 
     got_hash = None
-    filtered = []
-    user_json = None
-    auth_date = None
+    rows_for_hmac = []   # (dec_k, "raw_k=raw_v")
+    user_json_dec = None
+    auth_date_dec: Optional[int] = None
 
-    for k, v in pairs:
-        if k == 'hash':
-            got_hash = v
-        else:
-            filtered.append((k, v))
-        if k == 'user':
-            user_json = v
-        if k == 'auth_date':
+    for raw_k, raw_v, dec_k, dec_v in pairs:
+        if dec_k == 'hash':
+            got_hash = dec_v  # hash само приходит уже «как строка» (можно брать decoded)
+            continue
+        rows_for_hmac.append((dec_k, f"{raw_k}={raw_v}"))
+        if dec_k == 'user':
+            user_json_dec = dec_v  # для извлечения uid
+        if dec_k == 'auth_date':
             try:
-                auth_date = int(v)
+                auth_date_dec = int(dec_v)
             except Exception:
-                auth_date = None
+                auth_date_dec = None
 
     if not got_hash:
-        return None, "no_hash", auth_date
+        return None, "no_hash", auth_date_dec
 
-    filtered.sort(key=lambda x: x[0])
-    data_check_string = "\n".join(f"{k}={v}" for k, v in filtered)
+    # Сортируем по декодированному ключу, но в строку кладём raw "k=v"
+    rows_for_hmac.sort(key=lambda t: t[0])
+    data_check_string = "\n".join(row for _, row in rows_for_hmac)
+
     calc = _calc_webapp_hash(data_check_string, bot_token)
     if not hmac.compare_digest(calc, got_hash):
-        return None, "bad_signature", auth_date
+        return None, "bad_signature", auth_date_dec
 
-    # Свежесть initData (3 минуты)
-    if auth_date is not None:
-        if time.time() - auth_date > 180:
-            return None, "stale", auth_date
+    if auth_date_dec is not None and time.time() - auth_date_dec > 180:
+        return None, "stale", auth_date_dec
 
-    if not user_json:
-        return None, "bad_user", auth_date
+    if not user_json_dec:
+        return None, "bad_user", auth_date_dec
 
     try:
-        user_obj = json.loads(urllib.parse.unquote(user_json))
+        user_obj = json.loads(user_json_dec)
         uid = int(user_obj.get('id'))
-        return uid, "ok", auth_date
+        return uid, "ok", auth_date_dec
     except Exception:
-        return None, "bad_user", auth_date
+        return None, "bad_user", auth_date_dec
 
 @web.middleware
 async def cors_mw(request, handler):
@@ -955,29 +971,18 @@ async def debug_init(request: web.Request):
     if not init:
         return web.json_response({"ok": False, "reason": "no init"}, status=400)
 
-    try:
-        pairs = urllib.parse.parse_qsl(init, keep_blank_values=True)
-    except Exception:
-        return web.json_response({"ok": False, "reason": "bad_parse"}, status=400)
-
+    pairs = _parse_raw_pairs(init)
     got_hash = None
-    filtered = []
-    auth_date = None
-    for k, v in pairs:
-        if k == "hash":
-            got_hash = v
+    rows = []
+    for raw_k, raw_v, dec_k, dec_v in pairs:
+        if dec_k == "hash":
+            got_hash = dec_v
         else:
-            filtered.append((k, v))
-        if k == "auth_date":
-            try:
-                auth_date = int(v)
-            except Exception:
-                auth_date = None
-
-    filtered.sort(key=lambda x: x[0])
-    data_check_string = "\n".join(f"{k}={v}" for k, v in filtered)
+            rows.append((dec_k, f"{raw_k}={raw_v}"))
+    rows.sort(key=lambda t: t[0])
+    dcs = "\n".join(r for _, r in rows)
     secret_key = hashlib.sha256(BOT_TOKEN.encode()).digest()
-    calc = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    calc = hmac.new(secret_key, dcs.encode(), hashlib.sha256).hexdigest()
     same = (got_hash == calc)
 
     info = {
@@ -985,8 +990,8 @@ async def debug_init(request: web.Request):
         "reason": "" if same else "bad_signature",
         "got_hash_prefix": (got_hash or "")[:12],
         "calc_hash_prefix": calc[:12],
-        "has_hash": bool(got_hash),
-        "auth_date": auth_date,
+        "check_string_sample": dcs[:120],
+        "check_string_len": len(dcs),
     }
     return web.json_response(info, status=200 if same else 401)
 
