@@ -34,7 +34,7 @@ from dotenv import load_dotenv
 
 # ========= Config =========
 load_dotenv()
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 if not BOT_TOKEN:
     raise SystemExit("BOT_TOKEN is not set. Put it into .env")
 
@@ -882,22 +882,15 @@ def _parse_raw_pairs(init_data: str):
 
 def validate_webapp_init(init_data: str, bot_token: str):
     """
-    Валидируем Telegram WebApp.initData.
-
-    ВАЖНО:
-    - Хэш считаем по СЫРЫМ парам k=v (как в init_data, без percent-decoding и без замены '+').
-    - 'hash' из строки исключаем.
-    - Сортировка по ключу (он и так ASCII, можно по raw).
-    - После успешной проверки отдельно декодируем только то, что нужно (auth_date, user).
-    Возвращаем кортеж: (uid, reason, auth_date)
+    Валидируем Telegram WebApp.initData по СЫРЫМ парам k=v.
+    Возвращаем (uid, reason, auth_date)
     """
     if not init_data:
         return None, "no_data", None
 
-    items_raw = []       # (k_raw, v_raw) — для check_string
+    items_raw = []  # (k_raw, v_raw)
     got_hash = None
 
-    # ручной парсинг без трогания '+'
     for part in init_data.split("&"):
         if not part:
             continue
@@ -905,7 +898,6 @@ def validate_webapp_init(init_data: str, bot_token: str):
         if not sep:
             continue
         if k_raw == "hash":
-            # hash в check_string не включаем — но значение надо запомнить как есть
             got_hash = v_raw
         else:
             items_raw.append((k_raw, v_raw))
@@ -913,16 +905,15 @@ def validate_webapp_init(init_data: str, bot_token: str):
     if not got_hash:
         return None, "no_hash", None
 
-    # Собираем data_check_string из СЫРЫХ пар
+    # check_string из сырых пар
     items_raw.sort(key=lambda x: x[0])
     check_string = "\n".join(f"{k}={v}" for k, v in items_raw)
 
-    # HMAC-SHA256(secret_key=sha256(bot_token), data=check_string)
     secret_key = hashlib.sha256(bot_token.encode("utf-8")).digest()
     calc_hash = hmac.new(secret_key, check_string.encode("utf-8"), hashlib.sha256).hexdigest()
 
     if not hmac.compare_digest(calc_hash, got_hash):
-        # Для лога попробуем вытащить auth_date (его уже можно декодировать)
+        # попробуем достать auth_date для лога
         try:
             auth_raw = next((v for k, v in items_raw if k == "auth_date"), None)
             auth_dec = urllib.parse.unquote(auth_raw) if auth_raw is not None else None
@@ -931,12 +922,11 @@ def validate_webapp_init(init_data: str, bot_token: str):
             auth_val = None
         return None, "bad_signature", auth_val
 
-    # Подпись сошлась — теперь можно аккуратно декодировать
-    def get_decoded(name: str) -> str | None:
+    # Далее можно декодировать точечно
+    def get_decoded(name: str) -> Optional[str]:
         raw = next((v for k, v in items_raw if k == name), None)
         return urllib.parse.unquote(raw) if raw is not None else None
 
-    # Свежесть
     try:
         auth_date_str = get_decoded("auth_date")
         if not auth_date_str:
@@ -948,7 +938,6 @@ def validate_webapp_init(init_data: str, bot_token: str):
     except Exception:
         return None, "bad_user", None
 
-    # user обязателен
     user_json = get_decoded("user")
     if not user_json:
         return None, "bad_user", None
@@ -986,7 +975,7 @@ async def whoami(request: web.Request):
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)
 
-async def debug_init(request: web.Request):
+async def api_debug_init(request: web.Request):
     try:
         payload = await request.json()
     except Exception:
@@ -996,29 +985,35 @@ async def debug_init(request: web.Request):
     if not init:
         return web.json_response({"ok": False, "reason": "no init"}, status=400)
 
-    pairs = _parse_raw_pairs(init)
+    # Собираем СЫРОЙ check_string так же, как в validate_webapp_init
+    items_raw = []
     got_hash = None
-    rows = []
-    for raw_k, raw_v, dec_k, dec_v in pairs:
-        if dec_k == "hash":
-            got_hash = dec_v
+    for part in init.split("&"):
+        if not part:
+            continue
+        k_raw, sep, v_raw = part.partition("=")
+        if not sep:
+            continue
+        if k_raw == "hash":
+            got_hash = v_raw
         else:
-            rows.append((dec_k, f"{raw_k}={raw_v}"))
-    rows.sort(key=lambda t: t[0])
-    dcs = "\n".join(r for _, r in rows)
-    secret_key = hashlib.sha256(BOT_TOKEN.encode()).digest()
-    calc = hmac.new(secret_key, dcs.encode(), hashlib.sha256).hexdigest()
-    same = (got_hash == calc)
+            items_raw.append((k_raw, v_raw))
 
-    info = {
-        "ok": same,
-        "reason": "" if same else "bad_signature",
+    items_raw.sort(key=lambda x: x[0])
+    check_string = "\n".join(f"{k}={v}" for k, v in items_raw)
+
+    secret_key = hashlib.sha256(BOT_TOKEN.encode("utf-8")).digest()
+    calc_hash = hmac.new(secret_key, check_string.encode("utf-8"), hashlib.sha256).hexdigest()
+
+    ok = bool(got_hash and hmac.compare_digest(calc_hash, got_hash))
+    return web.json_response({
+        "ok": ok,
+        "reason": None if ok else "bad_signature",
         "got_hash_prefix": (got_hash or "")[:12],
-        "calc_hash_prefix": calc[:12],
-        "check_string_sample": dcs[:120],
-        "check_string_len": len(dcs),
-    }
-    return web.json_response(info, status=200 if same else 401)
+        "calc_hash_prefix": calc_hash[:12],
+        "check_string_len": len(check_string),
+        "check_string_head": check_string[:160]
+    }, status=200 if ok else 401)
 
 async def api_join(request: web.Request):
     try:
@@ -1083,7 +1078,7 @@ async def start_http():
     # healthcheck & diag
     app.router.add_get('/', root)
     app.router.add_get('/api/whoami', whoami)
-    app.router.add_post('/api/debug-init', debug_init)
+    app.router.add_post('/api/debug-init', api_debug_init)
     # API
     app.router.add_route('OPTIONS', '/api/join', lambda r: web.Response())
     app.router.add_post('/api/join', api_join)
@@ -1145,6 +1140,7 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped")
+
 
 
 
