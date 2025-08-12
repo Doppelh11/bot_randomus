@@ -100,6 +100,7 @@
   WebApp && (WebApp.ready(), WebApp.expand(), WebApp.disableVerticalSwipes && WebApp.disableVerticalSwipes());
 
   const BOT_USERNAME = 'deepseekrbot';
+  const API_JOIN = 'https://bot-randomus-1.onrender.com/api/join';
   // URL API можно задать через window.API_JOIN (выше) или параметр ?api=
   const API_JOIN = (window.API_JOIN || new URLSearchParams(location.search).get('api') || '');
 
@@ -262,3 +263,4 @@
 </script>
 </body>
 </html>
+
