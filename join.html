@@ -16,18 +16,14 @@
     body{margin:0;background:radial-gradient(1200px 680px at 50% -10%, #111934 0%, #0a0f1d 55%, #070a12 100%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial}
     .wrap{max-width:840px;margin:0 auto;padding:22px}
     .card{position:relative;background:linear-gradient(180deg,rgba(22,30,52,.92),rgba(12,18,34,.96));border-radius:22px;padding:22px;box-shadow:0 24px 80px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.06)}
-    .glow{position:absolute;inset:-20px;pointer-events:none;filter:blur(42px);opacity:.9;background:conic-gradient(from 0deg, rgba(132,169,255,.18), rgba(34,211,238,.08), rgba(139,92,246,.14), rgba(132,169,255,.18)) ;border-radius:28px}
+    .glow{position:absolute;inset:-20px;pointer-events:none;filter:blur(42px);opacity:.9;background:conic-gradient(from 0deg, rgba(132,169,255,.18), rgba(34,211,238,.08), rgba(139,92,246,.14), rgba(132,169,255,.18));border-radius:28px}
     h1{margin:0 0 6px;font-size:22px}
     .muted{color:var(--muted)}
 
-    /* Roulette */
     .roulette-wrap{position:relative;margin-top:18px;height:340px}
     .wheel-box{position:absolute;left:50%;top:8px;transform:translateX(-50%);width:320px;height:320px;border-radius:50%;background:radial-gradient(closest-side,#142752,#0e1a3a);display:grid;place-items:center;box-shadow:0 22px 60px rgba(0,0,0,.6), inset 0 0 0 12px #0e1c3b, inset 0 0 0 18px #1f2f54}
     .wheel{width:280px;height:280px;border-radius:50%;position:relative;box-shadow:inset 0 0 60px rgba(0,0,0,.35);background:
-      repeating-conic-gradient(
-        var(--seg) 0deg 14.5deg,
-        var(--divider) 14.5deg 15deg
-      );
+      repeating-conic-gradient(var(--seg) 0deg 14.5deg, var(--divider) 14.5deg 15deg)
     }
     .marker{position:absolute;left:50%;top:-2px;transform:translateX(-50%);width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:18px solid var(--gold);filter:drop-shadow(0 2px 2px rgba(0,0,0,.5)) drop-shadow(0 0 10px rgba(255,209,102,.6))}
     .center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:78px;height:78px;border-radius:50%;background:radial-gradient(circle at 35% 30%, #fff 0 2px, #9bb8ff 12%, #6ea0ff 60%, #3a65ff 100%);box-shadow:0 6px 18px rgba(132,169,255,.6), inset 0 0 14px rgba(255,255,255,.85)}
@@ -36,7 +32,6 @@
     .spin{animation:spin 2600ms cubic-bezier(.17,.84,.21,1) forwards}
     @keyframes spin{0%{transform:rotate(0)}80%{transform:rotate(1100deg)}100%{transform:rotate(1090deg)}}
 
-    /* Progress ring */
     .ring{position:relative;width:86px;height:86px;margin:18px auto;border-radius:50%;box-shadow:inset 0 0 0 6px var(--ring)}
     .ring .seg-ok{position:absolute;inset:-6px;border-radius:50%;background:conic-gradient(var(--ok) 0deg, transparent 0deg);filter:drop-shadow(0 0 8px rgba(52,211,153,.35))}
 
@@ -51,12 +46,14 @@
     .actions{display:flex;gap:8px;margin-top:14px}
     .btn{flex:1;border-radius:14px;border:1px solid #2a3247;background:linear-gradient(180deg,#162239,#0f182b);color:var(--text);padding:12px;font-weight:800;cursor:pointer;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.35)}
 
-    /* Confetti */
     #fx{position:fixed;inset:0;pointer-events:none}
 
-    /* Banner for fallback mode */
     .banner{display:none;margin-top:10px;padding:10px;border-radius:12px;background:#0a1426;border:1px solid rgba(255,255,255,.08);color:#b8c7e8;font-size:12px}
     .banner.show{display:block}
+
+    .diag{margin-top:10px;padding:8px;border-radius:10px;background:#0b1428;border:1px dashed rgba(255,255,255,.15);color:#b7c6e6;font-size:12px;line-height:1.4}
+    .diag b{color:#eaf1ff}
+    .diag code{color:#e6f3ff}
   </style>
 </head>
 <body>
@@ -80,6 +77,7 @@
 
       <div id="need" class="need"></div>
       <div id="fallback" class="banner"></div>
+      <div id="diag" class="diag" style="display:none"></div>
 
       <div id="resultOk" class="result">
         <div class="big">✅ Поздравляем, вы участвуете в розыгрыше!</div>
@@ -94,24 +92,20 @@
 
 <script>
 (function(){
-  // === Telegram WebApp boot ===
   const WebApp = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
   WebApp && (WebApp.ready(), WebApp.expand(), WebApp.disableVerticalSwipes && WebApp.disableVerticalSwipes());
 
-  // === Конфиг ===
-  const BOT_USERNAME = 'deepseekrbot'; // имя твоего бота без @
-  const API_DEFAULT = 'https://bot-randomus-1.onrender.com/api/join'; // бекенд на Render
+  const BOT_USERNAME = 'deepseekrbot';
+  const API_DEFAULT = 'https://bot-randomus-1.onrender.com/api/join';
   const apiParam = new URLSearchParams(location.search).get('api');
-  const API = apiParam || API_DEFAULT; // можно переопределить ?api=
+  const API = apiParam || API_DEFAULT;
 
-  // === GID из start_param ===
   const qs = new URLSearchParams(location.search);
   const startParam = (WebApp && WebApp.initDataUnsafe && WebApp.initDataUnsafe.start_param) || qs.get('tgWebAppStartParam') || '';
   const gidMatch = /gid-(\d+)/.exec(startParam || '');
   const gid = gidMatch ? gidMatch[1] : null;
   document.getElementById('gid').textContent = gid ? ('#' + gid) : '#—';
 
-  // === UI refs ===
   const wheel = document.getElementById('wheel');
   const label = document.getElementById('label');
   const ring = document.getElementById('ring');
@@ -121,8 +115,9 @@
   const openBot = document.getElementById('openBot');
   const share = document.getElementById('share');
   const fallback = document.getElementById('fallback');
+  const diagBox = document.getElementById('diag');
 
-  // === Confetti ===
+  // Confetti
   const fx = document.getElementById('fx');
   const ctx = fx.getContext('2d');
   let confetti = [], rafId = 0, startTs = 0;
@@ -153,7 +148,6 @@
   function blast(){ spawnConfetti(260); cancelAnimationFrame(rafId); startTs=0; rafId = requestAnimationFrame(drawConfetti); }
   function haptic(type){ try{ WebApp && WebApp.HapticFeedback && WebApp.HapticFeedback[type] && WebApp.HapticFeedback[type]('medium'); }catch{} }
 
-  // === UI helpers ===
   function spin(){ wheel.classList.add('spin'); haptic('impactOccurred'); }
   function setRing(p){ ringOk.style.background = `conic-gradient(var(--ok) ${p*360}deg, transparent ${p*360}deg)`; }
   function showNeed(chans){
@@ -177,9 +171,26 @@
     needBox.classList.add('show');
   }
 
-  // === API call ===
+  // Диагностика на экран
+  function showDiag(items){
+    const lines = items.map(([k,v])=>`<b>${k}:</b> <code>${String(v)}</code>`);
+    diagBox.innerHTML = lines.join('<br>');
+    diagBox.style.display = 'block';
+  }
+
   async function joinViaAPI(){
-    const payload = { action: 'join', gid, init: WebApp && WebApp.initData || '' };
+    const initData = (WebApp && WebApp.initData) || '';
+    const payload = { action: 'join', gid, init: initData };
+
+    // быстрый диагноз
+    showDiag([
+      ['WebApp?', !!WebApp],
+      ['initData length', initData ? initData.length : 0],
+      ['start_param', (WebApp && WebApp.initDataUnsafe && WebApp.initDataUnsafe.start_param) || ''],
+      ['API', API],
+      ['gid', gid || '—']
+    ]);
+
     const ctrl = new AbortController();
     const to = setTimeout(()=>ctrl.abort(), 8000);
     const r = await fetch(API, {
@@ -188,31 +199,29 @@
       body: JSON.stringify(payload),
       credentials: 'omit',
       signal: ctrl.signal
-    }).catch(e=>{
-      clearTimeout(to);
-      throw e;
-    });
+    }).catch(e=>{ clearTimeout(to); throw e; });
     clearTimeout(to);
 
-    // ЯВНАЯ проверка 401 — открыто вне Telegram, или подпись не совпала
     if (r.status === 401) {
       label.textContent = 'Откройте мини-аппу из Telegram';
       const diag = document.createElement('div');
       diag.className = 'muted';
       diag.style.fontSize = '12px';
       diag.style.marginTop = '6px';
-      diag.textContent = 'Похоже, страница открыта вне Telegram (нет подписи initData) или токен бота не совпадает.';
+      diag.textContent = 'Нет валидной подписи initData. Нажмите «Участвовать» прямо в посте бота.';
       needBox.after(diag);
       return { ok:false, reason:'auth failed' };
     }
-
     if (!r.ok) throw new Error('HTTP '+r.status);
-    return await r.json(); // {ok, total, need?, reason?}
+    return await r.json();
   }
 
-  // === Main flow ===
   async function flow(){
-    if (!gid){ label.textContent = 'Нет параметра запуска'; return; }
+    if (!gid){
+      label.textContent = 'Нет параметра запуска (gid)';
+      showDiag([['Ошибка','tgWebAppStartParam пуст']]);
+      return;
+    }
 
     spin();
     await new Promise(r=>setTimeout(r, 1200));
@@ -221,25 +230,16 @@
     setRing(0.33); await new Promise(r=>setTimeout(r, 330));
     setRing(0.66); await new Promise(r=>setTimeout(r, 330));
 
-    // Если API пуст (страховка) — мягкий fallback через sendData
-    if (!API){
-      const warn = 'API URL не задан. Использую резервный способ — бот проверит условия в ЛС.';
-      fallback.textContent = warn; fallback.classList.add('show');
-      try {
-        const payload = { action:'join', gid, init: WebApp && WebApp.initData || '' };
-        WebApp && WebApp.sendData && WebApp.sendData(JSON.stringify(payload));
-        label.textContent = 'Заявка отправлена боту…';
-        res.classList.add('ok');
-        blast();
-      } catch(e){
-        label.textContent = 'Не удалось отправить заявку';
-      }
+    // страховка: если вообще нет WebApp — сразу подсказка
+    if (!WebApp) {
+      label.textContent = 'Откройте мини-аппу из Telegram';
+      showDiag([['Ошибка','window.Telegram.WebApp недоступен (браузер)']]);
       return;
     }
 
     try{
       const data = await joinViaAPI();
-      if (data && data.reason === 'auth failed') return; // уже показали подсказку
+      if (data && data.reason === 'auth failed') return;
 
       setRing(1);
       if (data.ok){
@@ -247,7 +247,7 @@
         label.textContent = 'Готово!';
         needBox.classList.remove('show');
         res.classList.add('ok');
-        blast(); // 🎉
+        blast();
       } else {
         label.textContent = data.reason === 'conditions' ? 'Нужно подписаться' : 'Условия не выполнены';
         showNeed(data.need);
@@ -255,16 +255,12 @@
     }catch(e){
       console.error('joinViaAPI failed', e);
       label.textContent = 'Не удалось связаться с сервером';
-      const diag = document.createElement('div');
-      diag.className = 'muted'; diag.style.fontSize = '12px'; diag.style.marginTop = '6px';
-      diag.textContent = 'URL: '+API+' • Ошибка: '+(e && e.message ? e.message : 'network');
-      needBox.after(diag);
+      showDiag([['Network error', (e && e.message) || 'unknown']]);
     }
   }
 
   flow();
 
-  // === Actions ===
   openBot.addEventListener('click', ()=>{
     const url = `https://t.me/${BOT_USERNAME}`;
     if (WebApp && WebApp.openTelegramLink){ WebApp.openTelegramLink(url); }
