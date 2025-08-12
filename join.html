@@ -277,6 +277,67 @@
   }
 
   flow();
+  <!-- === DEBUG UI (временный) === -->
+<div id="debugControls" style="margin-top:12px; display:none">
+  <div style="display:flex; gap:8px; margin-bottom:8px">
+    <button id="btnCopyInit" class="btn" style="flex:1">Скопировать initData</button>
+    <button id="btnSendDebug" class="btn" style="flex:1">Отправить в /api/debug-init</button>
+  </div>
+  <div id="debugOut" class="diag" style="display:none"></div>
+</div>
+
+<script>
+(function(){
+  const WebApp = window.Telegram?.WebApp;
+  const API_DEBUG = 'https://bot-randomus-1.onrender.com/api/debug-init';
+
+  // Показываем блок отладки только если это Telegram WebView
+  const dbg = document.getElementById('debugControls');
+  const out = document.getElementById('debugOut');
+  const btnCopy = document.getElementById('btnCopyInit');
+  const btnSend = document.getElementById('btnSendDebug');
+
+  if (WebApp && WebApp.initData) {
+    dbg.style.display = 'block';
+
+    btnCopy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(WebApp.initData);
+        out.style.display = 'block';
+        out.innerHTML = '<b>initData скопирован в буфер.</b><br>Длина: ' + WebApp.initData.length;
+      } catch (e) {
+        out.style.display = 'block';
+        out.textContent = 'Не удалось скопировать: ' + (e?.message || e);
+      }
+    });
+
+    btnSend.addEventListener('click', async () => {
+      out.style.display = 'block';
+      out.textContent = 'Шлю initData в /api/debug-init…';
+      try {
+        const r = await fetch(API_DEBUG, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ init: WebApp.initData }),
+          credentials: 'omit'
+        });
+        const j = await r.json();
+        out.innerHTML =
+          '<b>Ответ /api/debug-init</b><br>' +
+          'ok: <code>' + j.ok + '</code><br>' +
+          'reason: <code>' + (j.reason ?? '—') + '</code><br>' +
+          'got_hash_prefix: <code>' + (j.got_hash_prefix || '') + '</code><br>' +
+          'calc_hash_prefix: <code>' + (j.calc_hash_prefix || '') + '</code><br>' +
+          'check_string_len: <code>' + (j.check_string_len || 0) + '</code><br>' +
+          'check_string_head: <code>' + (j.check_string_head || '').replace(/</g,'&lt;') + '</code>';
+      } catch (e) {
+        out.textContent = 'Запрос не удался: ' + (e?.message || e);
+      }
+    });
+  }
+})();
+</script>
+<!-- === /DEBUG UI === -->
 
   openBot.addEventListener('click', ()=>{
     const url = `https://t.me/${BOT_USERNAME}`;
@@ -294,3 +355,4 @@
 </script>
 </body>
 </html>
+
