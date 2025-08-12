@@ -54,6 +54,10 @@
     .diag{margin-top:10px;padding:8px;border-radius:10px;background:#0b1428;border:1px dashed rgba(255,255,255,.15);color:#b7c6e6;font-size:12px;line-height:1.4}
     .diag b{color:#eaf1ff}
     .diag code{color:#e6f3ff}
+
+    /* Баннер «Открыть в Telegram» */
+    #openInTg{display:none;margin-top:12px;padding:12px;border-radius:12px;background:#081127;border:1px solid rgba(255,255,255,.1);color:#cfe0ff}
+    #openInTg a{display:inline-block;margin-top:8px;padding:10px 14px;border-radius:10px;border:1px solid #2a3247;background:#162239;color:#eef3ff;text-decoration:none;font-weight:800}
   </style>
 </head>
 <body>
@@ -77,6 +81,12 @@
 
       <div id="need" class="need"></div>
       <div id="fallback" class="banner"></div>
+      <div id="openInTg" class="banner">
+        Похоже, вы открыли страницу в браузере. Мини-аппа должна открываться из Telegram, чтобы подтянулась подпись.
+        <br/>Нажмите кнопку ниже:
+        <div><a id="tgLink" href="#" target="_blank" rel="noopener">Открыть в Telegram</a></div>
+      </div>
+
       <div id="diag" class="diag" style="display:none"></div>
 
       <div id="resultOk" class="result">
@@ -92,20 +102,31 @@
 
 <script>
 (function(){
+  // ---- Конфиг через query-параметры ----
+  const qs = new URLSearchParams(location.search);
+  const API_DEFAULT = 'https://bot-randomus-1.onrender.com/api/join'; // можно переопределить ?api=
+  const API = qs.get('api') || API_DEFAULT;
+
+  // можно переопределить бота и шортнейм через ?bot=&short=
+  const BOT_USERNAME = qs.get('bot') || 'deepseekrbot';
+  const SHORT = qs.get('short') || 'myapp';
+
+  // ---- Telegram WebApp ----
   const WebApp = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
   WebApp && (WebApp.ready(), WebApp.expand(), WebApp.disableVerticalSwipes && WebApp.disableVerticalSwipes());
 
-  const BOT_USERNAME = 'deepseekrbot';
-  const API_DEFAULT = 'https://bot-randomus-1.onrender.com/api/join';
-  const apiParam = new URLSearchParams(location.search).get('api');
-  const API = apiParam || API_DEFAULT;
-
-  const qs = new URLSearchParams(location.search);
+  // gid берём из initDataUnsafe.start_param или tgWebAppStartParam
   const startParam = (WebApp && WebApp.initDataUnsafe && WebApp.initDataUnsafe.start_param) || qs.get('tgWebAppStartParam') || '';
   const gidMatch = /gid-(\d+)/.exec(startParam || '');
   const gid = gidMatch ? gidMatch[1] : null;
   document.getElementById('gid').textContent = gid ? ('#' + gid) : '#—';
 
+  // Ссылка «Открыть в Telegram»
+  const tgLink = document.getElementById('tgLink');
+  const deepLink = `https://t.me/${BOT_USERNAME}/${SHORT}?startapp=${gid ? 'gid-' + gid : ''}`;
+  tgLink.href = deepLink;
+
+  // UI refs
   const wheel = document.getElementById('wheel');
   const label = document.getElementById('label');
   const ring = document.getElementById('ring');
@@ -116,6 +137,7 @@
   const share = document.getElementById('share');
   const fallback = document.getElementById('fallback');
   const diagBox = document.getElementById('diag');
+  const openInTg = document.getElementById('openInTg');
 
   // Confetti
   const fx = document.getElementById('fx');
@@ -171,7 +193,6 @@
     needBox.classList.add('show');
   }
 
-  // Диагностика на экран
   function showDiag(items){
     const lines = items.map(([k,v])=>`<b>${k}:</b> <code>${String(v)}</code>`);
     diagBox.innerHTML = lines.join('<br>');
@@ -182,17 +203,17 @@
     const initData = (WebApp && WebApp.initData) || '';
     const payload = { action: 'join', gid, init: initData };
 
-    // быстрый диагноз
     showDiag([
       ['WebApp?', !!WebApp],
       ['initData length', initData ? initData.length : 0],
       ['start_param', (WebApp && WebApp.initDataUnsafe && WebApp.initDataUnsafe.start_param) || ''],
       ['API', API],
-      ['gid', gid || '—']
+      ['gid', gid || '—'],
+      ['deepLink', deepLink]
     ]);
 
     const ctrl = new AbortController();
-    const to = setTimeout(()=>ctrl.abort(), 8000);
+    const to = setTimeout(()=>ctrl.abort(), 10000);
     const r = await fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -204,12 +225,7 @@
 
     if (r.status === 401) {
       label.textContent = 'Откройте мини-аппу из Telegram';
-      const diag = document.createElement('div');
-      diag.className = 'muted';
-      diag.style.fontSize = '12px';
-      diag.style.marginTop = '6px';
-      diag.textContent = 'Нет валидной подписи initData. Нажмите «Участвовать» прямо в посте бота.';
-      needBox.after(diag);
+      openInTg.classList.add('show');
       return { ok:false, reason:'auth failed' };
     }
     if (!r.ok) throw new Error('HTTP '+r.status);
@@ -217,9 +233,17 @@
   }
 
   async function flow(){
+    // Если нет WebApp — явно показываем кнопку «Открыть в Telegram»
+    if (!WebApp) {
+      openInTg.classList.add('show');
+      document.getElementById('label').textContent = 'Откройте мини-аппу из Telegram';
+      showDiag([['Ошибка','window.Telegram.WebApp недоступен (браузер)'], ['deepLink', deepLink]]);
+      return;
+    }
+
     if (!gid){
-      label.textContent = 'Нет параметра запуска (gid)';
-      showDiag([['Ошибка','tgWebAppStartParam пуст']]);
+      document.getElementById('label').textContent = 'Нет параметра запуска (gid)';
+      showDiag([['Ошибка','tgWebAppStartParam/start_param пуст']]);
       return;
     }
 
@@ -229,13 +253,6 @@
     label.textContent = 'Проверяем условия…';
     setRing(0.33); await new Promise(r=>setTimeout(r, 330));
     setRing(0.66); await new Promise(r=>setTimeout(r, 330));
-
-    // страховка: если вообще нет WebApp — сразу подсказка
-    if (!WebApp) {
-      label.textContent = 'Откройте мини-аппу из Telegram';
-      showDiag([['Ошибка','window.Telegram.WebApp недоступен (браузер)']]);
-      return;
-    }
 
     try{
       const data = await joinViaAPI();
