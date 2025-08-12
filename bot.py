@@ -44,14 +44,13 @@ DB_PATH = os.getenv("DB_PATH", "giveaway.db")
 MINI_APP_SHORT = os.getenv("MINI_APP_SHORT", "Myssilki")          # t.me/<bot>/Myssilki
 MINI_APP_JOIN_SHORT = os.getenv("MINI_APP_JOIN_SHORT", "myapp")   # t.me/<bot>/myapp
 
-# Render/хостинг: порт должен браться из окружения (Render сам выдаёт PORT).
+# Render/хостинг
 HTTP_HOST = os.getenv("HOST", "0.0.0.0")
 HTTP_PORT = int(os.getenv("PORT", "10000"))
 ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "*")  # CORS
 
-# Публичный URL сервиса (для вебхука)
+# Публичный URL (для вебхука)
 PUBLIC_URL = os.getenv("PUBLIC_URL", "https://bot-randomus-1.onrender.com")
-# Уникальный путь вебхука (с токеном), чтобы не принимали чужие POST
 WEBHOOK_PATH = f"/tg-webhook/{BOT_TOKEN}"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
@@ -87,7 +86,7 @@ CREATE TABLE IF NOT EXISTS giveaways (
     post_message_id    INTEGER,
     discussion_chat_id INTEGER,
     thread_message_id  INTEGER,
-    status             TEXT NOT NULL DEFAULT 'scheduled', -- scheduled|finished|canceled
+    status             TEXT NOT NULL DEFAULT 'scheduled', -- scheduled|drawing|finished|canceled
     created_by         INTEGER NOT NULL,
     created_at_utc     TEXT NOT NULL,
     photo_file_id      TEXT
@@ -225,11 +224,11 @@ async def get_entries(gid: int) -> List[Tuple[int, str, str]]:
         return [(r[0], r[1], r[2]) for r in rows]
 
 async def save_winners(gid: int, winners: List[int]):
+    """Только записывает победителей; статус не меняет."""
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("DELETE FROM winners WHERE giveaway_id=?", (gid,))
         for idx, uid in enumerate(winners, start=1):
             await db.execute("INSERT INTO winners (giveaway_id, user_id, place) VALUES (?,?,?)", (gid, uid, idx))
-        await db.execute("UPDATE giveaways SET status='finished' WHERE id=?", (gid,))
         await db.commit()
 
 async def get_winners(gid: int) -> List[int]:
@@ -327,7 +326,7 @@ async def check_requirements(user_id: int, required: List[str]) -> Tuple[bool, L
         try:
             chat_id = ch
             if isinstance(chat_id, str) and chat_id.startswith('@'):
-                chat_id = chat_id  # username указывать можно
+                chat_id = chat_id
             member = await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
             if member.status not in ("member", "administrator", "creator"):
                 failed.append(ch)
@@ -743,7 +742,7 @@ async def catch_comments(m: Message):
 
     await add_entry(g.id, m.from_user)
 
-# ========= Draw logic =========
+# ========= Draw logic (с защитой от дублей) =========
 async def schedule_draw_job(gid: int):
     g = await fetch_giveaway(gid)
     if not g or g.status != 'scheduled':
@@ -764,8 +763,38 @@ async def schedule_draw_job(gid: int):
     )
 
 async def run_draw(gid: int, manual: bool = False):
+    """
+    Проводит розыгрыш с атомарной «блокировкой» через статус drawing.
+    Идемпотентно: если статус уже не scheduled — выходим без объявлений и ЛС.
+    """
+    # 1) Пытаемся захватить право на розыгрыш
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("BEGIN")
+        cur = await db.execute("SELECT status, type, winners_count, start_at_utc, post_chat_id, post_message_id, target_chat FROM giveaways WHERE id=?", (gid,))
+        row = await cur.fetchone()
+        if not row:
+            await db.rollback()
+            return
+        status, gtype, winners_count, start_at_utc, post_chat_id, post_message_id, target_chat = row
+
+        if status == 'finished':
+            await db.rollback()
+            return
+        if status != 'scheduled':
+            # уже drawing/finished/canceled — кто-то другой занимается
+            await db.rollback()
+            return
+
+        upd = await db.execute("UPDATE giveaways SET status='drawing' WHERE id=? AND status='scheduled'", (gid,))
+        if upd.rowcount == 0:
+            # не захватили — другой процесс успел
+            await db.rollback()
+            return
+        await db.commit()
+
+    # 2) Считаем победителей вне транзакции (легче и быстрее)
     g = await fetch_giveaway(gid)
-    if not g or g.status != 'scheduled':
+    if not g:
         return
 
     winners: List[int] = []
@@ -773,30 +802,26 @@ async def run_draw(gid: int, manual: bool = False):
     if g.type in ('button', 'comments'):
         entries_list = await get_entries(gid)
         pool = [e[0] for e in entries_list]
-        if not pool:
-            await save_winners(gid, [])
-            return await announce_results(g, [])
-        k = min(g.winners_count, len(pool))
-        winners = random.sample(pool, k)
+        if pool:
+            k = min(g.winners_count, len(pool))
+            winners = random.sample(pool, k)
 
     elif g.type == 'referrals':
         top = await referral_top(gid)
-        if not top:
-            await save_winners(gid, [])
-            return await announce_results(g, [])
-        grouped = {}
-        for uid, cnt in top:
-            grouped.setdefault(cnt, []).append(uid)
-        counts_sorted = sorted(grouped.keys(), reverse=True)
-        selected: List[int] = []
-        for cnt in counts_sorted:
-            bucket = grouped[cnt]
-            random.shuffle(bucket)
-            need = g.winners_count - len(selected)
-            if need <= 0:
-                break
-            selected.extend(bucket[:need] if len(bucket) > need else bucket)
-        winners = selected[: g.winners_count]
+        if top:
+            grouped = {}
+            for uid, cnt in top:
+                grouped.setdefault(cnt, []).append(uid)
+            counts_sorted = sorted(grouped.keys(), reverse=True)
+            selected: List[int] = []
+            for cnt in counts_sorted:
+                bucket = grouped[cnt]
+                random.shuffle(bucket)
+                need = g.winners_count - len(selected)
+                if need <= 0:
+                    break
+                selected.extend(bucket[:need] if len(bucket) > need else bucket)
+            winners = selected[: g.winners_count]
 
     elif g.type == 'boosts':
         ents = await get_entries(gid)
@@ -805,13 +830,20 @@ async def run_draw(gid: int, manual: bool = False):
         for uid, _, _ in ents:
             if await user_has_valid_boost(g.post_chat_id or g.target_chat, uid, since):
                 pool.append(uid)
-        if not pool:
-            await save_winners(gid, [])
-            return await announce_results(g, [])
-        k = min(g.winners_count, 200, len(pool))
-        winners = random.sample(pool, k)
+        if pool:
+            k = min(g.winners_count, 200, len(pool))
+            winners = random.sample(pool, k)
 
-    await save_winners(gid, winners)
+    # 3) Пишем победителей и финализируем статус = finished (атомарно)
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("BEGIN")
+        await db.execute("DELETE FROM winners WHERE giveaway_id=?", (gid,))
+        for idx, uid in enumerate(winners, start=1):
+            await db.execute("INSERT INTO winners (giveaway_id, user_id, place) VALUES (?,?,?)", (gid, uid, idx))
+        await db.execute("UPDATE giveaways SET status='finished' WHERE id=? AND status='drawing'", (gid,))
+        await db.commit()
+
+    # 4) Объявления (один раз — только «владелец» лока сюда дошёл)
     await announce_results(g, winners)
 
 async def announce_results(g: Giveaway, winners: List[int]):
@@ -850,41 +882,54 @@ def _calc_webapp_hash(data_check_string: str, bot_token: str) -> str:
 
 def validate_webapp_init(init_data: str, bot_token: str) -> Optional[int]:
     """
-    Валидация подписи Telegram WebApp.initData + проверка свежести auth_date.
-    init_data — это строка querystring из Telegram.WebApp.initData
+    Валидация Telegram WebApp.initData по СЫРОЙ строке (без предварительного decode).
+    Возвращает user_id при успехе, иначе None.
     """
+    if not init_data or "hash=" not in init_data:
+        return None
+
+    # Сырые пары "k=v" в исходном виде
+    raw_pairs = [p for p in init_data.split("&") if p]
+    items = []
+    got_hash = ""
+    for p in raw_pairs:
+        if "=" in p:
+            k, v = p.split("=", 1)
+        else:
+            k, v = p, ""
+        if k == "hash":
+            got_hash = urllib.parse.unquote(v)
+        else:
+            items.append((k, v))
+
+    # Сортируем по ключу, собираем data_check_string
+    items.sort(key=lambda kv: kv[0])
+    data_check_string = "\n".join(f"{k}={v}" for k, v in items)
+
+    # HMAC-SHA256(secret_key, data_check_string)
+    secret_key = hashlib.sha256(bot_token.encode()).digest()
+    calc_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(calc_hash, got_hash):
+        return None
+
+    # После успешной проверки можно распарсить удобно
     params = urllib.parse.parse_qs(init_data, keep_blank_values=True)
-    if 'hash' not in params:
-        return None
-    got_hash = params['hash'][0]
 
-    pairs = []
-    for k, v in params.items():
-        if k == 'hash':
-            continue
-        pairs.append(f"{k}={v[0]}")
-    pairs.sort()
-    check_string = "\n".join(pairs)
-
-    calc = _calc_webapp_hash(check_string, bot_token)
-    if not hmac.compare_digest(calc, got_hash):
-        return None
-
-    # Свежесть initData (2 минуты)
+    # Свежесть initData — 24 часа
     try:
-        auth_date = int(params.get('auth_date', ['0'])[0])
+        auth_date = int(params.get("auth_date", ["0"])[0])
         from time import time as _now
-        if _now() - auth_date > 120:
+        if _now() - auth_date > 86400:
             return None
     except Exception:
         return None
 
-    user_json = params.get('user', [None])[0]
+    user_json = params.get("user", [None])[0]
     if not user_json:
         return None
     try:
-        user_obj = json.loads(urllib.parse.unquote(user_json))
-        return int(user_obj.get('id'))
+        user_obj = json.loads(user_json)
+        return int(user_obj.get("id"))
     except Exception:
         return None
 
@@ -952,7 +997,7 @@ async def api_join(request: web.Request):
 
 async def api_debug_init(request: web.Request):
     """
-    Диагностика initData: валидирует подпись и возвращает разбёрнутые поля.
+    Диагностика initData: показывает «как посчитали» и почему мог быть 401.
     """
     try:
         payload = await request.json()
@@ -963,25 +1008,54 @@ async def api_debug_init(request: web.Request):
     if not init:
         return web.Response(text="no init", status=400)
 
-    # Пытаемся провалидировать и заодно распарсить
-    params = urllib.parse.parse_qs(init, keep_blank_values=True)
-    uid = validate_webapp_init(init, BOT_TOKEN)
-    ok = bool(uid)
+    # Сырые пары
+    raw_pairs = [p for p in init.split("&") if p]
+    items = []
+    got_hash = ""
+    for p in raw_pairs:
+        if "=" in p:
+            k, v = p.split("=", 1)
+        else:
+            k, v = p, ""
+        if k == "hash":
+            got_hash = urllib.parse.unquote(v)
+        else:
+            items.append((k, v))
+    items.sort(key=lambda kv: kv[0])
+    dcs = "\n".join(f"{k}={v}" for k, v in items)
 
-    def get_one(key: str) -> str:
-        v = params.get(key, [""])[0]
-        return urllib.parse.unquote(v)
+    # Наш hash
+    secret_key = hashlib.sha256(BOT_TOKEN.encode()).digest()
+    calc_hash = hmac.new(secret_key, dcs.encode(), hashlib.sha256).hexdigest()
+    hmac_ok = hmac.compare_digest(calc_hash, got_hash)
+
+    # Парсим удобно
+    params = urllib.parse.parse_qs(init, keep_blank_values=True)
+    auth_date = params.get("auth_date", [""])[0]
+    query_id = urllib.parse.unquote(params.get("query_id", [""])[0])
+    start_param = urllib.parse.unquote(params.get("start_param", [""])[0])
+    user_raw = urllib.parse.unquote(params.get("user", [""])[0])
+
+    uid = None
+    if hmac_ok:
+        try:
+            uid = int(json.loads(user_raw).get("id"))
+        except Exception:
+            uid = None
 
     resp = {
-        "ok": ok,
-        "uid": uid if ok else None,
-        "auth_date": params.get("auth_date", [""])[0],
-        "query_id": get_one("query_id"),
-        "start_param": get_one("start_param"),
-        "user_raw": get_one("user"),
-        "hash": params.get("hash", [""])[0]
+        "ok": bool(hmac_ok and uid),
+        "uid": uid,
+        "auth_date": auth_date,
+        "query_id": query_id,
+        "start_param": start_param,
+        "user_raw": user_raw,
+        "hash": got_hash,
+        "calc_hash": calc_hash,
+        "hmac_ok": hmac_ok,
+        "data_check_string": dcs
     }
-    return web.Response(text=json.dumps(resp, ensure_ascii=False, indent=2), content_type="application/json")
+    return web.json_response(resp)
 
 # Webhook endpoint
 async def tg_webhook(request: web.Request):
@@ -1018,6 +1092,7 @@ async def restore_schedules():
         end_dt_utc = datetime.fromisoformat(g.end_at_utc)
         if end_dt_utc <= now:
             logger.warning(f"Giveaway #{g.id} deadline passed — running draw now")
+            # Даже если APScheduler тоже «добежит», лок не даст дублей
             await run_draw(g.id, manual=True)
         else:
             await schedule_draw_job(g.id)
@@ -1034,7 +1109,7 @@ async def main():
     await start_http()
     await restore_schedules()
 
-    # Чистим возможный старый вебхук и ставим новый (работаем по вебхуку, без polling)
+    # Переставляем вебхук
     try:
         await bot.delete_webhook(drop_pending_updates=True)
         webhook_url = f"{PUBLIC_URL}{WEBHOOK_PATH}"
@@ -1047,7 +1122,7 @@ async def main():
         logger.exception("set_webhook failed: %s", e)
         raise
 
-    # Держим процесс живым
+    # Живём
     try:
         while True:
             await asyncio.sleep(3600)
