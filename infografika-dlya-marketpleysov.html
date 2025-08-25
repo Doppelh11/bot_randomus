@@ -71,13 +71,14 @@
     .hero .content{position:relative;z-index:1;will-change:transform}
     .hero .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
 
-    .grid{display:grid;gap:22px}
+    .grid{display:grid;gap:22px;align-items:stretch;} /* выравнивание карточек по высоте */
     .two{grid-template-columns:1.2fr .8fr}
     .three{grid-template-columns:repeat(3,minmax(0,1fr))}
     .four{grid-template-columns:1.2fr 1fr 1fr 1fr}
     @media (max-width:1200px){.two,.three,.four{grid-template-columns:1fr}}
 
-    .card{background:linear-gradient(180deg,#101216,#0c0f14);border:1px solid var(--border);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
+    .card{background:linear-gradient(180deg,#101216,#0c0f14);border:1px solid var(--border);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);
+      display:flex;flex-direction:column;height:100%;} /* тянем карточки на одинаковую высоту */
     .hover{transition:transform .18s ease, box-shadow .18s ease}
     .hover:hover{transform:translateY(-6px)}
 
@@ -99,10 +100,18 @@
     .foot{display:grid;gap:20px;grid-template-columns:1.1fr .9fr}
     @media (max-width:720px){.foot{grid-template-columns:1fr}}
 
-    .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease, transform .6s ease}
+    /* === Reveal on scroll (дорогой эффект) === */
+    .reveal{opacity:0;transform:translateY(18px);will-change:opacity,transform,clip-path;transition:opacity .7s ease, transform .7s ease}
     .reveal.in{opacity:1;transform:none}
-
-    .cursor{position:fixed;left:0;top:0;transform:translate(-50%,-50%);width:42px;height:42px;border-radius:50%;pointer-events:none;border:2px solid rgba(255,255,255,.6);mix-blend-mode:soft-light;opacity:0;transition:opacity .2s ease, width .2s, height .2s}
+    .reveal[data-reveal="up"]{transform:translateY(22px)}
+    .reveal[data-reveal="left"]{transform:translateX(24px)}
+    .reveal[data-reveal="right"]{transform:translateX(-24px)}
+    .reveal[data-reveal="zoom"]{transform:scale(.96)}
+    .reveal[data-reveal="clip"]{clip-path:inset(0 0 20% 0)}
+    .reveal.in[data-reveal="clip"]{clip-path:inset(0 0 0 0);transition:opacity .8s ease, clip-path 1s ease}
+    @media (prefers-reduced-motion: reduce){
+      .reveal{transition:none;transform:none;opacity:1}
+    }
 
     @keyframes ctaPulse{0%,100%{box-shadow:0 10px 30px rgba(255,107,107,.25)}50%{box-shadow:0 18px 50px rgba(255,107,107,.38)}}
     ::selection{background:var(--accent);color:#000}
@@ -132,30 +141,30 @@
 
   <main id="top">
     <!-- HERO страницы услуги -->
-    <section class="hero fullwidth" aria-label="Инфографика для маркетплейсов">
+    <section class="hero fullwidth reveal" data-reveal="zoom" aria-label="Инфографика для маркетплейсов">
       <div class="bg-anim" aria-hidden="true"></div>
       <div class="mouse-spot" aria-hidden="true"></div>
       <div class="mouse-blob" aria-hidden="true"></div>
       <div class="wrap content">
-        <nav aria-label="Хлебные крошки" style="margin-bottom:10px;font-size:14px" class="muted">
+        <nav aria-label="Хлебные крошки" style="margin-bottom:10px;font-size:14px" class="muted reveal" data-delay="0.05">
           <a href="/">Главная</a> · <a href="index.html#services">Услуги</a> · <span>Инфографика для маркетплейсов</span>
         </nav>
-        <h1 id="headline">Инфографика для маркетплейсов<br><span style="background:linear-gradient(90deg,var(--accent),var(--accent-2),var(--accent-3));-webkit-background-clip:text;background-clip:text;color:transparent">WB и Ozon — заказать и усилить CTR</span></h1>
-        <p class="lead">Разрабатываем продающие слайды, обложки и тексты под требования площадок. Чистая сетка, понятная иерархия, <a href="index.html#blog">best-practice</a> приёмы и A/B-тесты для роста видимости.</p>
-        <div class="cta">
+        <h1 id="headline" class="reveal" data-delay="0.1">Инфографика для маркетплейсов<br><span style="background:linear-gradient(90deg,var(--accent),var(--accent-2),var(--accent-3));-webkit-background-clip:text;background-clip:text;color:transparent">WB и Ozon — заказать и усилить CTR</span></h1>
+        <p class="lead reveal" data-delay="0.18">Разрабатываем продающие слайды, обложки и тексты под требования площадок. Чистая сетка, понятная иерархия, <a href="index.html#blog">best-practice</a> приёмы и A/B-тесты для роста видимости.</p>
+        <div class="cta reveal" data-delay="0.26">
           <a href="#packages" class="btn btn-prim magnet">Выбрать пакет</a>
           <a href="#cases" class="btn btn-sec magnet">Смотреть кейсы</a>
         </div>
 
         <!-- 2) Быстрый бриф (2 поля) -->
-        <form id="quick-brief" class="card glow reveal" style="margin-top:18px;display:grid;gap:12px;grid-template-columns:1fr 1fr auto;align-items:center" action="mailto:hello@example.com" method="post" enctype="text/plain">
+        <form id="quick-brief" class="card glow reveal" data-delay="0.34" style="margin-top:18px;display:grid;gap:12px;grid-template-columns:1fr 1fr auto;align-items:center" action="mailto:hello@example.com" method="post" enctype="text/plain">
           <input name="Имя" placeholder="Имя" required style="padding:12px;border-radius:12px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)">
           <input name="Контакт" placeholder="Telegram/WhatsApp" required style="padding:12px;border-radius:12px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)">
           <button type="submit" class="btn btn-prim magnet">Получить структуру слайдов</button>
         </form>
 
         <!-- IMG: hero-превью услуги -->
-        <div class="visual-strip card reveal" style="margin-top:22px" aria-label="Примеры инфографики">
+        <div class="visual-strip card reveal" data-reveal="clip" data-delay="0.42" style="margin-top:22px" aria-label="Примеры инфографики">
           <figure><div class="img-placeholder">IMG Hero 1</div></figure>
           <figure><div class="img-placeholder">IMG Hero 2</div></figure>
           <figure><div class="img-placeholder">IMG Hero 3</div></figure>
@@ -165,29 +174,29 @@
     </section>
 
     <!-- WHY / VALUE -->
-    <section id="value">
+    <section id="value" class="reveal" data-reveal="up">
       <div class="wrap">
-        <div class="section-head"><h2>Инфографика для маркетплейсов: зачем это нужно</h2><p class="muted">Wildberries и Ozon — ключевые факторы роста</p></div>
+        <div class="section-head reveal" data-delay="0.05"><h2>Инфографика для маркетплейсов: зачем это нужно</h2><p class="muted">Wildberries и Ozon — ключевые факторы роста</p></div>
         <div class="grid four">
-          <article class="card glow reveal hover"><h3>Рост CTR и кликов</h3><p class="muted">Сильные обложки, читаемые слайды и короткие формулы выгоды.</p></article>
-          <article class="card glow reveal hover"><h3>Понимаемость за 3–5 секунд</h3><p class="muted">Иерархия, контраст, ритм, крупная типографика.</p></article>
-          <article class="card glow reveal hover"><h3>Соответствие правилам WB/Ozon</h3><p class="muted">Работа строго в рамках гайдлайнов, без рисков блокировок.</p></article>
-          <article class="card glow reveal hover"><h3>A/B-тесты и вывод победителей</h3><p class="muted">Сеты вариантов для проверки гипотез и рост конверсии.</p></article>
+          <article class="card glow reveal hover" data-reveal="up" data-delay="0.05"><h3>Рост CTR и кликов</h3><p class="muted">Сильные обложки, читаемые слайды и короткие формулы выгоды.</p></article>
+          <article class="card glow reveal hover" data-reveal="up" data-delay="0.10"><h3>Понимаемость за 3–5 секунд</h3><p class="muted">Иерархия, контраст, ритм, крупная типографика.</p></article>
+          <article class="card glow reveal hover" data-reveal="up" data-delay="0.15"><h3>Соответствие правилам WB/Ozon</h3><p class="muted">Работа строго в рамках гайдлайнов, без рисков блокировок.</p></article>
+          <article class="card glow reveal hover" data-reveal="up" data-delay="0.20"><h3>A/B-тесты и вывод победителей</h3><p class="muted">Сеты вариантов для проверки гипотез и рост конверсии.</p></article>
         </div>
-        <p class="muted" style="margin-top:10px">Комплексно усиливаем карточку: дизайн + <a href="index.html#services">видеоинфографика и Rich-контент</a>, <a href="index.html#services">SEO-оптимизация карточки товара</a>, а также публикации из блога — <a href="/blog/infografika-wb-gid">чек-лист по инфографике WB</a> и <a href="/blog/ozon-mistakes">5 ошибок Ozon</a>.</p>
+        <p class="muted reveal" data-delay="0.25" style="margin-top:10px">Комплексно усиливаем карточку: дизайн + <a href="index.html#services">видеоинфографика и Rich-контент</a>, <a href="index.html#services">SEO-оптимизация карточки товара</a>, а также публикации из блога — <a href="/blog/infografika-wb-gid">чек-лист по инфографике WB</a> и <a href="/blog/ozon-mistakes">5 ошибок Ozon</a>.</p>
       </div>
     </section>
 
-    <!-- TRUST / WHY US (усиление конверсии) -->
-    <section id="why-us">
+    <!-- TRUST / WHY US -->
+    <section id="why-us" class="reveal" data-reveal="up">
       <div class="wrap">
-        <div class="section-head"><h2>Почему заказывать инфографику у нас</h2><p class="muted">Маркетинговые смыслы + аккуратный дизайн</p></div>
+        <div class="section-head reveal" data-delay="0.05"><h2>Почему заказывать инфографику у нас</h2><p class="muted">Маркетинговые смыслы + аккуратный дизайн</p></div>
         <div class="grid three">
-          <article class="card glow reveal hover"><h3>100+ карточек</h3><p class="muted">Опыт в десятках ниш. Знаем, что работает на полке WB/Ozon.</p></article>
-          <article class="card glow reveal hover"><h3>40% средний рост CTR</h3><p class="muted">За счёт обложки, выгод и правильной сетки.</p></article>
-          <article class="card glow reveal hover"><h3>Сроки без сюрпризов</h3><p class="muted">Бриф → прототип → дизайн → загрузка. Чёткие этапы и дедлайны.</p></article>
+          <article class="card glow reveal hover" data-reveal="left" data-delay="0.05"><h3>100+ карточек</h3><p class="muted">Опыт в десятках ниш. Знаем, что работает на полке WB/Ozon.</p></article>
+          <article class="card glow reveal hover" data-reveal="up" data-delay="0.10"><h3>40% средний рост CTR</h3><p class="muted">За счёт обложки, выгод и правильной сетки.</p></article>
+          <article class="card glow reveal hover" data-reveal="right" data-delay="0.15"><h3>Сроки без сюрпризов</h3><p class="muted">Бриф → прототип → дизайн → загрузка. Чёткие этапы и дедлайны.</p></article>
         </div>
-        <div class="card glow reveal" style="margin-top:18px">
+        <div class="card glow reveal" data-reveal="up" data-delay="0.22" style="margin-top:18px">
           <h3 style="margin:0 0 6px">Гарантии</h3>
           <ul class="muted" style="margin:0;padding-left:18px">
             <li>Работа строго в рамках правил площадок.</li>
@@ -199,12 +208,11 @@
     </section>
 
     <!-- WHAT WE DELIVER -->
-    <section id="deliverables">
-      <!-- KEYWORDS: инфографика для маркетплейсов, дизайн карточки товара, обложка WB, слайды Ozon, оформление карточки -->
+    <section id="deliverables" class="reveal" data-reveal="up">
       <div class="wrap">
-        <div class="section-head"><h2>Что входит</h2><p class="muted">Пакеты можно комбинировать</p></div>
+        <div class="section-head reveal" data-delay="0.05"><h2>Что входит</h2><p class="muted">Пакеты можно комбинировать</p></div>
         <div class="grid three">
-          <article class="card glow reveal hover">
+          <article class="card glow reveal hover" data-reveal="up" data-delay="0.05">
             <h3>Инфо-слайды</h3>
             <ul class="muted" style="margin:8px 0 0 0;padding-left:18px">
               <li>Сетки под 1:1 / 3:4 / 16:9</li>
@@ -214,7 +222,7 @@
             <div class="img-placeholder" style="margin-top:12px">IMG Слайд</div>
             <p class="muted" style="margin-top:10px">Для комплексного подхода добавим <a href="index.html#services">Rich-контент</a> и <a href="index.html#services">SEO-описания</a>.</p>
           </article>
-          <article class="card glow reveal hover">
+          <article class="card glow reveal hover" data-reveal="up" data-delay="0.10">
             <h3>Обложка и баннеры</h3>
             <ul class="muted" style="margin:8px 0 0 0;padding-left:18px">
               <li>Сильная первая карточка (Cover)</li>
@@ -224,7 +232,7 @@
             <div class="img-placeholder" style="margin-top:12px">IMG Обложка</div>
             <p class="muted" style="margin-top:10px">Смотри гайд в блоге: <a href="/blog/infografika-wb-gid">чек-лист по WB</a>.</p>
           </article>
-          <article class="card glow reveal hover">
+          <article class="card glow reveal hover" data-reveal="up" data-delay="0.15">
             <h3>Тексты и SEO</h3>
             <ul class="muted" style="margin:8px 0 0 0;padding-left:18px">
               <li>Заголовки и маркеры без «воды»</li>
@@ -239,11 +247,11 @@
     </section>
 
     <!-- PROCESS / TIMELINE -->
-    <section id="process">
+    <section id="process" class="reveal" data-reveal="up">
       <div class="wrap">
-        <div class="section-head"><h2>Процесс</h2><p class="muted">От брифа до A/B-побед</p></div>
+        <div class="section-head reveal" data-delay="0.05"><h2>Процесс</h2><p class="muted">От брифа до A/B-побед</p></div>
         <div class="grid two" style="align-items:start">
-          <div class="card glow reveal">
+          <div class="card glow reveal" data-reveal="left" data-delay="0.05">
             <div class="timeline" style="margin-top:6px">
               <div class="step"><div class="dot"></div><strong>Бриф</strong><div class="muted">Цели, аудитория, конкуренты, тональность</div></div>
               <div class="step"><div class="dot"></div><strong>Прототип</strong><div class="muted">Сетки, содержание слайдов, копирайтинг</div></div>
@@ -251,54 +259,54 @@
               <div class="step"><div class="dot"></div><strong>Запуск</strong><div class="muted">Загрузка, тесты, итерации и масштаб</div></div>
             </div>
           </div>
-          <div class="reveal">
+          <div class="reveal" data-reveal="right" data-delay="0.12">
             <div class="img-placeholder" style="aspect-ratio:3/4">IMG Коллаж процесса</div>
           </div>
         </div>
-        <p class="muted" style="margin-top:10px">Хотите видеоформаты? Дополняем проект <a href="index.html#services">видеоинфографикой</a> и Rich-модулями.</p>
+        <p class="muted reveal" data-delay="0.18" style="margin-top:10px">Хотите видеоформаты? Дополняем проект <a href="index.html#services">видеоинфографикой</a> и Rich-модулями.</p>
       </div>
     </section>
 
-    <!-- 4) PROOF: логотипы/ниши + мини-кейсы -->
-    <section id="proof" class="fullwidth">
+    <!-- PROOF -->
+    <section id="proof" class="fullwidth reveal" data-reveal="up">
       <div class="wrap">
-        <div class="section-head"><h2>Опыт и результаты</h2><p class="muted">Ниши и быстрые кейсы</p></div>
+        <div class="section-head reveal" data-delay="0.05"><h2>Опыт и результаты</h2><p class="muted">Ниши и быстрые кейсы</p></div>
         <div class="grid four">
-          <div class="card glow reveal hover"><div class="img-placeholder">LOGO Ниша 1</div><p class="muted" style="margin-top:8px">Товары для дома</p></div>
-          <div class="card glow reveal hover"><div class="img-placeholder">LOGO Ниша 2</div><p class="muted" style="margin-top:8px">Электроника</p></div>
-          <div class="card glow reveal hover"><div class="img-placeholder">LOGO Ниша 3</div><p class="muted" style="margin-top:8px">Одежда</p></div>
-          <div class="card glow reveal hover"><div class="img-placeholder">LOGO Ниша 4</div><p class="muted" style="margin-top:8px">Спорттовары</p></div>
+          <div class="card glow reveal hover" data-reveal="up" data-delay="0.05"><div class="img-placeholder">LOGO Ниша 1</div><p class="muted" style="margin-top:8px">Товары для дома</p></div>
+          <div class="card glow reveal hover" data-reveal="up" data-delay="0.10"><div class="img-placeholder">LOGO Ниша 2</div><p class="muted" style="margin-top:8px">Электроника</p></div>
+          <div class="card glow reveal hover" data-reveal="up" data-delay="0.15"><div class="img-placeholder">LOGO Ниша 3</div><p class="muted" style="margin-top:8px">Одежда</p></div>
+          <div class="card glow reveal hover" data-reveal="up" data-delay="0.20"><div class="img-placeholder">LOGO Ниша 4</div><p class="muted" style="margin-top:8px">Спорттовары</p></div>
         </div>
         <div class="grid three" style="margin-top:22px">
-          <article class="card glow reveal hover"><div class="img-placeholder">IMG Мини-кейс A</div><div style="margin-top:10px"><span class="chip">+38% CTR</span><span class="chip">+22% конверсия</span></div></article>
-          <article class="card glow reveal hover"><div class="img-placeholder">IMG Мини-кейс B</div><div style="margin-top:10px"><span class="chip">+41% клики</span><span class="chip">–12% CPC</span></div></article>
-          <article class="card glow reveal hover"><div class="img-placeholder">IMG Мини-кейс C</div><div style="margin-top:10px"><span class="chip">+29% продажи</span><span class="chip">A/B победа 73%</span></div></article>
+          <article class="card glow reveal hover" data-reveal="left" data-delay="0.26"><div class="img-placeholder">IMG Мини-кейс A</div><div style="margin-top:10px"><span class="chip">+38% CTR</span><span class="chip">+22% конверсия</span></div></article>
+          <article class="card glow reveal hover" data-reveal="up" data-delay="0.31"><div class="img-placeholder">IMG Мини-кейс B</div><div style="margin-top:10px"><span class="chip">+41% клики</span><span class="chip">–12% CPC</span></div></article>
+          <article class="card glow reveal hover" data-reveal="right" data-delay="0.36"><div class="img-placeholder">IMG Мини-кейс C</div><div style="margin-top:10px"><span class="chip">+29% продажи</span><span class="chip">A/B победа 73%</span></div></article>
         </div>
       </div>
     </section>
 
-    <!-- CASES / INTERNAL LINKS -->
-    <section id="cases" class="fullwidth">
+    <!-- CASES -->
+    <section id="cases" class="fullwidth reveal" data-reveal="clip">
       <div class="wrap">
-        <div class="section-head"><h2>Кейсы</h2><a class="btn btn-sec magnet" href="/portfolio">Все кейсы</a></div>
+        <div class="section-head reveal" data-delay="0.05"><h2>Кейсы</h2><a class="btn btn-sec magnet" href="/portfolio">Все кейсы</a></div>
         <div class="grid three">
-          <a href="/portfolio/case-1" class="card glow reveal hover"><div class="img-placeholder">IMG Кейс 1</div><div style="margin-top:10px"><span class="chip">+38% CTR</span><span class="chip">+22% конверсия</span></div></a>
-          <a href="/portfolio/case-2" class="card glow reveal hover"><div class="img-placeholder">IMG Кейс 2</div><div style="margin-top:10px"><span class="chip">+41% клики</span><span class="chip">–12% CPC</span></div></a>
-          <a href="/portfolio/case-3" class="card glow reveal hover"><div class="img-placeholder">IMG Кейс 3</div><div style="margin-top:10px"><span class="chip">+29% продажи</span><span class="chip">A/B победа 73%</span></div></a>
+          <a href="/portfolio/case-1" class="card glow reveal hover" data-reveal="up" data-delay="0.05"><div class="img-placeholder">IMG Кейс 1</div><div style="margin-top:10px"><span class="chip">+38% CTR</span><span class="chip">+22% конверсия</span></div></a>
+          <a href="/portfolio/case-2" class="card glow reveal hover" data-reveal="up" data-delay="0.10"><div class="img-placeholder">IMG Кейс 2</div><div style="margin-top:10px"><span class="chip">+41% клики</span><span class="chip">–12% CPC</span></div></a>
+          <a href="/portfolio/case-3" class="card glow reveal hover" data-reveal="up" data-delay="0.15"><div class="img-placeholder">IMG Кейс 3</div><div style="margin-top:10px"><span class="chip">+29% продажи</span><span class="chip">A/B победа 73%</span></div></a>
         </div>
       </div>
     </section>
 
     <!-- PACKAGES -->
-    <section id="packages">
+    <section id="packages" class="reveal" data-reveal="up">
       <div class="wrap">
-        <div class="section-head"><h2>Пакеты и цены</h2><p class="muted">Цены «от» — точный расчёт после брифа</p></div>
+        <div class="section-head reveal" data-delay="0.05"><h2>Пакеты и цены</h2><p class="muted">Цены «от» — точный расчёт после брифа</p></div>
         <div class="grid three">
-          <article class="card glow hover reveal"><h3>🎨 Старт</h3><div style="font-size:32px;font-weight:900">от 5 000 ₽</div><ul class="muted" style="margin:10px 0 16px;padding-left:18px"><li>3 инфо-слайда</li><li>1 обложка</li><li>Правки до согласования</li></ul><a href="#brief" class="btn btn-prim magnet">Заказать</a></article>
-          <article class="card glow hover reveal" style="position:relative"><h3>🚀 Продажи</h3><div style="font-size:32px;font-weight:900">от 15 000 ₽</div><ul class="muted" style="margin:10px 0 16px;padding-left:18px"><li>10 инфо-слайдов</li><li>Обложка + баннеры</li><li>SEO-описания</li></ul><a href="#brief" class="btn btn-prim magnet">Заказать</a><div style="position:absolute;top:16px;right:16px" class="chip">Рекомендуем</div></article>
-          <article class="card glow hover reveal"><h3>👑 Под ключ</h3><div style="font-size:32px;font-weight:900">от 30 000 ₽</div><ul class="muted" style="margin:10px 0 16px;padding-left:18px"><li>Фото/ретушь</li><li>Инфографика + тексты</li><li>Загрузка и A/B-тесты</li></ul><a href="#brief" class="btn btn-prim magnet">Заказать</a></article>
+          <article class="card glow hover reveal" data-reveal="left" data-delay="0.05"><h3>🎨 Старт</h3><div style="font-size:32px;font-weight:900">от 5 000 ₽</div><ul class="muted" style="margin:10px 0 16px;padding-left:18px"><li>3 инфо-слайда</li><li>1 обложка</li><li>Правки до согласования</li></ul><a href="#brief" class="btn btn-prim magnet">Заказать</a></article>
+          <article class="card glow hover reveal" style="position:relative" data-reveal="up" data-delay="0.10"><h3>🚀 Продажи</h3><div style="font-size:32px;font-weight:900">от 15 000 ₽</div><ul class="muted" style="margin:10px 0 16px;padding-left:18px"><li>10 инфо-слайдов</li><li>Обложка + баннеры</li><li>SEO-описания</li></ul><a href="#brief" class="btn btn-prim magnet">Заказать</a><div style="position:absolute;top:16px;right:16px" class="chip">Рекомендуем</div></article>
+          <article class="card glow hover reveal" data-reveal="right" data-delay="0.15"><h3>👑 Под ключ</h3><div style="font-size:32px;font-weight:900">от 30 000 ₽</div><ul class="muted" style="margin:10px 0 16px;padding-left:18px"><li>Фото/ретушь</li><li>Инфографика + тексты</li><li>Загрузка и A/B-тесты</li></ul><a href="#brief" class="btn btn-prim magnet">Заказать</a></article>
         </div>
-        <div class="card reveal" style="margin-top:22px">
+        <div class="card reveal" data-reveal="up" data-delay="0.22" style="margin-top:22px">
           <h3 style="margin:0 0 6px">Быстрая оценка</h3>
           <p class="muted" style="margin:0 0 8px">До 3 — 5 000 ₽; 4–8 — 2 000 ₽/слайд; 9+ — 1 500 ₽/слайд.</p>
           <div class="input"><label for="slides">Слайдов:</label><input id="slides" type="number" min="1" value="6"><button id="calcBtn" class="btn btn-sec magnet" type="button">Посчитать</button></div>
@@ -308,22 +316,22 @@
     </section>
 
     <!-- BLOG INTERNAL LINKS -->
-    <section id="blog-links">
+    <section id="blog-links" class="reveal" data-reveal="up">
       <div class="wrap">
-        <div class="section-head"><h2>Полезные материалы</h2><a class="btn btn-sec magnet" href="/blog">Все статьи</a></div>
+        <div class="section-head reveal" data-delay="0.05"><h2>Полезные материалы</h2><a class="btn btn-sec magnet" href="/blog">Все статьи</a></div>
         <div class="grid three">
-          <article class="card glow reveal hover"><h3><a href="/blog/infografika-wb-gid">Инфографика WB: чек-лист</a></h3><p class="muted">Структура слайдов, зоны внимания и типографика.</p></article>
-          <article class="card glow reveal hover"><h3><a href="/blog/ozon-mistakes">5 ошибок Ozon</a></h3><p class="muted">Контраст, иерархия, шум и логотипы.</p></article>
-          <article class="card glow reveal hover"><h3><a href="/blog/seo-keys">SEO-описания без спама</a></h3><p class="muted">Где брать ключи и как интегрировать.</p></article>
+          <article class="card glow reveal hover" data-reveal="up" data-delay="0.05"><h3><a href="/blog/infografika-wb-gid">Инфографика WB: чек-лист</a></h3><p class="muted">Структура слайдов, зоны внимания и типографика.</p></article>
+          <article class="card glow reveal hover" data-reveal="up" data-delay="0.10"><h3><a href="/blog/ozon-mistakes">5 ошибок Ozon</a></h3><p class="muted">Контраст, иерархия, шум и логотипы.</p></article>
+          <article class="card glow reveal hover" data-reveal="up" data-delay="0.15"><h3><a href="/blog/seo-keys">SEO-описания без спама</a></h3><p class="muted">Где брать ключи и как интегрировать.</p></article>
         </div>
       </div>
     </section>
 
     <!-- FAQ -->
-    <section id="faq">
+    <section id="faq" class="reveal" data-reveal="up">
       <div class="wrap">
-        <div class="section-head"><h2>Вопросы и ответы</h2><p class="muted">Стоимость, сроки, материалы</p></div>
-        <div class="faq card reveal">
+        <div class="section-head reveal" data-delay="0.05"><h2>Вопросы и ответы</h2><p class="muted">Стоимость, сроки, материалы</p></div>
+        <div class="faq card reveal" data-reveal="up" data-delay="0.10">
           <details><summary>Сколько стоит инфографика для Wildberries и Ozon?</summary><p>От 5 000 ₽ за базовый комплект (3 слайда + обложка). Итоговая стоимость зависит от категории, количества слайдов и наличия исходников.</p></details>
           <details><summary>Какие сроки изготовления?</summary><p>Обычно 2–5 рабочих дней на комплект. Срочные слоты возможны — уточняйте в брифе.</p></details>
           <details><summary>Нужны ли фото товара?</summary><p>Желательно. Если фото нет — поможем с предметной съёмкой или сделаем нейро-рендеры под ваш бренд.</p></details>
@@ -334,19 +342,19 @@
     </section>
 
     <!-- OBJECTIONS -->
-    <section id="objections">
+    <section id="objections" class="reveal" data-reveal="up">
       <div class="wrap">
-        <div class="section-head"><h2>Закрываем возражения</h2><p class="muted">Быстро, понятно и под ключ</p></div>
+        <div class="section-head reveal" data-delay="0.05"><h2>Закрываем возражения</h2><p class="muted">Быстро, понятно и под ключ</p></div>
         <div class="grid three">
-          <article class="card glow reveal hover"><h3>«Дорого?»</h3><p class="muted">Сравните с потерями от низкого CTR. Пакеты под бюджет + рост видимости карточки.</p></article>
-          <article class="card glow reveal hover"><h3>«Нет времени»</h3><p class="muted">Берём на себя прототип, тексты и загрузку. Вам — согласование и контроль.</p></article>
-          <article class="card glow reveal hover"><h3>«Не зайдёт в нашей нише»</h3><p class="muted">Опираемся на проверенные паттерны + A/B-тесты. Доведём до результата итерациями.</p></article>
+          <article class="card glow reveal hover" data-reveal="left" data-delay="0.05"><h3>«Дорого?»</h3><p class="muted">Сравните с потерями от низкого CTR. Пакеты под бюджет + рост видимости карточки.</p></article>
+          <article class="card glow reveal hover" data-reveal="up" data-delay="0.10"><h3>«Нет времени»</h3><p class="muted">Берём на себя прототип, тексты и загрузку. Вам — согласование и контроль.</p></article>
+          <article class="card glow reveal hover" data-reveal="right" data-delay="0.15"><h3>«Не зайдёт в нашей нише»</h3><p class="muted">Опираемся на проверенные паттерны + A/B-тесты. Доведём до результата итерациями.</p></article>
         </div>
       </div>
     </section>
 
     <!-- STICKY CTA -->
-    <div class="sticky-cta" style="position:sticky;bottom:10px;z-index:70;margin:0 20px">
+    <div class="sticky-cta reveal" data-reveal="up" data-delay="0.05" style="position:sticky;bottom:10px;z-index:70;margin:0 20px">
       <div class="card glow" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
         <div class="muted">Готовы к росту CTR на WB/Ozon?</div>
         <div class="cta"><a href="#contact" class="btn btn-prim magnet">Оставить заявку</a><a href="#cases" class="btn btn-sec magnet">Смотреть кейсы</a></div>
@@ -354,9 +362,9 @@
     </div>
 
     <!-- CTA + БРИФ -->
-    <section id="brief" class="fullwidth">
+    <section id="brief" class="fullwidth reveal" data-reveal="up">
       <div class="wrap">
-        <div class="card glow reveal" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div class="card glow reveal" data-reveal="up" data-delay="0.05" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
           <div><h2>Готовы усилить карточку на WB и Ozon?</h2><p class="muted">Оставьте бриф — предложим структуру слайдов и план запуска.</p></div>
           <div class="cta"><a href="#contact" class="btn btn-prim magnet">Оставить заявку</a><a href="#cases" class="btn btn-sec magnet">Смотреть кейсы</a></div>
         </div>
@@ -364,11 +372,11 @@
     </section>
 
     <!-- CONTACT -->
-    <section id="contact">
+    <section id="contact" class="reveal" data-reveal="up">
       <div class="wrap">
-        <div class="section-head"><h2>Обсудить проект</h2><p class="muted">Ответим в течение рабочего дня</p></div>
+        <div class="section-head reveal" data-delay="0.05"><h2>Обсудить проект</h2><p class="muted">Ответим в течение рабочего дня</p></div>
         <div class="grid two">
-          <form class="card glow reveal" action="mailto:hello@example.com" method="post" enctype="text/plain">
+          <form class="card glow reveal" data-reveal="left" data-delay="0.05" action="mailto:hello@example.com" method="post" enctype="text/plain">
             <label>Имя<br><input name="Имя" required style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)"></label><br><br>
             <label>Телеграм/WhatsApp<br><input name="Контакт" required style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)"></label><br><br>
             <label>Товар/ниша<br><input name="Ниша" style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)"></label><br><br>
@@ -384,7 +392,7 @@
             <button class="btn btn-prim magnet" type="submit">Отправить</button>
           </form>
 
-          <div class="card glow reveal">
+          <div class="card glow reveal" data-reveal="right" data-delay="0.12">
             <h3>Контакты</h3>
             <p class="muted">Пишите в мессенджер — быстрее всего ответим:</p>
             <p><strong>Telegram:</strong> <a href="#" id="tgCopy">@your_studio</a></p>
@@ -399,12 +407,14 @@
   </main>
 
   <footer class="fullwidth">
-  <div class="wrap foot">
-    <div>
-      <a class="brand" href="index.html"><div class="logo" aria-hidden="true"></div><strong>Studio</strong></a>
-      <div class="muted" style="font-size:12px">© 2025. Инфографика и оформление карточек для маркетплейсов.</div>
+    <div class="wrap foot">
+      <div>
+        <a class="brand" href="index.html"><div class="logo" aria-hidden="true"></div><strong>Studio</strong></a>
+        <div class="muted" style="font-size:12px">© 2025. Инфографика и оформление карточек для маркетплейсов.</div>
+      </div>
+      <div style="display:grid;gap:6px"><a href="index.html#services">Услуги</a><a href="index.html#portfolio">Кейсы</a><a href="index.html#pricing">Тарифы</a><a href="index.html#about">О студии</a><a href="index.html#blog">Блог</a><a href="#contact">Контакты</a></div>
     </div>
-    ...
+  </footer>
 
   <!-- Schema.org: Service + FAQ + Breadcrumb + 5) HowTo -->
   <script type="application/ld+json">
@@ -481,9 +491,28 @@
       links.forEach(a=>a.classList.toggle('active', a.getAttribute('href')?.endsWith('#'+current))); }
     window.addEventListener('scroll', onScroll, {passive:true}); onScroll();
 
-    const revealEls=$$('.reveal, .card');
-    if('IntersectionObserver' in window){ const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in'); io.unobserve(e.target);}})},{threshold:.12}); revealEls.forEach(el=>io.observe(el)); }
-    setTimeout(()=>revealEls.forEach(el=>el.classList.add('in')), 500);
+    // Reveal on scroll
+    (function(){
+      const els = document.querySelectorAll('.reveal');
+      if(reduce){ els.forEach(el=>el.classList.add('in')); return; }
+      if(!('IntersectionObserver' in window) || els.length===0){
+        els.forEach(el=>el.classList.add('in'));
+        return;
+      }
+      const io = new IntersectionObserver((entries)=>{
+        entries.forEach(entry=>{
+          if(!entry.isIntersecting) return;
+          const el = entry.target;
+          const delay = parseFloat(el.dataset.delay || '0');
+          if (delay) el.style.transitionDelay = `${delay}s`;
+          const dur = parseFloat(el.dataset.dur || '0');
+          if (dur) el.style.transitionDuration = `${dur}s`;
+          el.classList.add('in');
+          io.unobserve(el);
+        });
+      }, { root:null, rootMargin:'0px 0px -12% 0px', threshold:0.12 });
+      els.forEach(el=>io.observe(el));
+    })();
 
     // калькулятор
     const slides=$('#slides'), out=$('#calcOut'), btn=$('#calcBtn');
@@ -499,18 +528,18 @@
 
     // курсор и магнитные кнопки
     const cursor=$('#cursor'); let cx=0, cy=0, txc=0, tyc=0, rafc=0;
-    window.addEventListener('pointermove', (e)=>{ cx=e.clientX; cy=e.clientY; cursor.style.opacity=.9; if(!rafc && !reduce) rafc=requestAnimationFrame(loopC); });
+    window.addEventListener('pointermove, mousemove', (e)=>{ const ev=e.touches?e.touches[0]:e; cx=ev.clientX; cy=ev.clientY; cursor.style.opacity=.9; if(!rafc && !reduce) rafc=requestAnimationFrame(loopC); });
     function loopC(){ txc+=(cx-txc)*0.15; tyc+=(cy-tyc)*0.15; cursor.style.left=txc+'px'; cursor.style.top=tyc+'px'; rafc = Math.hypot(cx-txc, cy-tyc) < .5 ? 0 : requestAnimationFrame(loopC); }
     $$('.magnet').forEach(el=>{ let r; el.addEventListener('mousemove',(e)=>{ r=el.getBoundingClientRect(); const x=(e.clientX-(r.left+r.width/2))/ (r.width/2); const y=(e.clientY-(r.top+r.height/2))/ (r.height/2); el.style.transform=`translate(${x*6}px, ${y*6}px)`; cursor.style.width='54px'; cursor.style.height='54px'; }); el.addEventListener('mouseleave',()=>{ el.style.transform='translate(0,0)'; cursor.style.width='42px'; cursor.style.height='42px'; }); });
 
     // Hero эффекты
     const hero=document.querySelector('.hero'); const heroContent=document.querySelector('.hero .content'); const bg=document.querySelector('.bg-anim');
     if(hero && heroContent){ let px=0, py=0, tx=0, ty=0, raf=0;
-      function onMove(e){ const r=hero.getBoundingClientRect(); px=(e.clientX-r.left)/r.width-.5; py=(e.clientY-r.top)/r.height-.5; if(!raf && !reduce) raf=requestAnimationFrame(loop);}
+      function onMove(e){ const ev = e.touches? e.touches[0]: e; const r=hero.getBoundingClientRect(); px=(ev.clientX-r.left)/r.width-.5; py=(ev.clientY-r.top)/r.height-.5; if(!raf && !reduce) raf=requestAnimationFrame(loop);}
       function loop(){ tx+=(px-tx)*0.12; ty+=(py-ty)*0.12; heroContent.style.transform=`translate3d(${tx*10}px, ${ty*10}px, 0)`; if(bg){ bg.style.setProperty('--px', (60+tx*6)+'%'); bg.style.setProperty('--py', (40+ty*6)+'%'); } raf=(Math.abs(px-tx)+Math.abs(py-ty)<.001)?0:requestAnimationFrame(loop);}
       hero.addEventListener('pointermove', onMove, {passive:true}); hero.addEventListener('pointerleave', ()=>{ px=py=0; if(!raf && !reduce) raf=requestAnimationFrame(loop); });
     }
-    const spot=document.querySelector('.mouse-spot'); if(spot && hero){ let mx=50, my=40, tx=mx, ty=my, raf=0; function move(e){ const r=hero.getBoundingClientRect(); mx=(e.clientX-r.left)/r.width*100; my=(e.clientY-r.top)/r.height*100; if(!raf && !reduce) raf=requestAnimationFrame(tick);} function tick(){ tx+=(mx-tx)*0.18; ty+=(my-ty)*0.18; spot.style.setProperty('--mx', tx+'%'); spot.style.setProperty('--my', ty+'%'); raf=(Math.abs(mx-tx)+Math.abs(my-ty)<.1)?0:requestAnimationFrame(tick);} hero.addEventListener('pointermove', move, {passive:true}); }
+    const spot=document.querySelector('.mouse-spot'); if(spot && hero){ let mx=50, my=40, tx=mx, ty=my, raf=0; function move(e){ const ev=e.touches?e.touches[0]:e; const r=hero.getBoundingClientRect(); mx=(ev.clientX-r.left)/r.width*100; my=(ev.clientY-r.top)/r.height*100; if(!raf && !reduce) raf=requestAnimationFrame(tick);} function tick(){ tx+=(mx-tx)*0.18; ty+=(my-ty)*0.18; spot.style.setProperty('--mx', tx+'%'); spot.style.setProperty('--my', ty+'%'); raf=(Math.abs(mx-tx)+Math.abs(my-ty)<.1)?0:requestAnimationFrame(tick);} hero.addEventListener('pointermove', move, {passive:true}); }
 
     // Заголовок по буквам
     const headline=$('#headline'); if(headline && !headline.querySelector('.hch')){ const text=headline.textContent; headline.setAttribute('aria-label', text); headline.innerHTML=text.split('').map(ch=>`<span class="hch" style="opacity:0;display:inline-block;transform:translateY(20px)">${ch===' ' ? '&nbsp;' : ch}</span>`).join(''); const spans=headline.querySelectorAll('.hch'); let i=0; (function step(){ if(i<spans.length){ const s=spans[i++]; s.style.transition='opacity .5s ease, transform .5s ease'; s.style.opacity='1'; s.style.transform='translateY(0)'; setTimeout(step,10);} })(); }
@@ -518,6 +547,3 @@
   </script>
 </body>
 </html>
-
-
-
