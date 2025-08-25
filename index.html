@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru" data-theme="dark" data-palette="original" data-hero="original">
+<html lang="ru" data-theme="dark" data-surface="indigo">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -8,42 +8,48 @@
   <link rel="canonical" href="https://example.com/">
   <meta name="format-detection" content="telephone=no">
   <style>
-    /* ===== БАЗОВЫЕ ПЕРЕМЕННЫЕ (Original) ===== */
+    /* ===== Единственная палитра — Neon Mango ===== */
     :root{
-      --bg:#0a0a0b; --panel:#0f1012; --text:#f6f8fb; --muted:#a7b0be; --border:rgba(255,255,255,.08);
-      --accent:#ff6b6b; --accent-2:#f5d36c; --accent-3:#8b5cf6; --ring:rgba(255,107,107,.35);
-      --radius:18px; --shadow:0 18px 55px rgba(0,0,0,.45);
-      --panel-alt:#101216; /* для секций с другой подложкой */
-    }
-
-    /* ===== ПАЛИТРЫ (переключаются через [data-palette]) ===== */
-    /* A — Neon Mango (универсальная) */
-    html[data-palette="neon"]{
       --bg:#0b0c0f; --panel:#101216; --text:#f7fafc; --muted:#aeb6c4; --border:rgba(255,255,255,.10);
       --accent:#ff6b6b; --accent-2:#ffd166; --accent-3:#845ef7; --ring:rgba(255,107,107,.35);
-      --panel-alt:#0e1218;
+      --radius:18px; --shadow:0 18px 55px rgba(0,0,0,.45);
+
+      /* основной фон сайта (один цвет), переключается через [data-surface] */
+      --surface:#160733; /* indigo по умолчанию */
+
+      /* маска плавного растворения фона hero вниз в основной фон */
+      --hero-fade-mask: linear-gradient(to bottom,
+        rgba(0,0,0,1) 0%,
+        rgba(0,0,0,1) 72%,
+        rgba(0,0,0,.85) 80%,
+        rgba(0,0,0,.45) 90%,
+        rgba(0,0,0,0) 100%
+      );
+
+      /* мягкие капсулы для выделенных секций (без бордеров) */
+      --caps-radius:28px;
+      --caps-portfolio:#22104A;
+      --caps-about:#1A1338;
+      --caps-contact:#3A1A28;
     }
-    /* B — Electric Blue + Lime (техно) */
-    html[data-palette="electric"]{
-      --bg:#07090c; --panel:#0d1117; --text:#f5f9ff; --muted:#a5b1c2; --border:rgba(255,255,255,.10);
-      --accent:#3b82f6; --accent-2:#a3e635; --accent-3:#22d3ee; --ring:rgba(59,130,246,.35);
-      --panel-alt:#0a0f15;
+    html[data-surface="indigo"]{
+      --surface:#160733;
+      --caps-portfolio:#22104A;
+      --caps-about:#1A1338;
+      --caps-contact:#3A1A28;
     }
-    /* C — Magenta Pop (fashion/beauty) */
-    html[data-palette="magenta"]{
-      --bg:#0a0a0d; --panel:#111217; --text:#ffffff; --muted:#b4bcc9; --border:rgba(255,255,255,.10);
-      --accent:#ff2e88; --accent-2:#f59e0b; --accent-3:#8b5cf6; --ring:rgba(255,46,136,.35);
-      --panel-alt:#0e1016;
+    html[data-surface="magenta"]{
+      --surface:#1E0022;
+      --caps-portfolio:#2C1242;
+      --caps-about:#261026;
+      --caps-contact:#441826;
     }
 
     *{box-sizing:border-box}
     html{height:100%;scroll-behavior:smooth}
     body{
       margin:0;
-      background:
-        radial-gradient(1200px 600px at 10% -10%,rgba(255,107,107,.08),transparent 60%),
-        radial-gradient(1200px 600px at 110% 0,rgba(245,211,108,.06),transparent 60%),
-        var(--bg);
+      background: var(--surface); /* один цвет на всём сайте */
       color:var(--text);
       font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;
       line-height:1.5;overflow-x:hidden
@@ -63,7 +69,7 @@
     .menu a.active::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
     .progress{position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent-2),var(--accent-3));transform:scaleX(0);transform-origin:0 50%}
 
-    /* Панель быстрых переключателей (dev-toolbar) */
+    /* Переключатель варианта основного фона */
     .devbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .seg{display:flex;border:1px solid var(--border);border-radius:999px;overflow:hidden}
     .seg button{background:#0f1115;border:0;color:#cdd6e6;padding:8px 12px;font-weight:700;cursor:pointer}
@@ -85,50 +91,53 @@
     .glow::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:linear-gradient(135deg, color-mix(in srgb, var(--accent), transparent 40%), color-mix(in srgb, var(--accent-2), transparent 45%));-webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .25s ease}
     .glow:hover::before{opacity:1}
 
+    /* ===== HERO (Mesh) — плавное растворение вниз за счёт mask-image ===== */
     .hero{position:relative;min-height:96vh;display:flex;align-items:center;overflow:hidden}
-    /* ====== HERO фон (Original) ====== */
-    .bg-anim{position:absolute;inset:0;z-index:0;opacity:.6;filter:saturate(1.05) contrast(1.05);background:
-      radial-gradient(1000px 400px at 15% -10%,rgba(255,255,255,.08),transparent 60%),
-      radial-gradient(1000px 400px at 110% 0,rgba(245,211,108,.06),transparent 60%),
-      repeating-linear-gradient(120deg, rgba(255,255,255,.03) 0 6px, transparent 6px 30px),
-      radial-gradient(circle at var(--px,60%) var(--py,40%), rgba(255,107,107,.12), transparent 40%),
-      linear-gradient(135deg, rgba(255,107,107,.18), rgba(245,211,108,.10) 40%, rgba(139,92,246,.18));
-      animation:bgShift 18s ease-in-out infinite;}
-    @keyframes bgShift{0%{background-position:0 0,0 0,0 0,0 0,0 0}50%{background-position:10% 0,-8% 6%,80px -60px,0 0,0 0}100%{background-position:0 0,0 0,0 0,0 0,0 0}}
-    .mouse-spot{position:absolute;inset:0;pointer-events:none;z-index:0;background:radial-gradient(220px 220px at var(--mx,50%) var(--my,40%), rgba(255,255,255,.18), transparent 60%);mix-blend-mode:screen;opacity:.8}
-    .mouse-blob{position:absolute;width:44vmin;height:44vmin;border-radius:50%;pointer-events:none;z-index:0;filter:blur(60px);background:radial-gradient(circle at 30% 30%, var(--accent), transparent 60%),radial-gradient(circle at 70% 40%, var(--accent-3), transparent 60%),radial-gradient(circle at 40% 70%, var(--accent-2), transparent 60%);opacity:.28;transform:translate3d(-50%,-50%,0);animation:blobFloat 10s ease-in-out infinite}
-    @keyframes blobFloat{0%,100%{transform:translate3d(-50%,-50%,0) scale(1)}50%{transform:translate3d(-50%,-52%,0) scale(1.03)}}
-
-    /* ====== HERO альтернативы ====== */
-    /* Mesh */
-    html[data-hero="mesh"] .bg-anim{
-      opacity:.8; filter:saturate(1.05) contrast(1.02);
+    .bg-anim{
+      position:absolute;inset:0;z-index:0;opacity:.8;filter:saturate(1.05) contrast(1.02);
       background:
         radial-gradient(40% 60% at 15% 30%, color-mix(in srgb, var(--accent), transparent 70%), transparent 60%),
         radial-gradient(35% 55% at 85% 20%, color-mix(in srgb, var(--accent-2), transparent 65%), transparent 62%),
         radial-gradient(45% 65% at 55% 80%, color-mix(in srgb, var(--accent-3), transparent 70%), transparent 64%),
         linear-gradient(180deg, rgba(255,255,255,.02), transparent 50%);
       animation:meshShift 18s ease-in-out infinite alternate;
+
+      /* ключ: маска делает плавный fade к прозрачности у нижней границы hero */
+      -webkit-mask-image: var(--hero-fade-mask);
+      mask-image: var(--hero-fade-mask);
+      -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+      -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
     }
     @keyframes meshShift{
       0%{background-position:0% 0%, 100% 0%, 50% 100%, 0 0}
       50%{background-position:8% -4%, 92% 4%, 48% 96%, 0 0}
       100%{background-position:0% 0%, 100% 0%, 50% 100%, 0 0}
     }
-    /* Stripes */
-    html[data-hero="stripes"] .bg-anim{
-      opacity:.75; background:
-        linear-gradient(120deg, color-mix(in srgb, var(--accent), transparent 80%) 0%, transparent 60%),
-        repeating-linear-gradient(135deg, rgba(255,255,255,.04) 0 8px, transparent 8px 28px),
-        radial-gradient(900px 380px at 10% 0%, color-mix(in srgb, var(--accent-2), transparent 82%), transparent 60%),
-        var(--bg);
-      background-blend-mode:screen, normal, screen, normal;
-      animation:drift 24s linear infinite;
+    .mouse-spot{
+      position:absolute;inset:0;pointer-events:none;z-index:0;
+      background:radial-gradient(220px 220px at var(--mx,50%) var(--my,40%), rgba(255,255,255,.18), transparent 60%);
+      mix-blend-mode:screen;opacity:.8;
+
+      /* тоже растворяем внизу, чтобы шва не было */
+      -webkit-mask-image: var(--hero-fade-mask);
+      mask-image: var(--hero-fade-mask);
+      -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+      -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
     }
-    @keyframes drift{
-      from{ background-position:0 0, 0 0, 0 0, 0 0 }
-      to{   background-position:200px -120px, 320px 160px, -160px 120px, 0 0 }
+    .mouse-blob{
+      position:absolute;width:44vmin;height:44vmin;border-radius:50%;pointer-events:none;z-index:0;filter:blur(60px);
+      background:
+        radial-gradient(circle at 30% 30%, var(--accent), transparent 60%),
+        radial-gradient(circle at 70% 40%, var(--accent-2), transparent 60%);
+      opacity:.24;transform:translate3d(-50%,-50%,0);animation:blobFloat 10s ease-in-out infinite;
+
+      /* и blobs мягко сходят на нет */
+      -webkit-mask-image: var(--hero-fade-mask);
+      mask-image: var(--hero-fade-mask);
+      -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+      -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
     }
+    @keyframes blobFloat{0%,100%{transform:translate3d(-50%,-50%,0) scale(1)}50%{transform:translate3d(-50%,-52%,0) scale(1.03)}}
 
     .hero .content{position:relative;z-index:1;will-change:transform}
     .hero .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
@@ -150,9 +159,7 @@
     .hover:hover{box-shadow:0 22px 70px rgba(0,0,0,.55)}
     .hover:focus-within{box-shadow:0 22px 70px rgba(0,0,0,.55)}
 
-    section{padding:80px 0;scroll-margin-top:90px}
-    /* Альтернативная подложка секции — поставь класс .alt на нужную section */
-    section.alt{background:linear-gradient(180deg, var(--panel-alt), transparent)}
+    section{padding:80px 0;scroll-margin-top:90px;position:relative}
     .section-head{display:flex;align-items:end;justify-content:space-between;margin-bottom:22px}
     .service h3{font-size:clamp(20px,2vw,28px);margin:0 0 8px}
     .service .icon{width:42px;height:42px;border-radius:12px;margin-bottom:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2))}
@@ -180,7 +187,8 @@
     .carousel{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(360px,1fr);gap:18px;overflow:auto;scroll-snap-type:x mandatory;padding-bottom:6px}
     .carousel > *{scroll-snap-align:start}
 
-    footer{border-top:1px solid var(--border);padding:34px 0;background:#0a0a0b}
+    footer{border-top:1px solid var(--border);padding:34px 0;background:transparent} /* единый фон сохраняем */
+
     .foot{display:grid;gap:20px;grid-template-columns:1.1fr .9fr}
     @media (max-width:720px){.foot{grid-template-columns:1fr}}
 
@@ -200,6 +208,20 @@
 
     @keyframes ctaPulse{0%,100%{box-shadow:0 10px 30px rgba(255,107,107,.25)}50%{box-shadow:0 18px 50px rgba(255,107,107,.38)}}
     ::selection{background:var(--accent);color:#000}
+
+    /* ===== Капсулы (без бордеров) для 3 секций ===== */
+    #portfolio, #about, #contact{ background: transparent; border-radius: var(--caps-radius); }
+    #portfolio::before, #about::before, #contact::before{
+      content:""; position:absolute; inset:0;
+      margin:0 16px; border-radius: var(--caps-radius); z-index: -1;
+    }
+    #portfolio::before{ background: var(--caps-portfolio); }
+    #about::before{ background: var(--caps-about); }
+    #contact::before{ background: var(--caps-contact); }
+
+    /* Широкая карточка услуги для «Быстрый старт» */
+    .service-wide{grid-column:1 / -1}
+    @media (max-width:1200px){ .service-wide{grid-column:auto} }
   </style>
 </head>
 <body class="no-js">
@@ -217,18 +239,11 @@
         <a href="#contact" class="btn btn-sec magnet" style="padding:10px 16px">Связаться</a>
       </nav>
 
-      <!-- DEV переключатели: палитры и фон героя -->
-      <div class="devbar" aria-label="Переключатели тем">
-        <div class="seg" role="group" aria-label="Палитры">
-          <button class="pal" data-pal="original" aria-pressed="true">Original</button>
-          <button class="pal" data-pal="neon" aria-pressed="false">Neon Mango</button>
-          <button class="pal" data-pal="electric" aria-pressed="false">Electric</button>
-          <button class="pal" data-pal="magenta" aria-pressed="false">Magenta</button>
-        </div>
-        <div class="seg" role="group" aria-label="Фон героя">
-          <button class="heroBtn" data-hero="original" aria-pressed="true">Original</button>
-          <button class="heroBtn" data-hero="mesh" aria-pressed="false">Mesh</button>
-          <button class="heroBtn" data-hero="stripes" aria-pressed="false">Stripes</button>
+      <!-- Переключатель единого фонового цвета сайта -->
+      <div class="devbar" aria-label="Фон сайта">
+        <div class="seg" role="group" aria-label="Фон">
+          <button class="surfaceBtn" data-surface="indigo" aria-pressed="true">Фон: Indigo</button>
+          <button class="surfaceBtn" data-surface="magenta" aria-pressed="false">Фон: Magenta</button>
         </div>
       </div>
     </div>
@@ -255,7 +270,7 @@
     </section>
 
     <!-- SERVICES -->
-    <section id="services" class="reveal alt" data-reveal="up">
+    <section id="services" class="reveal" data-reveal="up">
       <div class="wrap">
         <div class="section-head reveal" data-delay="0.05">
           <h2>Что мы делаем</h2>
@@ -331,23 +346,24 @@
             <p class="muted">Реклама в кабинетах и внешний трафик.</p>
           </article>
 
-          <article class="card glow service reveal hover" data-reveal="up" data-delay="0.55">
-            <div class="icon" aria-hidden="true" style="background:linear-gradient(135deg,#9333ea,#22c55e)"></div>
-            <h3>Обучение дизайну карточек товара</h3>
-            <p class="muted">Индивидуально и для команд. Практика на ваших товарах.</p>
-          </article>
-
-          <article class="card glow service reveal hover" data-reveal="clip" data-delay="0.6" style="grid-column:span 2">
+          <!-- ШИРОКАЯ карточка — перенесена сразу ПОСЛЕ двух блоков выше -->
+          <article class="card glow service reveal hover service-wide" data-reveal="clip" data-delay="0.55">
             <div class="icon" aria-hidden="true" style="background:linear-gradient(135deg,#f43f5e,#22c55e)"></div>
             <h3>Быстрый старт (пакетные предложения)</h3>
             <p class="muted">Фото → инфографика → тексты → SEO → запуск под ключ.</p>
+          </article>
+
+          <article class="card glow service reveal hover" data-reveal="up" data-delay="0.6">
+            <div class="icon" aria-hidden="true" style="background:linear-gradient(135deg,#9333ea,#22c55e)"></div>
+            <h3>Обучение дизайну карточек товара</h3>
+            <p class="muted">Индивидуально и для команд. Практика на ваших товарах.</p>
           </article>
         </div>
         <div class="muted" style="margin-top:8px;font-size:12px">*Все работы — в рамках правил площадок.</div>
       </div>
     </section>
 
-    <!-- PORTFOLIO -->
+    <!-- PORTFOLIO (капсула) -->
     <section id="portfolio" class="fullwidth reveal" data-reveal="up">
       <div class="wrap">
         <div class="section-head reveal" data-delay="0.05"><h2>Кейсы и визуал</h2><a class="btn btn-sec magnet" href="/portfolio">Все кейсы</a></div>
@@ -397,8 +413,8 @@
       </div>
     </section>
 
-    <!-- ABOUT + timeline -->
-    <section id="about" class="reveal alt" data-reveal="up">
+    <!-- ABOUT (капсула) -->
+    <section id="about" class="reveal" data-reveal="up">
       <div class="wrap">
         <div class="section-head reveal" data-delay="0.05"><h2>Руководитель студии</h2><p class="muted">Кто отвечает за результат</p></div>
         <div class="grid two" style="align-items:start">
@@ -436,7 +452,7 @@
     </section>
 
     <!-- BLOG -->
-    <section id="blog" class="reveal alt" data-reveal="up">
+    <section id="blog" class="reveal" data-reveal="up">
       <div class="wrap">
         <div class="section-head reveal" data-delay="0.05"><h2>Блог</h2><a class="btn btn-sec magnet" href="/blog">Все статьи</a></div>
         <div class="grid three">
@@ -457,7 +473,7 @@
       </div>
     </section>
 
-    <!-- CONTACT -->
+    <!-- CONTACT (капсула) -->
     <section id="contact" class="reveal" data-reveal="up">
       <div class="wrap">
         <div class="section-head reveal" data-delay="0.05"><h2>Обсудить проект</h2><p class="muted">Ответим в течение рабочего дня</p></div>
@@ -530,7 +546,7 @@
       const els = document.querySelectorAll('.reveal');
       if(reduce){ els.forEach(el=>el.classList.add('in')); return; }
       if(!('IntersectionObserver' in window) || els.length===0){
-        els.forEach(el=>el.classList.add('in'));
+        els.forEach(el=>ел.classList.add('in'));
         return;
       }
       const io = new IntersectionObserver((entries)=>{
@@ -581,28 +597,15 @@
     // отзывы авто-скролл
     const car=$('#revCarousel'); if(car){ let sc=0; function tick(){ if(reduce) return; car.scrollTo({left:sc, behavior:'smooth'}); sc += 2; if(sc > car.scrollWidth - car.clientWidth) sc = 0; setTimeout(tick, 30);} tick(); }
 
-    // ===== Переключатели тем/фонов =====
-    const paletteBtns=$$('.pal');
-    const heroBtns=$$('.heroBtn');
+    // Переключатель основного фонового цвета сайта (Indigo/Magenta)
     const htmlEl=document.documentElement;
-
-    function setPressed(btns, current){
-      btns.forEach(b=>b.setAttribute('aria-pressed', String(b===current)));
-    }
-
-    paletteBtns.forEach(btn=>{
+    const surfBtns=$$('.surfaceBtn');
+    function setPressed(btns, current){ btns.forEach(b=>b.setAttribute('aria-pressed', String(b===current))); }
+    surfBtns.forEach(btn=>{
       btn.addEventListener('click', ()=>{
-        const pal=btn.dataset.pal||'original';
-        htmlEl.setAttribute('data-palette', pal);
-        setPressed(paletteBtns, btn);
-      });
-    });
-
-    heroBtns.forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const mode=btn.dataset.hero||'original';
-        htmlEl.setAttribute('data-hero', mode);
-        setPressed(heroBtns, btn);
+        const v=btn.dataset.surface||'indigo';
+        htmlEl.setAttribute('data-surface', v);
+        setPressed(surfBtns, btn);
       });
     });
 
