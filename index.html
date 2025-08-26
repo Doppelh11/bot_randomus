@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru" data-theme="dark" data-surface="indigo">
+<html lang="ru" data-theme="dark">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -8,60 +8,36 @@
   <link rel="canonical" href="https://example.com/">
   <meta name="format-detection" content="telephone=no">
   <style>
-    /* ===== Единственная палитра — Neon Mango ===== */
     :root{
-      --bg:#0b0c0f; --panel:#101216; --text:#f7fafc; --muted:#aeb6c4; --border:rgba(255,255,255,.10);
-      --accent:#ff6b6b; --accent-2:#ffd166; --accent-3:#845ef7; --ring:rgba(255,107,107,.35);
-      --radius:18px; --shadow:0 18px 55px rgba(0,0,0,.45);
-
-      /* основной фон сайта (один цвет), переключается через [data-surface] */
-      --surface:#160733; /* indigo по умолчанию */
-
-      /* маска плавного растворения фона hero вниз в основной фон */
-      --hero-fade-mask: linear-gradient(to bottom,
-        rgba(0,0,0,1) 0%,
-        rgba(0,0,0,1) 72%,
-        rgba(0,0,0,.85) 80%,
-        rgba(0,0,0,.45) 90%,
-        rgba(0,0,0,0) 100%
-      );
-
-      /* мягкие капсулы для выделенных секций (без бордеров) */
-      --caps-radius:28px;
-      --caps-portfolio:#22104A;
-      --caps-about:#1A1338;
-      --caps-contact:#3A1A28;
+      --bg:#121014;            /* общий фон сайта */
+      --panel:#0f1012;
+      --text:#f6f8fb;
+      --muted:#a7b0be;
+      --border:rgba(255,255,255,.12);
+      --accent:#ff6b6b; --accent-2:#f5d36c; --accent-3:#8b5cf6;
+      --ring:rgba(255,107,107,.35);
+      --radius:18px;
+      --shadow:0 18px 55px rgba(0,0,0,.45);
+      --ink:#482E5D;           /* подложка «Кейсы и визуал» и «Обсудить проект» */
+      --grad-from:#5408A0;     /* градиент «Руководитель студии» */
+      --grad-to:#1E033A;
     }
-    html[data-surface="indigo"]{
-      --surface:#160733;
-      --caps-portfolio:#22104A;
-      --caps-about:#1A1338;
-      --caps-contact:#3A1A28;
-    }
-    html[data-surface="magenta"]{
-      --surface:#1E0022;
-      --caps-portfolio:#2C1242;
-      --caps-about:#261026;
-      --caps-contact:#441826;
-    }
-
     *{box-sizing:border-box}
     html{height:100%;scroll-behavior:smooth}
     body{
-      margin:0;
-      background: var(--surface); /* один цвет на всём сайте */
-      color:var(--text);
+      margin:0;background:var(--bg);color:var(--text);
       font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;
-      line-height:1.5;overflow-x:hidden
+      line-height:1.5;overflow-x:hidden;cursor:default;
     }
     img{max-width:100%;display:block;border-radius:14px}
     a{color:inherit;text-decoration:none}
+    a, button, .btn { cursor:pointer; } /* палец на интерактиве */
     .wrap{max-width:1600px;margin:0 auto;padding:0 40px}
     .fullwidth{padding-left:max(20px,calc((100% - 1800px)/2));padding-right:max(20px,calc((100% - 1800px)/2))}
 
     header{position:sticky;top:0;z-index:60;border-bottom:1px solid var(--border);backdrop-filter:saturate(140%) blur(8px);background:rgba(12,12,14,.55);transition:background .3s ease}
     header.shrink{background:rgba(12,12,14,.8)}
-    .nav{height:76px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .nav{height:76px;display:flex;align-items:center;justify-content:space-between}
     .brand{display:flex;gap:12px;align-items:center;font-weight:900;letter-spacing:.4px}
     .brand .logo{width:36px;height:36px;border-radius:10px;background:conic-gradient(from 220deg, var(--accent), var(--accent-2), var(--accent-3), var(--accent))}
     .menu{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
@@ -69,98 +45,57 @@
     .menu a.active::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
     .progress{position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent-2),var(--accent-3));transform:scaleX(0);transform-origin:0 50%}
 
-    /* Переключатель варианта основного фона */
-    .devbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .seg{display:flex;border:1px solid var(--border);border-radius:999px;overflow:hidden}
-    .seg button{background:#0f1115;border:0;color:#cdd6e6;padding:8px 12px;font-weight:700;cursor:pointer}
-    .seg button[aria-pressed="true"]{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#0b0c0f}
-    .seg button:hover{filter:saturate(1.08)}
-
     h1,h2{letter-spacing:-.02em;margin:0 0 14px}
     h1{font-size:clamp(44px,8vw,132px);line-height:1.02;font-weight:900}
     h2{font-size:clamp(28px,4.4vw,64px);line-height:1.08;font-weight:900}
     .lead{font-size:clamp(16px,1.6vw,22px);color:var(--muted);max-width:960px}
 
     .btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:14px 22px;border-radius:999px;font-weight:900;border:0;color:#0b0c0f;transition:box-shadow .2s ease, filter .2s ease}
-    .btn-prim{background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 10px 30px rgba(0,0,0,.25), 0 10px 30px color-mix(in srgb, var(--accent), transparent 70%);animation:ctaPulse 2.8s ease-in-out infinite}
-    .btn-prim:hover{box-shadow:0 14px 40px rgba(0,0,0,.35), 0 14px 40px color-mix(in srgb, var(--accent), transparent 60%);filter:saturate(1.06)}
+    .btn-prim{background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 10px 30px rgba(255,107,107,.25);animation:ctaPulse 2.8s ease-in-out infinite}
+    .btn-prim:hover{box-shadow:0 14px 40px rgba(255,107,107,.35);filter:saturate(1.06)}
     .btn-sec{background:#101317;color:#fff;border:1px solid var(--border)}
     .btn-sec:hover{filter:saturate(1.06)}
 
     .glow{position:relative}
-    .glow::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:linear-gradient(135deg, color-mix(in srgb, var(--accent), transparent 40%), color-mix(in srgb, var(--accent-2), transparent 45%));-webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .25s ease}
+    .glow::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:linear-gradient(135deg,rgba(255,107,107,.6),rgba(245,211,108,.4),rgba(139,92,246,.6));-webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .25s ease}
     .glow:hover::before{opacity:1}
 
-    /* ===== HERO (Mesh) — плавное растворение вниз за счёт mask-image ===== */
+    /* HERO — слева текст, справа место под анимацию */
     .hero{position:relative;min-height:96vh;display:flex;align-items:center;overflow:hidden}
-    .bg-anim{
-      position:absolute;inset:0;z-index:0;opacity:.8;filter:saturate(1.05) contrast(1.02);
-      background:
-        radial-gradient(40% 60% at 15% 30%, color-mix(in srgb, var(--accent), transparent 70%), transparent 60%),
-        radial-gradient(35% 55% at 85% 20%, color-mix(in srgb, var(--accent-2), transparent 65%), transparent 62%),
-        radial-gradient(45% 65% at 55% 80%, color-mix(in srgb, var(--accent-3), transparent 70%), transparent 64%),
-        linear-gradient(180deg, rgba(255,255,255,.02), transparent 50%);
-      animation:meshShift 18s ease-in-out infinite alternate;
-
-      /* ключ: маска делает плавный fade к прозрачности у нижней границы hero */
-      -webkit-mask-image: var(--hero-fade-mask);
-      mask-image: var(--hero-fade-mask);
-      -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
-      -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
-    }
-    @keyframes meshShift{
-      0%{background-position:0% 0%, 100% 0%, 50% 100%, 0 0}
-      50%{background-position:8% -4%, 92% 4%, 48% 96%, 0 0}
-      100%{background-position:0% 0%, 100% 0%, 50% 100%, 0 0}
-    }
-    .mouse-spot{
-      position:absolute;inset:0;pointer-events:none;z-index:0;
-      background:radial-gradient(220px 220px at var(--mx,50%) var(--my,40%), rgba(255,255,255,.18), transparent 60%);
-      mix-blend-mode:screen;opacity:.8;
-
-      /* тоже растворяем внизу, чтобы шва не было */
-      -webkit-mask-image: var(--hero-fade-mask);
-      mask-image: var(--hero-fade-mask);
-      -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
-      -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
-    }
-    .mouse-blob{
-      position:absolute;width:44vmin;height:44vmin;border-radius:50%;pointer-events:none;z-index:0;filter:blur(60px);
-      background:
-        radial-gradient(circle at 30% 30%, var(--accent), transparent 60%),
-        radial-gradient(circle at 70% 40%, var(--accent-2), transparent 60%);
-      opacity:.24;transform:translate3d(-50%,-50%,0);animation:blobFloat 10s ease-in-out infinite;
-
-      /* и blobs мягко сходят на нет */
-      -webkit-mask-image: var(--hero-fade-mask);
-      mask-image: var(--hero-fade-mask);
-      -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
-      -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
-    }
-    @keyframes blobFloat{0%,100%{transform:translate3d(-50%,-50%,0) scale(1)}50%{transform:translate3d(-50%,-52%,0) scale(1.03)}}
-
-    .hero .content{position:relative;z-index:1;will-change:transform}
+    .hero .wrap{width:100%}
+    .hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:26px;align-items:center}
+    .hero-col--text{position:relative;z-index:1;justify-self:start;text-align:left}
+    .hero-col--art{min-height:320px} /* место под будущую анимацию справа */
     .hero .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
-
-    .marquee{display:flex;gap:28px;overflow:hidden;white-space:nowrap;border:1px solid var(--border);border-radius:999px;padding:10px 14px;margin-top:26px;background:rgba(255,255,255,.02)}
+    /* Бегущая строка без рамки/фона в hero */
+    .marquee{display:flex;gap:28px;overflow:hidden;white-space:nowrap;border:none;border-radius:999px;padding:10px 14px;margin-top:26px;background:transparent}
     .marquee span{display:inline-block;animation:slide 18s linear infinite}
     @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
-    /* === Сетки и карточки === */
+    /* Сетки и карточки */
     .grid{display:grid;gap:22px;align-items:stretch}
-    .two{grid-template-columns:1.2fr .8fr}
+    .two{grid-template-columns:1fr 1fr}
     .three{grid-template-columns:repeat(3,minmax(0,1fr))}
-    .four{grid-template-columns:1.2fr 1fr 1fr 1fr}
+    .four{grid-template-columns:repeat(4,minmax(0,1fr))}
     @media (max-width:1200px){.two,.three,.four{grid-template-columns:1fr}}
-
-    .card{background:linear-gradient(180deg,var(--panel), #0c0f14);border:1px solid var(--border);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);
-      display:flex;flex-direction:column;height:100%;position:relative}
+    .card{background:linear-gradient(180deg,#101216,#0c0f14);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;height:100%;position:relative}
     .hover{transition:box-shadow .18s ease, filter .18s ease}
-    .hover:hover{box-shadow:0 22px 70px rgba(0,0,0,.55)}
-    .hover:focus-within{box-shadow:0 22px 70px rgba(0,0,0,.55)}
+    .hover:hover,.hover:focus-within{box-shadow:0 22px 70px rgba(0,0,0,.55)}
 
-    section{padding:80px 0;scroll-margin-top:90px;position:relative}
-    .section-head{display:flex;align-items:end;justify-content:space-between;margin-bottom:22px}
+    /* Секции — плотнее */
+    section{padding:72px 0;scroll-margin-top:90px}
+    @media (max-width:1200px){
+      .card{padding:16px}
+      section{padding:56px 0}
+    }
+    @media (max-width:720px){
+      .card{padding:14px}
+      section{padding:44px 0}
+      .hero-grid{grid-template-columns:1fr}
+      .hero-col--art{min-height:0}
+    }
+
+    .section-head{display:flex;align-items:end;justify-content:space-between;margin-bottom:20px}
     .service h3{font-size:clamp(20px,2vw,28px);margin:0 0 8px}
     .service .icon{width:42px;height:42px;border-radius:12px;margin-bottom:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2))}
     .muted{color:var(--muted)}
@@ -187,12 +122,23 @@
     .carousel{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(360px,1fr);gap:18px;overflow:auto;scroll-snap-type:x mandatory;padding-bottom:6px}
     .carousel > *{scroll-snap-align:start}
 
-    footer{border-top:1px solid var(--border);padding:34px 0;background:transparent} /* единый фон сохраняем */
+    /* Дополнительные подложки-секции (рамка, небольшой внутренний отступ) */
+    .panel-block{
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:16px;
+      padding:clamp(16px,2.2vw,26px);
+      box-shadow:0 10px 40px rgba(0,0,0,.35);
+    }
+    .panel-ink{ background:#482E5D; }
+    .panel-grad{ background:linear-gradient(135deg,var(--grad-from),var(--grad-to)); }
 
-    .foot{display:grid;gap:20px;grid-template-columns:1.1fr .9fr}
+    footer{border-top:1px solid var(--border);padding:40px 0;background:var(--bg)}
+    .foot{display:grid;gap:24px;grid-template-columns:1fr auto;align-items:start}
+    .foot .nav-col{display:grid;gap:10px;align-content:start}
+    .foot a{opacity:.9}
     @media (max-width:720px){.foot{grid-template-columns:1fr}}
 
-    /* === Reveal on scroll === */
+    /* Reveal */
     .reveal{opacity:0;transform:translateY(18px);will-change:opacity,transform,clip-path;transition:opacity .7s ease, transform .7s ease}
     .reveal.in{opacity:1;transform:none}
     .reveal[data-reveal="up"]{transform:translateY(22px)}
@@ -204,24 +150,11 @@
       .reveal{transition:none;transform:none;opacity:1}
     }
 
+    /* Кастомный курсор — только в HERO */
     .cursor{position:fixed;left:0;top:0;transform:translate(-50%,-50%);width:42px;height:42px;border-radius:50%;pointer-events:none;border:2px solid rgba(255,255,255,.6);mix-blend-mode:soft-light;opacity:0;transition:opacity .2s ease, width .2s, height .2s}
 
     @keyframes ctaPulse{0%,100%{box-shadow:0 10px 30px rgba(255,107,107,.25)}50%{box-shadow:0 18px 50px rgba(255,107,107,.38)}}
     ::selection{background:var(--accent);color:#000}
-
-    /* ===== Капсулы (без бордеров) для 3 секций ===== */
-    #portfolio, #about, #contact{ background: transparent; border-radius: var(--caps-radius); }
-    #portfolio::before, #about::before, #contact::before{
-      content:""; position:absolute; inset:0;
-      margin:0 16px; border-radius: var(--caps-radius); z-index: -1;
-    }
-    #portfolio::before{ background: var(--caps-portfolio); }
-    #about::before{ background: var(--caps-about); }
-    #contact::before{ background: var(--caps-contact); }
-
-    /* Широкая карточка услуги для «Быстрый старт» */
-    .service-wide{grid-column:1 / -1}
-    @media (max-width:1200px){ .service-wide{grid-column:auto} }
   </style>
 </head>
 <body class="no-js">
@@ -238,36 +171,152 @@
         <a href="#blog">Блог</a>
         <a href="#contact" class="btn btn-sec magnet" style="padding:10px 16px">Связаться</a>
       </nav>
-
-      <!-- Переключатель единого фонового цвета сайта -->
-      <div class="devbar" aria-label="Фон сайта">
-        <div class="seg" role="group" aria-label="Фон">
-          <button class="surfaceBtn" data-surface="indigo" aria-pressed="true">Фон: Indigo</button>
-          <button class="surfaceBtn" data-surface="magenta" aria-pressed="false">Фон: Magenta</button>
-        </div>
-      </div>
     </div>
   </header>
 
   <main id="top">
-    <!-- HERO -->
-    <section class="hero fullwidth reveal" data-reveal="zoom" aria-label="Hero">
-      <div class="bg-anim" aria-hidden="true"></div>
-      <div class="mouse-spot" aria-hidden="true"></div>
-      <div class="mouse-blob" aria-hidden="true"></div>
-      <div class="wrap content">
-        <h1 id="headline" class="reveal" data-delay="0.05">Карточки для маркетплейсов<br><span style="background:linear-gradient(90deg,var(--accent),var(--accent-2),var(--accent-3));-webkit-background-clip:text;background-clip:text;color:transparent">которые продают</span></h1>
-        <p class="lead reveal" data-delay="0.12">Инфографика, обложки и тексты под правила Wildberries и Ozon. Чистая композиция, продающие смыслы и рост CTR.</p>
-        <div class="cta reveal" data-delay="0.2">
-          <a href="#pricing" class="btn btn-prim magnet">Выбрать пакет</a>
-          <a href="#portfolio" class="btn btn-sec magnet">Смотреть кейсы</a>
-        </div>
-        <div class="marquee fullwidth reveal" data-reveal="clip" data-delay="0.28" aria-label="достижения">
-          <span>100+ карточек • 40% средний рост CTR • 73% A/B-побед • Десятки ниш • Сроки без сюрпризов • </span>
-          <span aria-hidden="true">100+ карточек • 40% средний рост CTR • 73% A/B-побед • Десятки ниш • Сроки без сюрпризов • </span>
-        </div>
+   <!-- HERO -->
+<section class="hero fullwidth">
+  <div class="wrap hero-inner">
+    
+    <!-- Левая часть -->
+    <div class="hero-text">
+      <div>
+        <h1>
+          Не картинки для галочки.<br>
+          <span class="accent">Инструменты роста продаж.</span>
+        </h1>
+        <p class="lead">
+          Оформляем карточки для Wildberries и Ozon так, чтобы они повышали CTR,
+          увеличивали конверсию и проходили модерацию без проблем.
+        </p>
       </div>
-    </section>
+      <div class="cta">
+        <a href="#pricing" class="btn btn-prim magnet">Выбрать пакет</a>
+        <a href="#portfolio" class="btn btn-sec magnet">Смотреть кейсы</a>
+      </div>
+    </div>
+
+    <!-- Правая часть -->
+    <div class="hero-image">
+      <img src="images/product.jpg" alt="Пример карточки">
+    </div>
+  </div>
+</section>
+
+<!-- БЕГУЩАЯ СТРОКА -->
+<div class="hero-marquee">
+  <div class="marquee-track">
+    <span>300+ карточек • до +65% CTR • 90% побед в A/B тестах • 15+ ниш • Карточки по правилам WB и Ozon •</span>
+    <span aria-hidden="true">300+ карточек • до +65% CTR • 90% побед в A/B тестах • 15+ ниш • Карточки по правилам WB и Ozon •</span>
+  </div>
+</div>
+
+<style>
+.hero-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 40px;
+}
+
+.hero-text {
+  flex: 1;
+  max-width: 55%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hero-text h1 {
+  font-size: clamp(42px,7vw,82px);
+  font-weight: 900;
+  line-height: 1.05;
+  margin: 0 0 20px;
+}
+
+.hero-text .accent {
+  background: linear-gradient(90deg,#ff6b6b,#f5d36c,#8b5cf6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-text .lead {
+  margin: 0 0 28px;
+  color: var(--muted);
+  font-size: clamp(16px,1.6vw,22px);
+}
+
+.hero-text .cta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hero-image {
+  flex: 1;
+  max-width: 45%;
+  display: flex;
+  justify-content: center;
+}
+
+.hero-image img {
+  width: 100%;
+  height: auto;
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.4);
+}
+
+/* бегущая строка */
+.hero-marquee {
+  width: 100%;
+  overflow: hidden;
+  border-top: 1px solid rgba(255,255,255,.1);
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  margin-top: 32px;
+  padding: 14px 0;
+  text-align: center;
+}
+
+.marquee-track {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 18s linear infinite;
+}
+
+.marquee-track span {
+  display: inline-block;
+  font-size: 20px;
+  font-weight: 700;
+  padding-right: 60px;
+  background: linear-gradient(90deg,#ff6b6b,#f5d36c,#8b5cf6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* адаптив */
+@media (max-width: 900px) {
+  .hero-inner {
+    flex-wrap: wrap;
+  }
+  .hero-text, .hero-image {
+    max-width: 100%;
+  }
+  .hero-image {
+    margin-top: 20px;
+  }
+}
+</style>
+
+
+
 
     <!-- SERVICES -->
     <section id="services" class="reveal" data-reveal="up">
@@ -331,7 +380,7 @@
           <article class="card glow service reveal hover" data-reveal="up" data-delay="0.4">
             <div class="icon" aria-hidden="true" style="background:linear-gradient(135deg,#64748b,#a78bfa)"></div>
             <h3>Отзывы и самовыкупы</h3>
-            <p class="muted">Скрипты касаний, работа с отзывами.*</p>
+            <p class="muted">Скрипты касаний, работа с отзывами.</p>
           </article>
 
           <article class="card glow service reveal hover" data-reveal="up" data-delay="0.45">
@@ -346,46 +395,41 @@
             <p class="muted">Реклама в кабинетах и внешний трафик.</p>
           </article>
 
-          <!-- ШИРОКАЯ карточка — перенесена сразу ПОСЛЕ двух блоков выше -->
-          <article class="card glow service reveal hover service-wide" data-reveal="clip" data-delay="0.55">
-            <div class="icon" aria-hidden="true" style="background:linear-gradient(135deg,#f43f5e,#22c55e)"></div>
-            <h3>Быстрый старт (пакетные предложения)</h3>
-            <p class="muted">Фото → инфографика → тексты → SEO → запуск под ключ.</p>
-          </article>
-
-          <article class="card glow service reveal hover" data-reveal="up" data-delay="0.6">
+          <article class="card glow service reveal hover" data-reveal="up" data-delay="0.55">
             <div class="icon" aria-hidden="true" style="background:linear-gradient(135deg,#9333ea,#22c55e)"></div>
             <h3>Обучение дизайну карточек товара</h3>
             <p class="muted">Индивидуально и для команд. Практика на ваших товарах.</p>
           </article>
+          <!-- «Быстрый старт» удалён -->
         </div>
-        <div class="muted" style="margin-top:8px;font-size:12px">*Все работы — в рамках правил площадок.</div>
       </div>
     </section>
 
-    <!-- PORTFOLIO (капсула) -->
+    <!-- PORTFOLIO (подложка #482E5D) -->
     <section id="portfolio" class="fullwidth reveal" data-reveal="up">
       <div class="wrap">
-        <div class="section-head reveal" data-delay="0.05"><h2>Кейсы и визуал</h2><a class="btn btn-sec magnet" href="/portfolio">Все кейсы</a></div>
-        <div class="visual-strip card reveal" data-reveal="clip" aria-label="Примеры визуала">
-          <figure><img alt="Инфографика — пример 1" loading="lazy" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='520'><defs><linearGradient id='g' x1='0' x2='1'><stop offset='0' stop-color='%23ff6b6b'/><stop offset='1' stop-color='%23f5d36c'/></linearGradient></defs><rect width='100%' height='100%' fill='%2312161c'/><rect x='24' y='24' rx='18' width='752' height='200' fill='url(%23g)'/><rect x='48' y='70' rx='8' width='520' height='26' fill='%23ffffff' opacity='.95'/><rect x='48' y='112' rx='8' width='400' height='16' fill='%23ffffff' opacity='.75'/><rect x='24' y='244' rx='18' width='360' height='252' fill='%231a222e'/><rect x='404' y='244' rx='18' width='372' height='110' fill='%231a222e'/><rect x='404' y='366' rx='18' width='372' height='110' fill='%231a222e'/></svg>"></figure>
-          <figure><img alt="Инфографика — пример 2" loading="lazy" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='520'><rect width='100%' height='100%' fill='%2312161c'/><rect x='24' y='24' rx='18' width='300' height='200' fill='%231a222e'/><rect x='344' y='24' rx='18' width='432' height='200' fill='%231a222e'/><rect x='24' y='244' rx='18' width='752' height='252' fill='%231a222e'/><rect x='48' y='266' rx='8' width='520' height='24' fill='%23ffffff' opacity='.9'/></svg>"></figure>
-          <figure><img alt="Обложка — пример" loading="lazy" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='520'><defs><linearGradient id='g2' x1='0' x2='1'><stop offset='0' stop-color='%238b5cf6'/><stop offset='1' stop-color='%23ff6b6b'/></linearGradient></defs><rect width='100%' height='100%' fill='%2312161c'/><rect x='24' y='24' rx='18' width='752' height='472' fill='url(%23g2)' opacity='.2'/><circle cx='200' cy='260' r='120' fill='%23ffffff' opacity='.08'/><rect x='360' y='120' rx='10' width='360' height='28' fill='%23ffffff' opacity='.95'/></svg>"></figure>
-          <figure><img alt="Сравнение — пример" loading="lazy" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='520'><rect width='100%' height='100%' fill='%2312161c'/><rect x='24' y='24' rx='18' width='360' height='472' fill='%231a222e'/><rect x='416' y='24' rx='18' width='360' height='472' fill='%231a222e'/><rect x='48' y='60' rx='8' width='240' height='20' fill='%23ffffff' opacity='.85'/><rect x='440' y='60' rx='8' width='240' height='20' fill='%23ffffff' opacity='.85'/></svg>"></figure>
-        </div>
-        <div class="grid three" style="margin-top:22px">
-          <article class="card glow reveal hover" data-reveal="left">
-            <img alt="Кейс" loading="lazy" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='500'><rect width='100%' height='100%' fill='%2313161c'/><text x='50%' y='52%' fill='%23d0d6e4' font-size='22' text-anchor='middle'>Пример кейса</text></svg>">
-            <div style="margin-top:10px"><span class="chip">+38% CTR</span><span class="chip">+22% конверсия</span></div>
-          </article>
-          <article class="card glow reveal hover" data-reveal="up" data-delay="0.07">
-            <img alt="Кейс" loading="lazy" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='500'><rect width='100%' height='100%' fill='%2313161c'/><text x='50%' y='52%' fill='%23d0d6e4' font-size='22' text-anchor='middle'>Пример кейса</text></svg>">
-            <div style="margin-top:10px"><span class="chip">+41% клики</span><span class="chip">–12% CPC</span></div>
-          </article>
-          <article class="card glow reveal hover" data-reveal="right" data-delay="0.14">
-            <img alt="Кейс" loading="lazy" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='500'><rect width='100%' height='100%' fill='%2313161c'/><text x='50%' y='52%' fill='%23d0d6e4' font-size='22' text-anchor='middle'>Пример кейса</text></svg>">
-            <div style="margin-top:10px"><span class="chip">+29% продажи</span><span class="chip">A/B победа 73%</span></div>
-          </article>
+        <div class="panel-block panel-ink">
+          <div class="section-head reveal" data-delay="0.05"><h2>Кейсы и визуал</h2><a class="btn btn-sec magnet" href="/portfolio">Все кейсы</a></div>
+          <div class="visual-strip card reveal" data-reveal="clip" aria-label="Примеры визуала">
+            <figure><img alt="Инфографика — пример 1" loading="lazy" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='520'><defs><linearGradient id='g' x1='0' x2='1'><stop offset='0' stop-color='%23ff6b6b'/><stop offset='1' stop-color='%23f5d36c'/></linearGradient></defs><rect width='100%' height='100%' fill='%2312161c'/><rect x='24' y='24' rx='18' width='752' height='200' fill='url(%23g)'/><rect x='48' y='70' rx='8' width='520' height='26' fill='%23ffffff' opacity='.95'/><rect x='48' y='112' rx='8' width='400' height='16' fill='%23ffffff' opacity='.75'/><rect x='24' y='244' rx='18' width='360' height='252' fill='%231a222e'/><rect x='404' y='244' rx='18' width='372' height='110' fill='%231a222e'/><rect x='404' y='366' rx='18' width='372' height='110' fill='%231a222e'/></svg>"></figure>
+            <figure><img alt="Инфографика — пример 2" loading="lazy" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='520'><rect width='100%' height='100%' fill='%2312161c'/><rect x='24' y='24' rx='18' width='300' height='200' fill='%231a222e'/><rect x='344' y='24' rx='18' width='432' height='200' fill='%231a222e'/><rect x='24' y='244' rx='18' width='752' height='252' fill='%231a222e'/><rect x='48' y='266' rx='8' width='520' height='24' fill='%23ffffff' opacity='.9'/></svg>"></figure>
+            <figure><img alt="Обложка — пример" loading="lazy" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='520'><defs><linearGradient id='g2' x1='0' x2='1'><stop offset='0' stop-color='%238b5cf6'/><stop offset='1' stop-color='%23ff6b6b'/></linearGradient></defs><rect width='100%' height='100%' fill='%2312161c'/><rect x='24' y='24' rx='18' width='752' height='472' fill='url(%23g2)' opacity='.2'/><circle cx='200' cy='260' r='120' fill='%23ffffff' opacity='.08'/><rect x='360' y='120' rx='10' width='360' height='28' fill='%23ffffff' opacity='.95'/></svg>"></figure>
+            <figure><img alt="Сравнение — пример" loading="lazy" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='520'><rect width='100%' height='100%' fill='%2312161c'/><rect x='24' y='24' rx='18' width='360' height='472' fill='%231a222e'/><rect x='416' y='24' rx='18' width='360' height='472' fill='%231a222e'/><rect x='48' y='60' rx='8' width='240' height='20' fill='%23ffffff' opacity='.85'/><rect x='440' y='60' rx='8' width='240' height='20' fill='%23ffffff' opacity='.85'/></svg>"></figure>
+          </div>
+          <div class="grid three" style="margin-top:22px">
+            <article class="card glow reveal hover" data-reveal="left">
+              <img alt="Кейс" loading="lazy" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='500'><rect width='100%' height='100%' fill='%2313161c'/><text x='50%' y='52%' fill='%23d0d6e4' font-size='22' text-anchor='middle'>Пример кейса</text></svg>">
+              <div style="margin-top:10px"><span class="chip">+38% CTR</span><span class="chip">+22% конверсия</span></div>
+            </article>
+            <article class="card glow reveal hover" data-reveal="up" data-delay="0.07">
+              <img alt="Кейс" loading="lazy" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='500'><rect width='100%' height='100%' fill='%2313161c'/><text x='50%' y='52%' fill='%23d0d6e4' font-size='22' text-anchor='middle'>Пример кейса</text></svg>">
+              <div style="margin-top:10px"><span class="chip">+41% клики</span><span class="chip">–12% CPC</span></div>
+            </article>
+            <article class="card glow reveal hover" data-reveal="right" data-delay="0.14">
+              <img alt="Кейс" loading="lazy" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='500'><rect width='100%' height='100%' fill='%2313161c'/><text x='50%' y='52%' fill='%23d0d6e4' font-size='22' text-anchor='middle'>Пример кейса</text></svg>">
+              <div style="margin-top:10px"><span class="chip">+29% продажи</span><span class="chip">A/B победа 73%</span></div>
+            </article>
+          </div>
         </div>
       </div>
     </section>
@@ -413,26 +457,28 @@
       </div>
     </section>
 
-    <!-- ABOUT (капсула) -->
+    <!-- ABOUT + timeline (градиентная подложка) -->
     <section id="about" class="reveal" data-reveal="up">
       <div class="wrap">
-        <div class="section-head reveal" data-delay="0.05"><h2>Руководитель студии</h2><p class="muted">Кто отвечает за результат</p></div>
-        <div class="grid two" style="align-items:start">
-          <div class="card glow reveal" data-reveal="left">
-            <img alt="Портрет" loading="lazy" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'><rect width='100%' height='100%' fill='%23101216'/><circle cx='400' cy='260' r='120' fill='%231a212c'/><rect x='260' y='420' width='280' height='18' rx='9' fill='%231a212c'/></svg>">
-            <div style="margin-top:10px"><span class="chip">Верифицированная VK</span><span class="chip">10+ ниш</span><span class="chip">Figma/PS/AI</span></div>
-          </div>
-          <div class="reveal" data-reveal="right" data-delay="0.08">
-            <h3 style="font-size:clamp(22px,2.2vw,30px);margin:0 0 8px">Имя Фамилия</h3>
-            <p class="muted">Графический дизайнер, основатель студии. Специализация — инфографика и упаковка карточек для маркетплейсов.</p>
-            <div class="timeline" style="margin-top:12px">
-              <div class="step"><div class="dot"></div><strong>Бриф</strong><div class="muted">Собираем цели, аудиторию и смыслы</div></div>
-              <div class="step"><div class="dot"></div><strong>Прототип</strong><div class="muted">Сетка, иерархия, тексты</div></div>
-              <div class="step"><div class="dot"></div><strong>Дизайн</strong><div class="muted">Слайды, обложки, адаптации</div></div>
-              <div class="step"><div class="dot"></div><strong>Запуск</strong><div class="muted">Загрузка, тесты, оптимизация</div></div>
+        <div class="panel-block panel-grad">
+          <div class="section-head reveal" data-delay="0.05"><h2>Руководитель студии</h2><p class="muted">Кто отвечает за результат</p></div>
+          <div class="grid two" style="align-items:start">
+            <div class="card glow reveal" data-reveal="left">
+              <img alt="Портрет" loading="lazy" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'><rect width='100%' height='100%' fill='%23101216'/><circle cx='400' cy='260' r='120' fill='%231a212c'/><rect x='260' y='420' width='280' height='18' rx='9' fill='%231a212c'/></svg>">
+              <div style="margin-top:10px"><span class="chip">Верифицированная VK</span><span class="chip">10+ ниш</span><span class="chip">Figma/PS/AI</span></div>
             </div>
-            <div class="cta" style="margin-top:12px"><a href="https://vk.com/yourpage" class="btn btn-prim magnet">Связаться во VK</a><a href="#portfolio" class="btn btn-sec magnet">Портфолио</a></div>
-            <div class="muted" style="font-size:12px;margin-top:6px">*Подставьте ссылку на вашу верифицированную страницу VK.</div>
+            <div class="reveal" data-reveal="right" data-delay="0.08">
+              <h3 style="font-size:clamp(22px,2.2vw,30px);margin:0 0 8px">Имя Фамилия</h3>
+              <p class="muted">Графический дизайнер, основатель студии. Специализация — инфографика и упаковка карточек для маркетплейсов.</p>
+              <div class="timeline" style="margin-top:12px">
+                <div class="step"><div class="dot"></div><strong>Бриф</strong><div class="muted">Собираем цели, аудиторию и смыслы</div></div>
+                <div class="step"><div class="dot"></div><strong>Прототип</strong><div class="muted">Сетка, иерархия, тексты</div></div>
+                <div class="step"><div class="dot"></div><strong>Дизайн</strong><div class="muted">Слайды, обложки, адаптации</div></div>
+                <div class="step"><div class="dot"></div><strong>Запуск</strong><div class="muted">Загрузка, тесты, оптимизация</div></div>
+              </div>
+              <div class="cta" style="margin-top:12px"><a href="https://vk.com/yourpage" class="btn btn-prim magnet">Связаться во VK</a><a href="#portfolio" class="btn btn-sec magnet">Портфолио</a></div>
+              <div class="muted" style="font-size:12px;margin-top:6px">*Подставьте ссылку на вашу верифицированную страницу VK.</div>
+            </div>
           </div>
         </div>
       </div>
@@ -463,54 +509,46 @@
       </div>
     </section>
 
-    <!-- CTA финальный -->
-    <section class="fullwidth reveal" data-reveal="up">
+    <!-- CTA финальный (подложка #482E5D для «Обсудить проект») -->
+    <section class="fullwidth reveal" data-reveal="up" id="contact">
       <div class="wrap">
-        <div class="card glow reveal" data-reveal="up" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
-          <div><h2>Готовы продавать больше на WB и Ozon?</h2><p class="muted">Оставьте заявку — предложим структуру слайдов и план запуска.</p></div>
-          <div class="cta"><a href="#contact" class="btn btn-prim magnet">Оставить заявку</a><a href="#portfolio" class="btn btn-sec magnet">Смотреть кейсы</a></div>
-        </div>
-      </div>
-    </section>
+        <div class="panel-block panel-ink">
+          <div class="section-head reveal" data-delay="0.05"><h2>Обсудить проект</h2><p class="muted">Ответим в течение рабочего дня</p></div>
+          <div class="grid two">
+            <form class="card glow reveal" data-reveal="left" action="mailto:hello@example.com" method="post" enctype="text/plain">
+              <label>Имя<br><input name="Имя" required style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)"></label><br><br>
+              <label>Телеграм/WhatsApp<br><input name="Контакт" required style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)"></label><br><br>
+              <label>Товар/ниша<br><input name="Ниша" style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)"></label><br><br>
+              <label>Какая услуга нужна?<br>
+                <select name="Услуга" style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)">
+                  <option>Инфографика для маркетплейсов</option>
+                  <option>Видеоинфографика и Rich контент</option>
+                  <option>SEO оптимизация карточки товара</option>
+                  <option>Нейрофотосессии и ИИ услуги</option>
+                  <option>Презентации</option>
+                  <option>Брендинг (Логотипы, бирки, упаковка, маскоты, гайдлайн)</option>
+                  <option>Полиграфия</option>
+                  <option>Предметная/студийная/сборная фото и видеосъемка</option>
+                  <option>Отзывы и самовыкупы</option>
+                  <option>Менеджеры маркетплейса</option>
+                  <option>Посевы и таргетированная реклама WB, Ozon, VK</option>
+                  <option>Обучение дизайну карточек товара</option>
+                  <option>Быстрый старт (пакетные предложения)</option>
+                </select>
+              </label><br><br>
+              <label>Комментарий<br><textarea name="Комментарий" rows="4" style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)"></textarea></label><br><br>
+              <button class="btn btn-prim magnet" type="submit">Отправить</button>
+            </form>
 
-    <!-- CONTACT (капсула) -->
-    <section id="contact" class="reveal" data-reveal="up">
-      <div class="wrap">
-        <div class="section-head reveal" data-delay="0.05"><h2>Обсудить проект</h2><p class="muted">Ответим в течение рабочего дня</p></div>
-        <div class="grid two">
-          <form class="card glow reveal" data-reveal="left" action="mailto:hello@example.com" method="post" enctype="text/plain">
-            <label>Имя<br><input name="Имя" required style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)"></label><br><br>
-            <label>Телеграм/WhatsApp<br><input name="Контакт" required style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)"></label><br><br>
-            <label>Товар/ниша<br><input name="Ниша" style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)"></label><br><br>
-            <label>Какая услуга нужна?<br>
-              <select name="Услуга" style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)">
-                <option>Инфографика для маркетплейсов</option>
-                <option>Видеоинфографика и Rich контент</option>
-                <option>SEO оптимизация карточки товара</option>
-                <option>Нейрофотосессии и ИИ услуги</option>
-                <option>Презентации</option>
-                <option>Брендинг (Логотипы, бирки, упаковка, маскоты, гайдлайн)</option>
-                <option>Полиграфия</option>
-                <option>Предметная/студийная/сборная фото и видеосъемка</option>
-                <option>Отзывы и самовыкупы</option>
-                <option>Менеджеры маркетплейса</option>
-                <option>Посевы и таргетированная реклама WB, Ozon, VK</option>
-                <option>Обучение дизайну карточек товара</option>
-                <option>Быстрый старт (пакетные предложения)</option>
-              </select>
-            </label><br><br>
-            <label>Комментарий<br><textarea name="Комментарий" rows="4" style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)"></textarea></label><br><br>
-            <button class="btn btn-prim magnet" type="submit">Отправить</button>
-          </form>
-
-          <div class="card glow reveal" data-reveal="right" data-delay="0.08">
-            <h3>Контакты</h3>
-            <p class="muted">Пишите в мессенджер — быстрее всего ответим:</p>
-            <p><strong>Telegram:</strong> <a href="#" id="tgCopy">@your_studio</a></p>
-            <p><strong>WhatsApp:</strong> <a href="#" id="waCopy">+7 (900) 000-00-00</a></p>
-            <p><strong>Почта:</strong> <a href="mailto:hello@example.com">hello@example.com</a></p>
-            <div style="margin-top:10px"><span class="chip">VK</span><span class="chip">Instagram*</span><span class="chip">YouTube</span></div>
-            <div class="muted" style="font-size:12px;margin-top:6px">*Соцсеть, принадлежащая компании Meta, деятельность которой запрещена в РФ.</div>
+            <div class="card glow reveal" data-reveal="right" data-delay="0.08">
+              <h3>Контакты</h3>
+              <p class="muted">Пишите в мессенджер — быстрее всего ответим:</p>
+              <p><strong>Telegram:</strong> <a href="#" id="tgCopy">@your_studio</a></p>
+              <p><strong>WhatsApp:</strong> <a href="#" id="waCopy">+7 (900) 000-00-00</a></p>
+              <p><strong>Почта:</strong> <a href="mailto:hello@example.com">hello@example.com</a></p>
+              <div style="margin-top:10px"><span class="chip">VK</span><span class="chip">Instagram*</span><span class="chip">YouTube</span></div>
+              <div class="muted" style="font-size:12px;margin-top:6px">*Соцсеть, принадлежащая компании Meta, деятельность которой запрещена в РФ.</div>
+            </div>
           </div>
         </div>
       </div>
@@ -519,9 +557,10 @@
 
   <footer class="fullwidth">
     <div class="wrap foot">
-      <div><div class="brand"><div class="logo" aria-hidden="true"></div><strong>Studio</strong></div><div class="muted" style="font-size:12px">© 2025. Инфографика и оформление карточек для маркетплейсов.</div></div>
-      <div style="display:grid;gap:6px"><a href="#services">Услуги</a><a href="#portfolio">Кейсы</a><a href="#pricing">Тарифы</a><a href="#about">О студии</a><a href="#blog">Блог</a><a href="#contact">Контакты</a></div>
-    </div>
+      <div>
+        <div class="brand"><div class="logo" aria-hidden="true"></div><strong>Studio</strong></div>
+        <div class="muted" style="font-size:12px">© 2025. Инфографика и оформление карточек для маркетплейсов.</div>
+      </div>
   </footer>
 
   <script>
@@ -535,10 +574,15 @@
     const secIds=['services','portfolio','pricing','about','blog','contact'];
     const sections=secIds.map(id=>document.getElementById(id)).filter(Boolean);
     const links=$$('.menu a').filter(a=>a.getAttribute('href')?.startsWith('#'));
-    function onScroll(){ const h=document.documentElement; const scrolled=(h.scrollTop)/(h.scrollHeight-h.clientHeight); if(progress){progress.style.transform=`scaleX(${scrolled})`}
+    function onScroll(){
+      const h=document.documentElement;
+      const scrolled=(h.scrollTop)/(h.scrollHeight-h.clientHeight);
+      if(progress){progress.style.transform=`scaleX(${scrolled})`}
       header?.classList.toggle('shrink', window.scrollY>8);
-      let current=null, offset=140; sections.forEach(sec=>{const r=sec.getBoundingClientRect(); if(r.top - offset <= 0) current=sec.id;});
-      links.forEach(a=>a.classList.toggle('active', a.getAttribute('href')==='#'+current)); }
+      let current=null, offset=140;
+      sections.forEach(sec=>{const r=sec.getBoundingClientRect(); if(r.top - offset <= 0) current=sec.id;});
+      links.forEach(a=>a.classList.toggle('active', a.getAttribute('href')==='#'+current));
+    }
     window.addEventListener('scroll', onScroll, {passive:true}); onScroll();
 
     // Reveal
@@ -546,7 +590,7 @@
       const els = document.querySelectorAll('.reveal');
       if(reduce){ els.forEach(el=>el.classList.add('in')); return; }
       if(!('IntersectionObserver' in window) || els.length===0){
-        els.forEach(el=>ел.classList.add('in'));
+        els.forEach(el=>el.classList.add('in'));
         return;
       }
       const io = new IntersectionObserver((entries)=>{
@@ -576,39 +620,64 @@
     $('#tgCopy')?.addEventListener('click',e=>{e.preventDefault();copy('@your_studio');});
     $('#waCopy')?.addEventListener('click',e=>{e.preventDefault();copy('+79000000000');});
 
-    // курсор и магнитные кнопки
-    const cursor=$('#cursor'); let cx=0, cy=0, txc=0, tyc=0, rafc=0;
-    window.addEventListener('pointermove', (e)=>{ cx=e.clientX; cy=e.clientY; cursor.style.opacity=.9; if(!rafc && !reduce) rafc=requestAnimationFrame(loopC); });
-    function loopC(){ txc+=(cx-txc)*0.15; tyc+=(cy-tyc)*0.15; cursor.style.left=txc+'px'; cursor.style.top=tyc+'px'; rafc = Math.hypot(cx-txc, cy-tyc) < .5 ? 0 : requestAnimationFrame(loopC); }
-    $$('.magnet').forEach(el=>{ let r; el.addEventListener('mousemove',(e)=>{ r=el.getBoundingClientRect(); const x=(e.clientX-(r.left+r.width/2))/ (r.width/2); const y=(e.clientY-(r.top+r.height/2))/ (r.height/2); el.style.transform=`translate(${x*6}px, ${y*6}px)`; cursor.style.width='54px'; cursor.style.height='54px'; }); el.addEventListener('mouseleave',()=>{ el.style.transform='translate(0,0)'; cursor.style.width='42px'; cursor.style.height='42px'; }); });
+    // Кастомный курсор — только внутри HERO
+    const cursor=$('#cursor');
+    const hero=document.querySelector('.hero');
+    if(hero && cursor){
+      let cx=0, cy=0, txc=0, tyc=0, rafc=0;
 
-    // Hero эффекты (spotlight + blob + параллакс фона/контента)
-    const hero=document.querySelector('.hero'); const heroContent=document.querySelector('.hero .content'); const bg=document.querySelector('.bg-anim');
-    if(hero && heroContent){ let px=0, py=0, tx=0, ty=0, raf=0;
-      function onMove(e){ const r=hero.getBoundingClientRect(); px=(e.clientX-r.left)/r.width-.5; py=(e.clientY-r.top)/r.height-.5; if(!raf && !reduce) raf=requestAnimationFrame(loop);}
-      function loop(){ tx+=(px-tx)*0.12; ty+=(py-ty)*0.12; heroContent.style.transform=`translate3d(${tx*10}px, ${ty*10}px, 0)`; if(bg){ bg.style.setProperty('--px', (60+tx*6)+'%'); bg.style.setProperty('--py', (40+ty*6)+'%'); } raf=(Math.abs(px-tx)+Math.abs(py-ty)<.001)?0:requestAnimationFrame(loop);}
-      hero.addEventListener('pointermove', onMove, {passive:true}); hero.addEventListener('pointerleave', ()=>{ px=py=0; if(!raf && !reduce) raf=requestAnimationFrame(loop); });
+      const onMove=(e)=>{ cx=e.clientX; cy=e.clientY; cursor.style.opacity=.9; if(!rafc && !reduce) rafc=requestAnimationFrame(loopC); };
+      const onLeave=()=>{ cursor.style.opacity=0; };
+
+      function loopC(){
+        txc+=(cx-txc)*0.15; tyc+=(cy-tyc)*0.15;
+        cursor.style.left=txc+'px'; cursor.style.top=tyc+'px';
+        rafc = Math.hypot(cx-txc, cy-tyc) < .5 ? 0 : requestAnimationFrame(loopC);
+      }
+
+      hero.addEventListener('pointermove', onMove, {passive:true});
+      hero.addEventListener('pointerleave', onLeave);
+
+      // магнитные кнопки (тип курсора не меняем)
+      $$('.magnet').forEach(el=>{
+        let r;
+        el.addEventListener('mousemove',(e)=>{
+          r=el.getBoundingClientRect();
+          const x=(e.clientX-(r.left+r.width/2))/(r.width/2);
+          const y=(e.clientY-(r.top+r.height/2))/(r.height/2);
+          el.style.transform=`translate(${x*6}px, ${y*6}px)`;
+          cursor.style.width='54px'; cursor.style.height='54px';
+        });
+        el.addEventListener('mouseleave',()=>{
+          el.style.transform='translate(0,0)';
+          cursor.style.width='42px'; cursor.style.height='42px';
+        });
+      });
     }
-    const spot=document.querySelector('.mouse-spot'); if(spot && hero){ let mx=50, my=40, tx=mx, ty=my, raf=0; function move(e){ const r=hero.getBoundingClientRect(); mx=(e.clientX-r.left)/r.width*100; my=(e.clientY-r.top)/r.height*100; if(!raf && !reduce) raf=requestAnimationFrame(tick);} function tick(){ tx+=(mx-tx)*0.18; ty+=(my-ty)*0.18; spot.style.setProperty('--mx', tx+'%'); spot.style.setProperty('--my', ty+'%'); raf=(Math.abs(mx-tx)+Math.abs(my-ty)<.1)?0:requestAnimationFrame(tick);} hero.addEventListener('pointermove', move, {passive:true}); }
 
     // Заголовок по буквам
-    const headline=$('#headline'); if(headline && !headline.querySelector('.hch')){ const text=headline.textContent; headline.setAttribute('aria-label', text); headline.innerHTML=text.split('').map(ch=>`<span class="hch" style="opacity:0;display:inline-block;transform:translateY(20px)">${ch===' ' ? '&nbsp;' : ch}</span>`).join(''); const spans=headline.querySelectorAll('.hch'); let i=0; (function step(){ if(i<spans.length){ const s=spans[i++]; s.style.transition='opacity .5s ease, transform .5s ease'; s.style.opacity='1'; s.style.transform='translateY(0)'; setTimeout(step,10);} })(); }
+    const headline=$('#headline');
+    if(headline && !headline.querySelector('.hch')){
+      const text=headline.textContent;
+      headline.setAttribute('aria-label', text);
+      headline.innerHTML=text.split('').map(ch=>`<span class="hch" style="opacity:0;display:inline-block;transform:translateY(20px)">${ch===' ' ? '&nbsp;' : ch}</span>`).join('');
+      const spans=headline.querySelectorAll('.hch'); let i=0;
+      (function step(){ if(i<spans.length){ const s=spans[i++]; s.style.transition='opacity .5s ease, transform .5s ease'; s.style.opacity='1'; s.style.transform='translateY(0)'; setTimeout(step,10);} })();
+    }
 
     // отзывы авто-скролл
-    const car=$('#revCarousel'); if(car){ let sc=0; function tick(){ if(reduce) return; car.scrollTo({left:sc, behavior:'smooth'}); sc += 2; if(sc > car.scrollWidth - car.clientWidth) sc = 0; setTimeout(tick, 30);} tick(); }
-
-    // Переключатель основного фонового цвета сайта (Indigo/Magenta)
-    const htmlEl=document.documentElement;
-    const surfBtns=$$('.surfaceBtn');
-    function setPressed(btns, current){ btns.forEach(b=>b.setAttribute('aria-pressed', String(b===current))); }
-    surfBtns.forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const v=btn.dataset.surface||'indigo';
-        htmlEl.setAttribute('data-surface', v);
-        setPressed(surfBtns, btn);
-      });
-    });
-
+    const car=$('#revCarousel');
+    if(car){
+      let sc=0;
+      function tick(){
+        if(reduce) return;
+        car.scrollTo({left:sc, behavior:'smooth'});
+        sc += 2;
+        if(sc > car.scrollWidth - car.clientWidth) sc = 0;
+        setTimeout(tick, 30);
+      }
+      tick();
+    }
   })();
   </script>
 </body>
