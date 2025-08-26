@@ -57,7 +57,20 @@
     .btn-sec:hover{filter:saturate(1.06)}
 
     .glow{position:relative}
-    .glow::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:linear-gradient(135deg,rgba(255,107,107,.6),rgba(245,211,108,.4),rgba(139,92,246,.6));-webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .25s ease}
+    .glow::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  border-radius:inherit;
+  padding:1px;
+  background:linear-gradient(135deg,rgba(255,107,107,.6),rgba(245,211,108,.4),rgba(139,92,246,.6));
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
+  opacity:0;
+  transition:opacity .25s ease;
+  pointer-events:none;        /* <— добавьте эту строку */
+}
     .glow:hover::before{opacity:1}
 
     /* HERO — слева текст, справа место под анимацию */
@@ -65,9 +78,8 @@
     .hero .wrap{width:100%}
     .hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:26px;align-items:center}
     .hero-col--text{position:relative;z-index:1;justify-self:start;text-align:left}
-    .hero-col--art{min-height:320px} /* место под будущую анимацию справа */
+    .hero-col--art{min-height:320px}
     .hero .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
-    /* Бегущая строка без рамки/фона в hero */
     .marquee{display:flex;gap:28px;overflow:hidden;white-space:nowrap;border:none;border-radius:999px;padding:10px 14px;margin-top:26px;background:transparent}
     .marquee span{display:inline-block;animation:slide 18s linear infinite}
     @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
@@ -83,27 +95,20 @@
     .hover:hover,.hover:focus-within{box-shadow:0 22px 70px rgba(0,0,0,.55)}
 
     /* Секции — одинаковые промежутки */
-section {
-  padding: 0 0 72px;          /* только снизу */
-  scroll-margin-top:90px;
-}
-section:first-of-type {
-  padding-top: 72px;          /* только первая секция получает верхний */
-}
-
-@media (max-width:1200px){
-  .card { padding:16px }
-  section { padding-bottom:56px }
-  section:first-of-type { padding-top:56px }
-}
-
-@media (max-width:720px){
-  .card { padding:14px }
-  section { padding-bottom:44px }
-  section:first-of-type { padding-top:44px }
-  .hero-grid{grid-template-columns:1fr}
-  .hero-col--art{min-height:0}
-}
+    section{ padding:0 0 72px; scroll-margin-top:90px; }
+    section:first-of-type{ padding-top:72px; }
+    @media (max-width:1200px){
+      .card{padding:16px}
+      section{padding-bottom:56px}
+      section:first-of-type{padding-top:56px}
+    }
+    @media (max-width:720px){
+      .card{padding:14px}
+      section{padding-bottom:44px}
+      section:first-of-type{padding-top:44px}
+      .hero-grid{grid-template-columns:1fr}
+      .hero-col--art{min-height:0}
+    }
 
     .section-head{display:flex;align-items:end;justify-content:space-between;margin-bottom:20px}
     .service h3{font-size:clamp(20px,2vw,28px);margin:0 0 8px}
@@ -132,7 +137,7 @@ section:first-of-type {
     .carousel{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(360px,1fr);gap:18px;overflow:auto;scroll-snap-type:x mandatory;padding-bottom:6px}
     .carousel > *{scroll-snap-align:start}
 
-    /* Дополнительные подложки-секции (рамка, небольшой внутренний отступ) */
+    /* Подложки-секции */
     .panel-block{
       border:1px solid rgba(255,255,255,.18);
       border-radius:16px;
@@ -156,9 +161,7 @@ section:first-of-type {
     .reveal[data-reveal="zoom"]{transform:scale(.96)}
     .reveal[data-reveal="clip"]{clip-path:inset(0 0 20% 0)}
     .reveal.in[data-reveal="clip"]{clip-path:inset(0 0 0 0);transition:opacity .8s ease, clip-path 1s ease}
-    @media (prefers-reduced-motion: reduce){
-      .reveal{transition:none;transform:none;opacity:1}
-    }
+    @media (prefers-reduced-motion: reduce){ .reveal{transition:none;transform:none;opacity:1} }
 
     /* Кастомный курсор — только в HERO */
     .cursor{position:fixed;left:0;top:0;transform:translate(-50%,-50%);width:42px;height:42px;border-radius:50%;pointer-events:none;border:2px solid rgba(255,255,255,.6);mix-blend-mode:soft-light;opacity:0;transition:opacity .2s ease, width .2s, height .2s}
@@ -186,215 +189,134 @@ section:first-of-type {
 
   <main id="top">
   <!-- HERO -->
-<section class="hero fullwidth">
-  <div class="wrap hero-inner">
-    
-    <!-- Левая часть -->
-    <div class="hero-text">
-      <div>
-        <h1>
-          Не картинки для галочки.<br>
-          <span class="accent">Инструменты роста продаж.</span>
-        </h1>
-        <p class="lead">
-          Оформляем карточки для Wildberries и Ozon так, чтобы они повышали CTR,
-          увеличивали конверсию и проходили модерацию без проблем.
-        </p>
+  <section class="hero fullwidth">
+    <div class="wrap hero-inner">
+      <div class="hero-text">
+        <div>
+          <h1>
+            Не картинки для галочки.<br>
+            <span class="accent">Инструменты роста продаж.</span>
+          </h1>
+          <p class="lead">
+            Оформляем карточки для Wildberries и Ozon так, чтобы они повышали CTR,
+            увеличивали конверсию и проходили модерацию без проблем.
+          </p>
+        </div>
+        <div class="cta">
+          <a href="#pricing" class="btn btn-prim magnet">Выбрать пакет</a>
+          <a href="#portfolio" class="btn btn-sec magnet">Смотреть кейсы</a>
+        </div>
       </div>
-      <div class="cta">
-        <a href="#pricing" class="btn btn-prim magnet">Выбрать пакет</a>
-        <a href="#portfolio" class="btn btn-sec magnet">Смотреть кейсы</a>
+
+      <div class="hero-image">
+        <img src="images/product.jpg" alt="Пример карточки">
       </div>
     </div>
+  </section>
 
-    <!-- Правая часть -->
-    <div class="hero-image">
-      <img src="images/product.jpg" alt="Пример карточки">
+  <!-- БЕГУЩАЯ СТРОКА -->
+  <div class="hero-marquee">
+    <div class="marquee-track">
+      <span>300+ карточек • до +65% CTR • 90% побед в A/B тестах • 15+ ниш • Карточки по правилам WB и Ozon •</span>
+      <span aria-hidden="true">300+ карточек • до +65% CTR • 90% побед в A/B тестах • 15+ ниш • Карточки по правилам WB и Ozon •</span>
     </div>
   </div>
-</section>
 
-<!-- БЕГУЩАЯ СТРОКА -->
-<div class="hero-marquee">
-  <div class="marquee-track">
-    <span>300+ карточек • до +65% CTR • 90% побед в A/B тестах • 15+ ниш • Карточки по правилам WB и Ozon •</span>
-    <span aria-hidden="true">300+ карточек • до +65% CTR • 90% побед в A/B тестах • 15+ ниш • Карточки по правилам WB и Ozon •</span>
-  </div>
-</div>
-
-<style>
-/* Поджимаем первый экран */
-.hero{
-  min-height:85vh;                /* вмещается в первый экран */
-  display:flex;
-  flex-direction:column;
-  justify-content:flex-start;
-  padding-top:72px;               /* отступ от фикс-хедера */
-}
-
-.hero-inner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 28px;                      /* компактнее */
-  flex:1;
-}
-
-.hero-text {
-  flex: 1;
-  max-width: 55%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.hero-text h1 {
-  font-size: clamp(38px,6vw,70px); /* чуть меньше, чтобы влезало */
-  font-weight: 900;
-  line-height: 1.08;
-  margin: 0 0 14px;
-}
-
-.hero-text .accent {
-  background: linear-gradient(90deg,#ff6b6b,#f5d36c,#8b5cf6);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.hero-text .lead {
-  margin: 0 0 18px;
-  color: var(--muted);
-  font-size: clamp(15px,1.4vw,20px);
-}
-
-.hero-text .cta {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-/* Картинка справа, не «колбасится», ограничена по высоте экрана */
-.hero-image {
-  flex: 1;
-  max-width: 45%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.hero-image img {
-  width: 100%;
-  height: auto;
-  max-height: 56vh;               /* чтобы вошла вместе с текстом и строкой */
-  border-radius: 18px;
-  box-shadow: 0 12px 40px rgba(0,0,0,.4);
-}
-
-/* Бегущая строка — сразу под Hero, но компактнее */
-.hero-marquee {
-  width: 100%;
-  overflow: hidden;
-  border-top: 1px solid rgba(255,255,255,.1);
-  border-bottom: 1px solid rgba(255,255,255,.1);
-  margin-top: 12px;               /* ближе к Hero */
-  padding: 10px 0;
-  text-align: center;
-}
-
-.marquee-track {
-  display: inline-block;
-  white-space: nowrap;
-  animation: marquee 16s linear infinite;
-}
-
-.marquee-track span {
-  display: inline-block;
-  font-size: 18px;                /* немного компактнее */
-  font-weight: 700;
-  padding-right: 60px;
-  background: linear-gradient(90deg,#ff6b6b,#f5d36c,#8b5cf6);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-/* Адаптив */
-@media (max-width: 900px) {
+  <!-- Доп. стили под Hero + фиксы панелей + стили калькулятора -->
+  <style>
+  /* Поджимаем первый экран */
   .hero{
-    min-height:auto;
-    padding-top:64px;
+    min-height:85vh; display:flex; flex-direction:column; justify-content:flex-start; padding-top:72px;
   }
-  .hero-inner {
-    flex-wrap: wrap;
-    gap: 20px;
+  .hero-inner{ display:flex; justify-content:space-between; align-items:center; gap:28px; flex:1; }
+  .hero-text{ flex:1; max-width:55%; display:flex; flex-direction:column; justify-content:space-between; }
+  .hero-text h1{ font-size:clamp(38px,6vw,70px); font-weight:900; line-height:1.08; margin:0 0 14px; }
+  .hero-text .accent{ background:linear-gradient(90deg,#ff6b6b,#f5d36c,#8b5cf6); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .hero-text .lead{ margin:0 0 18px; color:var(--muted); font-size:clamp(15px,1.4vw,20px); }
+  .hero-text .cta{ display:flex; gap:12px; flex-wrap:wrap; }
+  .hero-image{ flex:1; max-width:45%; display:flex; justify-content:center; align-items:center; }
+  .hero-image img{ width:100%; height:auto; max-height:56vh; border-radius:18px; box-shadow:0 12px 40px rgba(0,0,0,.4); }
+  .hero-marquee{ width:100%; overflow:hidden; border-top:1px solid rgba(255,255,255,.1); border-bottom:1px solid rgba(255,255,255,.1); margin-top:12px; padding:10px 0; text-align:center; }
+  .marquee-track{ display:inline-block; white-space:nowrap; animation:marquee 16s linear infinite; }
+  .marquee-track span{ display:inline-block; font-size:18px; font-weight:700; padding-right:60px; background:linear-gradient(90deg,#ff6b6b,#f5d36c,#8b5cf6); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  @keyframes marquee{ 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  @media (max-width: 900px){
+    .hero{ min-height:auto; padding-top:64px; }
+    .hero-inner{ flex-wrap:wrap; gap:20px; }
+    .hero-text, .hero-image{ max-width:100%; }
+    .hero-image img{ max-height:40vh; }
   }
-  .hero-text, .hero-image {
-    max-width: 100%;
+  /* FIX цветных панелей */
+  .panel-block.panel-ink, .panel-block.panel-grad{
+    --p: clamp(18px, 2.2vw, 28px);
+    padding: var(--p) !important; border-radius: 16px; overflow: hidden; display: grid; gap: calc(var(--p) * .75);
+    padding-bottom: calc(var(--p) + 45px) !important;
   }
-  .hero-image img{
-    max-height: 40vh;
+  .panel-block.panel-ink > *, .panel-block.panel-grad > *{ margin:0 !important; }
+  .panel-block.panel-ink .section-head, .panel-block.panel-grad .section-head{ margin:0 !important; }
+  .panel-block .card{ margin:0 !important; }
+  .panel-block .visual-strip, .panel-block .carousel{ padding-bottom:0 !important; scrollbar-gutter: stable both-edges; }
+  #portfolio .panel-block .visual-strip{ padding-bottom:0 !important; }
+  #portfolio .panel-block .grid{ margin:0 !important; }
+  #portfolio .panel-block .grid.three[style]{ margin-top:0 !important; }
+  #about .panel-block .grid, #contact .panel-block .grid{ margin:0 !important; }
+  @media (max-width: 720px){ .panel-block.panel-ink, .panel-block.panel-grad{ padding-bottom: var(--p) !important; } }
+
+  /* QuickCalc */
+  #quickCalc .qc-head{ display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px; }
+  #quickCalc h3{ font-size:clamp(20px,2vw,28px); line-height:1.2; margin:0; }
+  #quickCalc .qc-badge{
+    display:none; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:800;
+    background:color-mix(in srgb, var(--accent), transparent 65%);
+    border:1px solid color-mix(in srgb, var(--accent), transparent 35%); color:#ffe9e9;
+    animation:qcPulse 2.4s ease-in-out infinite;
   }
-}
-
-/* === FIX цветных панелей: ровные поля сверху/снизу, как слева/справа === */
-.panel-block.panel-ink,
-.panel-block.panel-grad{
-  --p: clamp(18px, 2.2vw, 28px);
-  padding: var(--p) !important;                /* одинаковые поля со всех сторон */
-  border-radius: 16px;
-  overflow: hidden;                            /* чтобы тени/контент не вылезали за радиус */
-  display: grid;
-  gap: calc(var(--p) * .75);                   /* единый вертикальный ритм */
-  /* Если низ кажется «поджат» из-за теней — держим небольшой запас: */
-  padding-bottom: calc(var(--p) + 45px) !important;
-}
-
-/* Сбрасываем внутренние margin, чтобы не ломали рамку */
-.panel-block.panel-ink > *,
-.panel-block.panel-grad > * { margin: 0 !important; }
-
-/* Заголовок секции внутри панелей — без своих отступов */
-.panel-block.panel-ink .section-head,
-.panel-block.panel-grad .section-head { margin: 0 !important; }
-
-/* Карточки внутри панелей — без внешних отступов */
-.panel-block .card { margin: 0 !important; }
-
-/* Горизонтальные списки внутри панелей: без доп. нижних зазоров */
-.panel-block .visual-strip,
-.panel-block .carousel { padding-bottom: 0 !important; scrollbar-gutter: stable both-edges; }
-
-/* === «Кейсы и визуал» — убираем локальные разрывы === */
-#portfolio .panel-block .visual-strip { padding-bottom: 0 !important; }
-#portfolio .panel-block .grid { margin: 0 !important; }
-/* Перебиваем инлайновый margin-top, если вдруг остался */
-#portfolio .panel-block .grid.three[style] { margin-top: 0 !important; }
-
-/* === «Руководитель студии» — выравниваем сетку === */
-#about .panel-block .grid { margin: 0 !important; }
-
-/* === «Обсудить проект» — выравниваем сетку === */
-#contact .panel-block .grid { margin: 0 !important; }
-
-/* На всякий случай — убираем служебные края у первого/последнего потомка */
-.panel-block > *:first-child,
-.panel-block > *:last-child { margin: 0 !important; }
-
-/* Адаптив: чуть меньше «запаса» снизу на узких экранах, чтобы не казалось толстым */
-@media (max-width: 720px){
-  .panel-block.panel-ink,
-  .panel-block.panel-grad{
-    padding-bottom: var(--p) !important;
+  @keyframes qcPulse{ 0%,100%{ filter:saturate(1)} 50%{ filter:saturate(1.35)} }
+  #quickCalc .qc-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+  @media (max-width:900px){ #quickCalc .qc-grid{ grid-template-columns:1fr; } }
+  #quickCalc .qc-field{ display:flex; flex-direction:column; gap:8px; }
+  #quickCalc .qc-label{ font-weight:900; }
+  #quickCalc .qc-stepper{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  #quickCalc .qc-input{
+    width:120px; text-align:center; padding:12px; border-radius:12px;
+    background:#0b0b0f; border:1px solid var(--border); color:var(--text); font-weight:900;
   }
-}
-
-</style>
+  #quickCalc .qc-stepper-btn{
+    min-width:46px; height:46px; border-radius:999px; border:0; color:#0b0c0f; font-weight:900; cursor:pointer;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2),var(--accent-3));
+    box-shadow:0 10px 30px rgba(255,107,107,.25);
+    transition:transform .08s ease, filter .2s ease, box-shadow .2s ease;
+  }
+  #quickCalc .qc-stepper-btn:hover{ filter:saturate(1.06); box-shadow:0 14px 40px rgba(255,107,107,.35); }
+  #quickCalc .qc-stepper-btn:active{ transform:translateY(1px) scale(.98); }
+  /* Тумблер SEO */
+  #quickCalc .qc-toggle{ display:flex; align-items:center; gap:10px; }
+  #quickCalc .qc-switch{ position:absolute; opacity:0; pointer-events:none; }
+  #quickCalc .qc-switch-ui{
+    position:relative; width:56px; height:30px; border-radius:999px; display:inline-block; cursor:pointer;
+  }
+  #quickCalc .qc-switch-ui::before{
+    content:""; position:absolute; inset:0; border-radius:999px; background:#101317; border:1px solid var(--border);
+    transition:all .2s ease;
+  }
+  #quickCalc .qc-switch-ui::after{
+    content:""; width:24px; height:24px; border-radius:50%; position:absolute; left:4px; top:3px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2)); transition:transform .2s ease;
+  }
+  #quickCalc .qc-switch:checked + .qc-switch-ui::before{
+    background:linear-gradient(135deg,var(--accent),var(--accent-2)); border-color:transparent;
+  }
+  #quickCalc .qc-switch:checked + .qc-switch-ui::after{ transform: translateX(26px); background:#0b0c0f; }
+  /* Итог и CTA */
+  #quickCalc .qc-total{
+    margin-top:16px; padding-top:12px; border-top:1px solid var(--border);
+    display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center;
+  }
+  @media (max-width:720px){ #quickCalc .qc-total{ grid-template-columns:1fr; } #quickCalc .qc-cta{ justify-self:stretch; text-align:center; } }
+  #quickCalc .qc-sum{ font-size:clamp(22px,2.4vw,30px); font-weight:900; }
+  #quickCalc .qc-breakdown{ font-size:12px; grid-column:1 / -1; }
+  #quickCalc .qc-cta{ justify-self:end; }
+  </style>
 
     <!-- SERVICES -->
     <section id="services" class="reveal" data-reveal="up">
@@ -478,7 +400,6 @@ section:first-of-type {
             <h3>Обучение дизайну карточек товара</h3>
             <p class="muted">Индивидуально и для команд. Практика на ваших товарах.</p>
           </article>
-          <!-- «Быстрый старт» удалён -->
         </div>
       </div>
     </section>
@@ -521,12 +442,7 @@ section:first-of-type {
           <article class="card glow price emph reveal hover" data-reveal="up" data-delay="0.08"><h3>🚀 Продажи</h3><div style="font-size:32px;font-weight:900">от 15 000 ₽</div><ul class="muted" style="margin:10px 0 16px;padding-left:18px"><li>10 инфо-слайдов</li><li>Обложка + баннеры</li><li>SEO-описания</li></ul><a href="#contact" class="btn btn-prim magnet">Заказать</a></article>
           <article class="card glow price reveal hover" data-reveal="right" data-delay="0.16"><h3>👑 Под ключ</h3><div style="font-size:32px;font-weight:900">от 30 000 ₽</div><ul class="muted" style="margin:10px 0 16px;padding-left:18px"><li>Фото/ретушь</li><li>Инфографика + тексты</li><li>Загрузка и A/B-тесты</li></ul><a href="#contact" class="btn btn-prim magnet">Заказать</a></article>
         </div>
-        <div class="card calc reveal" data-reveal="up" style="margin-top:22px">
-          <h3 style="margin:0 0 6px">Быстрая оценка</h3>
-          <p class="muted" style="margin:0 0 8px">До 3 — 5 000 ₽; 4–8 — 2 000 ₽/слайд; 9+ — 1 500 ₽/слайд.</p>
-          <div class="input"><label for="slides">Слайдов:</label><input id="slides" type="number" min="1" value="6" inputmode="numeric"><button id="calcBtn" class="btn btn-sec magnet" type="button">Посчитать</button></div>
-          <div id="calcOut" style="margin-top:10px;font-weight:900">Итог: 12 000 ₽ (оценка)</div>
-        </div>
+        <!-- Старый калькулятор удалён -->
         <div class="faq card reveal" data-reveal="clip" style="margin-top:22px">
           <details><summary>Сколько стоит инфографика?</summary><p>От 5 000 ₽ за базовый комплект. Точная цена зависит от категории и количества слайдов.</p></details>
           <details><summary>Делаете продвижение?</summary><p>Да, только в рамках правил площадок (реклама в кабинетах, акции/купоны, внешний трафик).</p></details>
@@ -575,6 +491,57 @@ section:first-of-type {
       </div>
     </section>
 
+    <!-- QUICK CALC (между «Отзывы» и «Блог») -->
+    <section id="quickcalc" class="reveal" data-reveal="up">
+      <div class="wrap">
+        <article class="card glow calc hover" id="quickCalc">
+          <div class="qc-head">
+            <h3>Быстрая оценка</h3>
+            <span class="qc-badge" id="qcBadge">Скидка за объём</span>
+          </div>
+
+          <div class="qc-grid">
+            <!-- Слайды -->
+            <div class="qc-field">
+              <label class="qc-label">Слайды, шт.</label>
+              <div class="qc-stepper">
+                <button type="button" class="qc-stepper-btn" data-target="qcSlides" data-step="-1" aria-label="Минус один">–</button>
+                <input id="qcSlides" class="qc-input" type="number" inputmode="numeric" min="1" value="1" />
+                <button type="button" class="qc-stepper-btn" data-target="qcSlides" data-step="1" aria-label="Плюс один">+</button>
+              </div>
+            </div>
+
+            <!-- SEO -->
+            <div class="qc-field">
+              <label class="qc-label">SEO карточки</label>
+              <div class="qc-toggle">
+                <input id="qcSeo" type="checkbox" class="qc-switch" checked>
+                <label for="qcSeo" class="qc-switch-ui" aria-label="Переключатель SEO"></label>
+              </div>
+            </div>
+
+            <!-- Отзывы -->
+            <div class="qc-field">
+              <label class="qc-label">Отзывы, шт.</label>
+              <div class="qc-stepper">
+                <button type="button" class="qc-stepper-btn" data-target="qcReviews" data-step="-10" aria-label="Минус десять">–10</button>
+                <button type="button" class="qc-stepper-btn" data-target="qcReviews" data-step="-1" aria-label="Минус один">–</button>
+                <input id="qcReviews" class="qc-input" type="number" inputmode="numeric" min="0" value="0" />
+                <button type="button" class="qc-stepper-btn" data-target="qcReviews" data-step="1" aria-label="Плюс один">+</button>
+                <button type="button" class="qc-stepper-btn" data-target="qcReviews" data-step="10" aria-label="Плюс десять">+10</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="qc-total">
+            <div class="qc-sum" id="qcSum">Итог: 0 ₽</div>
+            <div class="qc-breakdown muted" id="qcBreakdown"> </div>
+            <a href="#contact" class="btn btn-prim magnet qc-cta">Заказать</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <!-- BLOG -->
     <section id="blog" class="reveal" data-reveal="up">
       <div class="wrap">
@@ -587,7 +554,7 @@ section:first-of-type {
       </div>
     </section>
 
-    <!-- CTA финальный (подложка #482E5D для «Обсудить проект») -->
+    <!-- CTA финальный -->
     <section class="fullwidth reveal" data-reveal="up" id="contact">
       <div class="wrap">
         <div class="panel-block panel-ink">
@@ -639,6 +606,7 @@ section:first-of-type {
         <div class="brand"><div class="logo" aria-hidden="true"></div><strong>Studio</strong></div>
         <div class="muted" style="font-size:12px">© 2025. Инфографика и оформление карточек для маркетплейсов.</div>
       </div>
+    </div>
   </footer>
 
   <script>
@@ -686,12 +654,78 @@ section:first-of-type {
       els.forEach(el=>io.observe(el));
     })();
 
-    // калькулятор
-    const slides=$('#slides'), out=$('#calcOut'), btn=$('#calcBtn');
-    const rub=n=> new Intl.NumberFormat('ru-RU').format(n) + ' ₽';
-    const cost=v=>{const s=Math.max(1,Number(v)||1); if(s<=3) return 5000; if(s<=8) return s*2000; return s*1500;};
-    const render=()=>{ if(slides&&out) out.textContent='Итог: ' + rub(cost(slides.value)) + ' (оценка)'; };
-    slides?.addEventListener('input',render); btn?.addEventListener('click',e=>{e.preventDefault();render();}); render();
+    // Быстрый калькулятор (между Отзывы и Блог)
+    (function(){
+      const root = document.getElementById('quickCalc');
+      if(!root) return;
+
+      const $ = (s,p=root)=>p.querySelector(s);
+      const slidesEl  = $('#qcSlides');
+      const seoChk    = $('#qcSeo');
+      const reviewsEl = $('#qcReviews');
+      const sumEl     = $('#qcSum');
+      const brEl      = $('#qcBreakdown');
+      const badge     = $('#qcBadge');
+
+      const PRICE_SLIDE = 800;        // ₽ за 1 слайд
+      const PRICE_SEO   = 2000;       // ₽ за SEO
+      const DISCOUNT_9PLUS = 0.10;    // 10% при >= 9 слайдов
+      const PRICE_REV_LT50 = 100;     // ₽/шт до 50
+      const PRICE_REV_GE50 = 70;      // ₽/шт от 50 (включительно)
+
+      const rub = n => new Intl.NumberFormat('ru-RU').format(Math.round(n)) + ' ₽';
+
+      function compute(){
+        const slides  = Math.max(1, Number(slidesEl.value)||1);
+        const seoOn   = !!seoChk?.checked;
+        const reviews = Math.max(0, Number(reviewsEl.value)||0);
+
+        const baseSlides = slides * PRICE_SLIDE;
+        const discount   = (slides >= 9) ? baseSlides * DISCOUNT_9PLUS : 0;
+        const slidesCost = baseSlides - discount;
+
+        const seoCost     = seoOn ? PRICE_SEO : 0;
+        const reviewPrice = (reviews >= 50) ? PRICE_REV_GE50 : PRICE_REV_LT50;
+        const reviewsCost = reviews * reviewPrice;
+
+        const total = slidesCost + seoCost + reviewsCost;
+
+        if(badge) badge.style.display = (slides >= 9) ? 'inline-block' : 'none';
+        if(sumEl) sumEl.textContent = 'Итог: ' + rub(total);
+
+        const parts = [];
+        if(discount>0){
+          parts.push(`${slides} слайдов × ${rub(PRICE_SLIDE)} = ${rub(baseSlides)} − скидка 10% (${rub(discount)}) → ${rub(slidesCost)}`);
+        } else {
+          parts.push(`${slides} слайдов × ${rub(PRICE_SLIDE)} = ${rub(slidesCost)}`);
+        }
+        if(seoOn)      parts.push(`SEO = ${rub(seoCost)}`);
+        if(reviews>0)  parts.push(`${reviews} отзывов × ${rub(reviewPrice)} = ${rub(reviewsCost)}`);
+        if(brEl) brEl.textContent = parts.join(' · ');
+      }
+
+      // Делегирование кликов по кнопкам +/- (оба степпера)
+      root.addEventListener('click', (e)=>{
+        const btn = e.target.closest('.qc-stepper-btn');
+        if(!btn) return;
+        const step = Number(btn.dataset.step)||0;
+        const targetId = btn.dataset.target;
+        const input = targetId ? root.querySelector('#'+targetId) : btn.parentElement.querySelector('input');
+        if(!input) return;
+        const min = Number(input.min)||-Infinity, max = Number(input.max)||Infinity;
+        let val = Number(input.value)||0;
+        val += step; val = Math.max(min, Math.min(max, val));
+        input.value = val;
+        input.dispatchEvent(new Event('input', {bubbles:true}));
+      });
+
+      // Слушатели
+      slidesEl?.addEventListener('input', compute);
+      reviewsEl?.addEventListener('input', compute);
+      seoChk?.addEventListener('change', compute);
+
+      compute();
+    })();
 
     // копирование контактов
     const copy=async t=>{ try{ await navigator.clipboard.writeText(t); alert('Скопировано: '+t);}catch(e){console.log(e);} };
@@ -716,7 +750,7 @@ section:first-of-type {
       hero.addEventListener('pointermove', onMove, {passive:true});
       hero.addEventListener('pointerleave', onLeave);
 
-      // магнитные кнопки (тип курсора не меняем)
+      // магнитные кнопки
       $$('.magnet').forEach(el=>{
         let r;
         el.addEventListener('mousemove',(e)=>{
@@ -733,7 +767,7 @@ section:first-of-type {
       });
     }
 
-    // Заголовок по буквам
+    // Заголовок по буквам (если нужен)
     const headline=$('#headline');
     if(headline && !headline.querySelector('.hch')){
       const text=headline.textContent;
@@ -760,4 +794,3 @@ section:first-of-type {
   </script>
 </body>
 </html>
-
