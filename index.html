@@ -175,7 +175,7 @@
   </header>
 
   <main id="top">
-   <!-- HERO -->
+  <!-- HERO -->
 <section class="hero fullwidth">
   <div class="wrap hero-inner">
     
@@ -213,11 +213,21 @@
 </div>
 
 <style>
+/* Поджимаем первый экран */
+.hero{
+  min-height:85vh;                /* вмещается в первый экран */
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
+  padding-top:72px;               /* отступ от фикс-хедера */
+}
+
 .hero-inner {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 40px;
+  gap: 28px;                      /* компактнее */
+  flex:1;
 }
 
 .hero-text {
@@ -229,10 +239,10 @@
 }
 
 .hero-text h1 {
-  font-size: clamp(42px,7vw,82px);
+  font-size: clamp(38px,6vw,70px); /* чуть меньше, чтобы влезало */
   font-weight: 900;
-  line-height: 1.05;
-  margin: 0 0 20px;
+  line-height: 1.08;
+  margin: 0 0 14px;
 }
 
 .hero-text .accent {
@@ -243,9 +253,9 @@
 }
 
 .hero-text .lead {
-  margin: 0 0 28px;
+  margin: 0 0 18px;
   color: var(--muted);
-  font-size: clamp(16px,1.6vw,22px);
+  font-size: clamp(15px,1.4vw,20px);
 }
 
 .hero-text .cta {
@@ -254,40 +264,43 @@
   flex-wrap: wrap;
 }
 
+/* Картинка справа, не «колбасится», ограничена по высоте экрана */
 .hero-image {
   flex: 1;
   max-width: 45%;
   display: flex;
   justify-content: center;
+  align-items: center;
 }
 
 .hero-image img {
   width: 100%;
   height: auto;
+  max-height: 56vh;               /* чтобы вошла вместе с текстом и строкой */
   border-radius: 18px;
   box-shadow: 0 12px 40px rgba(0,0,0,.4);
 }
 
-/* бегущая строка */
+/* Бегущая строка — сразу под Hero, но компактнее */
 .hero-marquee {
   width: 100%;
   overflow: hidden;
   border-top: 1px solid rgba(255,255,255,.1);
   border-bottom: 1px solid rgba(255,255,255,.1);
-  margin-top: 32px;
-  padding: 14px 0;
+  margin-top: 12px;               /* ближе к Hero */
+  padding: 10px 0;
   text-align: center;
 }
 
 .marquee-track {
   display: inline-block;
   white-space: nowrap;
-  animation: marquee 18s linear infinite;
+  animation: marquee 16s linear infinite;
 }
 
 .marquee-track span {
   display: inline-block;
-  font-size: 20px;
+  font-size: 18px;                /* немного компактнее */
   font-weight: 700;
   padding-right: 60px;
   background: linear-gradient(90deg,#ff6b6b,#f5d36c,#8b5cf6);
@@ -301,22 +314,24 @@
   100% { transform: translateX(-50%); }
 }
 
-/* адаптив */
+/* Адаптив */
 @media (max-width: 900px) {
+  .hero{
+    min-height:auto;
+    padding-top:64px;
+  }
   .hero-inner {
     flex-wrap: wrap;
+    gap: 20px;
   }
   .hero-text, .hero-image {
     max-width: 100%;
   }
-  .hero-image {
-    margin-top: 20px;
+  .hero-image img{
+    max-height: 40vh;
   }
 }
 </style>
-
-
-
 
     <!-- SERVICES -->
     <section id="services" class="reveal" data-reveal="up">
@@ -682,3 +697,4 @@
   </script>
 </body>
 </html>
+
