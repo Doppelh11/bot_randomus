@@ -3,96 +3,123 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Hero — видео в мокапе</title>
+  <title>Hero-анимация — живой финал (WebM+MP4)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
-    :root{
-      --bg: #ff7a00;          /* ОРАНЖЕВЫЙ ФОН САЙТА */
-      --fg: #111;
-      --maxw: 1200px;
-    }
-    *{ box-sizing: border-box }
+    :root{ --bg:#0c0d10; --fg:#fff; --muted:#b5b6bf; --maxw:1200px; }
+    *{ box-sizing:border-box }
     html,body{ height:100% }
     body{
       margin:0; color:var(--fg);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
-      background: var(--bg);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+      background:radial-gradient(1200px 900px at 20% 20%, #171924 0, #0f1118 50%, #0c0d10 100%);
     }
-
-    .wrap{ max-width: var(--maxw); margin-inline: auto; padding: clamp(24px,4vw,72px); }
+    .wrap{ max-width:var(--maxw); margin:auto; padding:clamp(20px,4vw,64px) }
     .hero{
-      display: grid; grid-template-columns: 1.2fr 0.8fr; align-items: center;
-      gap: clamp(24px, 5vw, 80px); min-height: 80svh;
+      display:grid; grid-template-columns:1.1fr 0.9fr; align-items:center;
+      gap:clamp(20px,5vw,80px); min-height:90svh;
     }
-    @media (max-width: 960px){
-      .hero{ grid-template-columns: 1fr; min-height: auto }
-      .copy{ order: -1; text-align: center }
+    @media (max-width:960px){
+      .hero{ grid-template-columns:1fr; min-height:auto }
+      .copy{ text-align:center; order:-1 }
     }
+    .copy h1{ margin:0 0 .4em; line-height:1.05; font-weight:800; font-size:clamp(28px,6vw,62px); letter-spacing:-.02em }
+    .copy p{ margin:0 0 1.25rem; color:var(--muted); font-size:clamp(16px,2.3vw,20px) }
+    .btn{
+      appearance:none; border:none; background:#ffffff10; color:#fff;
+      padding:12px 18px; border-radius:16px; font-weight:600; cursor:pointer;
+      backdrop-filter:blur(6px); transition:transform .15s ease, background .2s ease;
+    }
+    .btn:hover{ transform:translateY(-1px); background:#ffffff18 }
+    .btn:active{ transform:translateY(0) }
 
-    /* Сцена с точным соотношением сторон ваших PNG (2048×1828) */
+    /* ===== Stage ===== */
     .stage{
-      position: relative; width: 100%; max-width: 760px;
+      position:relative; width:100%; max-width:760px;
+      /* твоя базовая геометрия (2048x1828) */
       aspect-ratio: 2048 / 1828;
-      margin-inline: auto; isolation: isolate;
-      filter: drop-shadow(0 40px 120px rgba(0,0,0,.45));
-      overflow: hidden;
+      margin-inline:auto; isolation:isolate;
+      filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
+      perspective:1200px; contain:layout paint;
+    }
+    .layer{
+      position:absolute; inset:0; width:100%; height:100%;
+      object-fit:contain; transform-style:preserve-3d; backface-visibility:hidden;
+      will-change:transform,opacity,filter; opacity:0;
     }
 
-    /* Видео под мокапом: прозрачный WEBM «заливает» экран */
-    .video{
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
-      object-fit: cover; object-position: 50% 50%;
-      z-index: 2;            /* ниже мокапа */
-      opacity: 0;            /* на всякий случай скрыто до автозапуска */
-      visibility: hidden;
-      pointer-events: none;
-      transform: translateZ(0);
-    }
+    /* Видео-слой: маска PNG (если есть), иначе — режим screen */
+    .layer.veo{
+      opacity:0; pointer-events:none;
+      /* тонкая подгонка, если видео не 2048×1828 */
+      --vx:0px; --vy:0px; --vscale:1;
+      transform: translate(var(--vx), var(--vy)) scale(var(--vscale));
 
-    /* Мокап СВЕРХУ: у него прозрачное окно экрана — он «режет» края видео */
-    .mock{
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
-      object-fit: contain;
-      z-index: 5;            /* поверх видео */
-      pointer-events: none;
-      opacity: 1 !important;
+      /* маска экрана (assets/screen-mask.png: экран белым, остальное чёрным) */
+      -webkit-mask-image: url(assets/screen-mask.png);
+      mask-image: url(assets/screen-mask.png);
+      -webkit-mask-size: contain;  mask-size: contain;
+      -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+      -webkit-mask-position: center;  mask-position: center;
     }
+    .layer.veo.nomask{ -webkit-mask:none; mask:none; }
+    .layer.veo.screen{ mix-blend-mode: screen; opacity:.98; } /* быстрый ключ чёрного */
 
-    .copy h1{ margin:0 0 .4em; font-weight: 800; line-height:1.05; font-size: clamp(28px,6vw,62px); letter-spacing: -0.02em; }
-    .copy p{ margin:0; opacity:.9 }
+    .hint{ text-align:center; color:#a7aab8; margin-top:22px; font-size:13px; opacity:.75 }
   </style>
 </head>
 <body>
   <div class="wrap">
     <section class="hero" id="hero">
       <div class="stage" id="stage" aria-hidden="true">
-        <!-- ВИДЕО БЕЗ ФОНА -->
-        <video id="veo" class="video" playsinline muted autoplay loop>
-          <source src="assets/veo3.webm" type="video/webm">
-        </video>
+        <!-- НИЖЕ — планшет -->
+        <img class="layer device" src="assets/step1.png" alt="tablet frame">
 
-        <!-- МОКАП С ПРОЗРАЧНЫМ ОКНОМ (поверх видео) -->
-        <img class="mock" src="assets/mockup.png" alt="Tablet mockup frame with transparent screen">
+        <!-- 6 экранных кадров -->
+        <img class="layer s1" src="assets/step2.png" alt="">
+        <img class="layer s2" src="assets/step3.png" alt="">
+        <img class="layer s3" src="assets/step4.png" alt="">
+        <img class="layer s4" src="assets/step5.png" alt="">
+        <img class="layer s5" src="assets/step6.png" alt="">
+        <img class="layer s6" src="assets/step7.png" alt="">
+
+        <!-- Живой финал: два источника (WebM сначала, затем MP4) -->
+        <video
+          class="layer veo" id="veo"
+          playsinline muted loop preload="auto"
+          poster="assets/step7.png"
+        >
+          <source src="https://doppelh11.github.io/sitewb/assets/veo3.webm" type="video/webm">
+          <source src="https://doppelh11.github.io/sitewb/assets/veo.mp4" type="video/mp4">
+        </video>
       </div>
 
       <div class="copy">
-        <h1>Карточка оживает</h1>
-        <p>Видео Veo3 со сквозной прозрачностью, рамка планшета сверху. Лишние PNG не используются.</p>
+        <h1>Анимация «сборки» + WebM/MP4</h1>
+        <p>В финале — крестфейд в ролик внутри экрана. Маска вырезает чёрный фон.</p>
+        <button class="btn" id="replay">Повторить анимацию</button>
+        <div class="hint">
+          <b>Опционально:</b> положи <code>assets/screen-mask.png</code> (2048×1828, экран белый).<br>
+          Если маски нет — автоматически включится режим <code>screen</code>.
+        </div>
       </div>
     </section>
   </div>
 
+  <!-- GSAP -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
   <script>
-    // Гарантируем старт и плавное появление видео
-    const v = document.getElementById('veo');
-    function reveal(){ v.style.opacity = '1'; v.style.visibility = 'visible'; }
-    if (v.readyState >= 2) { reveal(); } else {
-      v.addEventListener('loadeddata', reveal, { once:true });
-    }
-    // На всякий случай — попытка автозапуска (мобильные браузеры)
-    v.play && v.play().catch(()=>{ /* игнор */ });
-  </script>
-</body>
-</html>
+  (() => {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const replayBtn = document.getElementById('replay');
+    const layers = [...document.querySelectorAll('.layer')];
+    const video = document.getElementById('veo');
+
+    // Прелоад PNG-слоёв
+    const preload = (srcs) => Promise.all(srcs.map(s => new Promise(res => {
+      const im = new Image(); im.onload = im.onerror = () => res(); im.src = s;
+    })));
+
+    // Если маски нет (404), отключаем mask и включаем mix-blend: screen
+    function ensureMaskOrFallback(){
+      return new Prom
