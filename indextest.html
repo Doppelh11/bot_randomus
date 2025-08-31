@@ -48,49 +48,63 @@
       will-change:transform,opacity,filter; opacity:0;
     }
 
-    /* Финальное видео: без искажений (cover), по центру */
+    /* Финальное видео */
     .veo{
-      pointer-events:none; /* курсор не меняем, события идут на .stage */
+      pointer-events:none;
       width:100%; height:100%;
       object-fit:cover; object-position:50% 50%;
       opacity:0; will-change:opacity;
     }
 
-    /* ===== Контейнер визуала (CTR + Stage) слева в колонке ===== */
+    /* ===== Визуальная колонка слева: CTR над сценой ===== */
     .visual{
       display:flex; flex-direction:column; align-items:center;
-      /* чтобы ширина CTR соответствовала сцене */
       max-width:760px; width:100%; margin-inline:auto;
     }
 
-    /* ===== CTR блок (отдельно, над сценой) — только цифра и спарклайн ===== */
+    /* ===== CTR-бар (слот-машина) ===== */
     .ctr{
       width:100%;
       margin-bottom:14px;
       padding:10px 12px; border-radius:12px;
-      background:rgba(11,13,20,.12); /* лёгкий фон ради читаемости */
+      background:rgba(11,13,20,.12);
       outline:1px solid #ffffff22;
       backdrop-filter: blur(6px);
       filter: drop-shadow(0 6px 16px rgba(0,0,0,.35));
     }
-    .ctr-inner{ display:flex; flex-direction:column; gap:8px }
-    .ctr-number{
+    .ctr-row{
+      display:flex; align-items:baseline; gap:10px; justify-content:flex-start;
+    }
+    .ctr-label{
+      font:600 12px/1.1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      letter-spacing:.12em; text-transform:uppercase; opacity:.85;
+      padding:4px 6px; border-radius:6px; background:rgba(255,255,255,.06); border:1px solid #ffffff1f;
+    }
+    .slots{
+      display:flex; align-items:baseline; gap:2px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-weight:700; letter-spacing:-0.02em;
+      font-weight:800; letter-spacing:-0.015em;
       font-variant-numeric: tabular-nums;
-      line-height:1; white-space:nowrap;
       font-size: clamp(24px, 4.2vw, 44px);
-      transform-origin: left center;
+      line-height:1;
+      transform-origin:left center;
     }
-    .ctr-number .pct{ opacity:.85; font-size:.85em }
-
-    .ctr-spark{ width:100%; height:36px }
-    .ctr-spark path{
-      fill:none; stroke:#8dd0ff; stroke-width:2;
-      opacity:.95; filter: drop-shadow(0 1px 0 rgba(255,255,255,.15));
-      stroke-linejoin:round; stroke-linecap:round;
+    .col{
+      --slot-h: 1em; /* вычислим точно в JS; резерв тут чтобы не дёргало */
+      height:1em; width:0.75ch; overflow:hidden; position:relative; border-radius:4px;
+      background:rgba(255,255,255,.03);
+      outline:1px solid #ffffff12;
     }
-    .ctr-spark circle{ r:4; fill:#8dd0ff; opacity:.95; filter: drop-shadow(0 0 4px rgba(96,180,255,.7)) }
+    .reel{
+      position:absolute; left:0; top:0; will-change:transform;
+      display:flex; flex-direction:column;
+    }
+    .reel span{
+      display:block; height:1em; line-height:1;
+      text-align:center; padding:0 .02ch;
+    }
+    .dot{ opacity:.9; margin:0 2px }
+    .pct{ opacity:.85; font-size:.85em; margin-left:2px }
 
     .hint{ text-align:center; color:#a7aab8; margin-top:22px; font-size:13px; opacity:.75 }
   </style>
@@ -98,32 +112,33 @@
 <body>
   <div class="wrap">
     <section class="hero" id="hero">
-      <!-- ЛЕВАЯ колонка: CTR выше, ниже — сцена -->
+      <!-- Левая колонка: CTR (над сценой) + сцена -->
       <div class="visual">
-        <!-- CTR-бар над картинками/видео -->
+        <!-- CTR-бар -->
         <div class="ctr" id="ctr">
-          <div class="ctr-inner">
-            <div class="ctr-number" id="ctrValue"><span class="num">1.9</span><span class="pct">%</span></div>
-            <svg class="ctr-spark" viewBox="0 0 760 36" preserveAspectRatio="none" id="spark">
-              <path id="sparkPath" d="M0,0" />
-              <circle id="sparkDot" cx="0" cy="0" />
-            </svg>
+          <div class="ctr-row">
+            <span class="ctr-label">CTR</span>
+            <div class="slots" id="slots">
+              <div class="col">
+                <div class="reel" id="ones"></div>
+              </div>
+              <span class="dot">.</span>
+              <div class="col">
+                <div class="reel" id="tenths"></div>
+              </div>
+              <span class="pct">%</span>
+            </div>
           </div>
         </div>
 
-        <!-- СЦЕНА (как было) -->
+        <!-- Сцена (как у тебя) -->
         <div class="stage" id="stage" aria-hidden="true">
-          <!-- База: планшет -->
           <img class="layer device" src="assets/step1.png" alt="tablet frame">
-
-          <!-- 5 экранных слоёв (step2…step6) -->
           <img class="layer s1" src="assets/step2.png" alt="">
           <img class="layer s2" src="assets/step3.png" alt="">
           <img class="layer s3" src="assets/step4.png" alt="">
           <img class="layer s4" src="assets/step5.png" alt="">
           <img class="layer s5" src="assets/step6.png" alt="">
-
-          <!-- Финальное видео поверх всех слоёв -->
           <video class="layer veo" id="veo" muted playsinline preload="auto" poster="assets/step6.png">
             <source src="assets/veo.webm#t=0.001" type="video/webm">
             <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
@@ -131,10 +146,10 @@
         </div>
       </div>
 
-      <!-- ПРАВАЯ колонка — как было -->
+      <!-- Правая колонка — информация -->
       <div class="copy">
         <h1>Сборка карточки → финальное видео</h1>
-        <p>В конце PNG плавно скрываются, видео занимает их место. Навёл после окончания — снова проигрывается.</p>
+        <p>CTR растёт по шагам сборки. В финале — лайтовый «слот-стоп» и пульс.</p>
         <button class="btn" id="replay">Повторить</button>
         <div class="hint">Файлы: <code>assets/step1.png…step6.png</code>, <code>veo.webm</code> (+опц. <code>veo.mp4</code>).</div>
       </div>
@@ -146,20 +161,61 @@
   <script>
   (() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     const replayBtn = document.getElementById('replay');
     const heroEl  = document.getElementById('hero');
     const stageEl = document.getElementById('stage');
     const layers  = [...document.querySelectorAll('.layer')];
     const video   = document.getElementById('veo');
 
-    /* ======= CTR data ======= */
+    /* ===== CTR: слот-машина ===== */
+    const onesReel   = document.getElementById('ones');
+    const tenthsReel = document.getElementById('tenths');
+    const slotsBox   = document.getElementById('slots');
+    const DIGITS_LOOP = 8;       // запас для прокрутки
     const ctrPoints = [1.9, 2.3, 2.6, 3.3, 3.6, 4.5]; // start + 5 шагов
-    const spark   = document.getElementById('spark');
-    const pathEl  = document.getElementById('sparkPath');
-    const dotEl   = document.getElementById('sparkDot');
-    const ctrNum  = document.querySelector('#ctrValue .num');
+    const onesSeq   = ctrPoints.map(v => Math.floor(v));                // [1,2,2,3,3,4]
+    const tenthsSeq = ctrPoints.map(v => Math.round((v % 1)*10));       // [9,3,6,3,6,5]
+    let lineH = 0;
 
-    /* ---------- helpers: preload ---------- */
+    function buildReel(el){
+      const frag = document.createDocumentFragment();
+      for (let k=0;k<DIGITS_LOOP;k++){
+        for (let d=0; d<=9; d++){
+          const s = document.createElement('span');
+          s.textContent = d;
+          frag.appendChild(s);
+        }
+      }
+      el.innerHTML = '';
+      el.appendChild(frag);
+    }
+    function measureLineHeight(){
+      const any = onesReel.querySelector('span') || tenthsReel.querySelector('span');
+      lineH = any ? any.getBoundingClientRect().height : 0;
+      // фиксируем CSS-переменную высоты, если понадобится
+      document.querySelectorAll('.col').forEach(c => c.style.setProperty('--slot-h', lineH+'px'));
+    }
+    function setIndex(el, index, immediate=false){
+      const y = -index * lineH;
+      if (immediate){
+        gsap.set(el, { y });
+      } else {
+        gsap.to(el, { y, duration:0.5, ease:'power2.out' });
+      }
+    }
+    // плавная прокрутка к индексу с «слот-стопом»
+    function spinTo(el, fromIndex, toIndex, dur=0.5, ease='power3.out'){
+      const over = 0.18 * lineH; // небольшой овершут по пикселям
+      const y1 = -toIndex * lineH - over;
+      const y2 = -toIndex * lineH;
+      const tl = gsap.timeline();
+      tl.to(el, { y: y1, duration: dur*0.75, ease })
+        .to(el, { y: y2, duration: dur*0.25, ease:'power2.out' });
+      return tl;
+    }
+
+    /* ---------- ассеты ---------- */
     const preloadImages = (srcs) => Promise.all(srcs.map(s => new Promise(res => {
       const im = new Image(); im.onload = im.onerror = () => res(); im.src = s;
     })));
@@ -172,61 +228,7 @@
       try { v.load(); } catch(e) {}
     });
 
-    /* ---------- build sparkline path from ctrPoints ---------- */
-    function buildSparkPath(values, width){
-      const SPARK_W = width, SPARK_H = 36;
-      const min = Math.min(...values), max = Math.max(...values);
-      const xStep = SPARK_W / (values.length - 1);
-      const pts = values.map((v,i) => {
-        const x = i * xStep;
-        const y = SPARK_H - ((v - min)/(max - min)) * (SPARK_H * 0.86) - 3; // верхний паддинг
-        return [x, Math.max(2, Math.min(SPARK_H-2, y))];
-      });
-      let d = `M ${pts[0][0]},${pts[0][1]}`;
-      for (let i=1;i<pts.length;i++){
-        const [x,y] = pts[i];
-        const [px,py] = pts[i-1];
-        const cx = (px + x)/2;
-        d += ` Q ${cx},${py} ${x},${y}`;
-      }
-      pathEl.setAttribute('d', d);
-      // стартовая позиция точки
-      dotEl.setAttribute('cx', pts[0][0]);
-      dotEl.setAttribute('cy', pts[0][1]);
-      return { pts, d };
-    }
-
-    /* ---------- animate CTR number to target with small lock ---------- */
-    function animateNumber(from, to, tl, label){
-      const over = Math.min(to + 0.02, to + 0.03);
-      const obj = { v: from };
-      tl.to(obj, { v: over, duration:0.20, ease:'power2.out',
-        onUpdate: () => { ctrNum.textContent = obj.v.toFixed(1); }
-      }, label);
-      tl.to(obj, { v: to, duration:0.18, ease:'power2.out',
-        onUpdate: () => { ctrNum.textContent = obj.v.toFixed(1); }
-      }, ">");
-    }
-
-    /* ---------- animate spark to index ---------- */
-    function animateSparkToIndex(idx, tl, label){
-      const total = pathEl.getTotalLength();
-      const segLen = total * (idx/(ctrPoints.length-1)); // доля по индексу
-      tl.to(pathEl, { strokeDashoffset: total - segLen, duration:0.38, ease:'power3.out' }, label);
-
-      const proxy = { len: total - parseFloat(pathEl.style.strokeDashoffset||total) };
-      tl.to(proxy, {
-        len: segLen,
-        duration:0.38, ease:'power3.out',
-        onUpdate: () => {
-          const p = pathEl.getPointAtLength(proxy.len);
-          dotEl.setAttribute('cx', p.x);
-          dotEl.setAttribute('cy', p.y);
-        }
-      }, label);
-    }
-
-    /* ---------- timeline ---------- */
+    /* ---------- таймлайн сцены + привязка CTR ---------- */
     function buildTimeline(){
       const tl = gsap.timeline({ defaults:{ ease:'power3.out' } });
 
@@ -234,11 +236,6 @@
       gsap.set('.device', { opacity:0, yPercent:4, scale:0.985, rotateZ:-1, filter:'blur(6px)' });
       gsap.set(['.s1','.s2','.s3','.s4','.s5'], { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
       gsap.set('.veo', { opacity:0 });
-
-      // Подготовка спарклайна
-      const totalLen = pathEl.getTotalLength();
-      pathEl.style.strokeDasharray = totalLen;
-      pathEl.style.strokeDashoffset = totalLen;
 
       // 0) планшет
       tl.to('.device', { opacity:1, yPercent:0, scale:1, rotateZ:0, filter:'blur(0px)', duration:0.55, ease:'back.out(1.6)' });
@@ -249,10 +246,15 @@
           .to(sel, { scale:1.01, duration:0.10 })
           .to(sel, { scale:1.00, duration:0.12 }, '-=0.05');
 
-        const label = `ctrStep_${i+1}`;
+        // слот-спин к следующей цифре (целая → десятая с небольшой задержкой)
+        const stepIdx = i+1;
+        const onesTargetIndex   = stepIdx*10 + onesSeq[stepIdx];   // +10 за каждый шаг
+        const tenthsTargetIndex = stepIdx*10 + tenthsSeq[stepIdx];
+
+        const label = `ctr_${stepIdx}`;
         tl.add(label, ">-0.02");
-        animateNumber(ctrPoints[i], ctrPoints[i+1], tl, label);
-        animateSparkToIndex(i+1, tl, label);
+        tl.add(spinTo(onesReel, null,   onesTargetIndex, 0.5, 'power3.out'), label);
+        tl.add(spinTo(tenthsReel, null, tenthsTargetIndex, 0.5, 'power3.out'), `${label}+=0.06`);
       });
 
       // Подсвет сцены
@@ -270,58 +272,53 @@
       tl.to('.veo', { opacity:1, duration:0.5 }, 'switchToVideo');
       tl.to(['.device','.s1','.s2','.s3','.s4','.s5'], { opacity:0, duration:0.5 }, 'switchToVideo');
 
-      // Финальный «лок-ин» 4.5% (микропульс)
-      tl.add('ctrLock', 'switchToVideo+=0.02');
-      const lockObj = { v: ctrPoints.at(-1) };
-      tl.to(lockObj, { v: 4.52, duration:0.12, ease:'power2.out',
-        onUpdate: () => { ctrNum.textContent = lockObj.v.toFixed(1); }
-      }, 'ctrLock')
-        .to(lockObj, { v: 4.50, duration:0.14, ease:'power2.out',
-        onUpdate: () => { ctrNum.textContent = lockObj.v.toFixed(1); }
-      }, '>')
-        .fromTo('#ctr', { scale:1 }, { scale:1.06, duration:0.10, ease:'power3.out' }, 'ctrLock')
-        .to('#ctr', { scale:1.00, duration:0.18, ease:'power3.out' }, '>');
+      // Финальный «слот-стоп» к 4.5 с небольшой задержкой + пульс
+      tl.add('ctrFinal', 'switchToVideo+=0.18');
+      const finalOnesIdx   = 5*10 + onesSeq[5];   // шаг 5
+      const finalTenthsIdx = 5*10 + tenthsSeq[5];
+      tl.add(spinTo(onesReel, null, finalOnesIdx,   0.55, 'power3.out'),   'ctrFinal');
+      tl.add(spinTo(tenthsReel, null, finalTenthsIdx, 0.55, 'power3.out'), 'ctrFinal+=0.08');
+      tl.fromTo('#slots', { scale:1 }, { scale:1.06, duration:0.10, ease:'power3.out' }, 'ctrFinal+=0.30')
+        .to('#slots', { scale:1.00, duration:0.18, ease:'power3.out' }, '>');
       return tl;
     }
 
     /* ---------- init ---------- */
     async function init(){
-      // построить спарклайн под текущую ширину (равен ширине .visual/.stage)
-      const w = Math.round(document.querySelector('.visual').getBoundingClientRect().width);
-      spark.setAttribute('viewBox', `0 0 ${w} 36`);
-      buildSparkPath(ctrPoints, w);
+      // собрать барабаны
+      buildReel(onesReel);
+      buildReel(tenthsReel);
+      // измерить высоту строки (после вставки)
+      requestAnimationFrame(() => {
+        measureLineHeight();
+        // старт 1.9 — установить индексы мгновенно
+        const startOnesIdx   = 0*10 + onesSeq[0];   // 1
+        const startTenthsIdx = 0*10 + tenthsSeq[0]; // 9
+        setIndex(onesReel,   startOnesIdx,   true);
+        setIndex(tenthsReel, startTenthsIdx, true);
+      });
 
       if (prefersReduced){
-        // Без анимации: показать финальные значения сразу
-        const total = document.getElementById('sparkPath').getTotalLength();
-        document.getElementById('sparkPath').style.strokeDasharray = total;
-        document.getElementById('sparkPath').style.strokeDashoffset = 0;
-        const p = document.getElementById('sparkPath').getPointAtLength(total);
-        document.getElementById('sparkDot').setAttribute('cx', p.x);
-        document.getElementById('sparkDot').setAttribute('cy', p.y);
-        document.querySelector('#ctrValue .num').textContent = ctrPoints.at(-1).toFixed(1);
         gsap.set(layers, { opacity:0, clearProps:'transform,filter' });
         gsap.set('.veo', { opacity:1 });
         return;
       }
 
-      await preloadImages(layers.filter(l => l.tagName === 'IMG').map(l => l.currentSrc || l.src));
+      await preloadImages(['assets/step1.png','assets/step2.png','assets/step3.png','assets/step4.png','assets/step5.png','assets/step6.png']);
       await preloadVideo(video);
-
-      // стартовое значение CTR
-      document.querySelector('#ctrValue .num').textContent = ctrPoints[0].toFixed(1);
 
       const tl = buildTimeline();
 
+      // Повтор
       const restart = () => {
         try { video.pause(); video.currentTime = 0; } catch(e){}
-        // сброс CTR
-        document.querySelector('#ctrValue .num').textContent = ctrPoints[0].toFixed(1);
-        const totalLen = pathEl.getTotalLength();
-        pathEl.style.strokeDasharray = totalLen;
-        pathEl.style.strokeDashoffset = totalLen;
-        const p = pathEl.getPointAtLength(0);
-        dotEl.setAttribute('cx', p.x); dotEl.setAttribute('cy', p.y);
+
+        // сброс на 1.9
+        const startOnesIdx   = 0*10 + onesSeq[0];
+        const startTenthsIdx = 0*10 + tenthsSeq[0];
+        gsap.set(onesReel,   { y: -startOnesIdx   * lineH });
+        gsap.set(tenthsReel, { y: -startTenthsIdx * lineH });
+
         tl.restart();
       };
       replayBtn.addEventListener('click', restart);
@@ -342,19 +339,21 @@
       }, { threshold:0.4 });
       io.observe(heroEl);
 
-      // Респонсив: перестроить спарклайн при ресайзе
+      // Пересчёт высоты при ресайзе (чтобы слот не смещался)
       let rid;
       window.addEventListener('resize', () => {
         cancelAnimationFrame(rid);
         rid = requestAnimationFrame(() => {
-          const w2 = Math.round(document.querySelector('.visual').getBoundingClientRect().width);
-          spark.setAttribute('viewBox', `0 0 ${w2} 36`);
-          buildSparkPath(ctrPoints, w2);
-          const totalLen = pathEl.getTotalLength();
-          pathEl.style.strokeDasharray = totalLen;
-          pathEl.style.strokeDashoffset = totalLen;
-          const p = pathEl.getPointAtLength(0);
-          dotEl.setAttribute('cx', p.x); dotEl.setAttribute('cy', p.y);
+          const prevH = lineH;
+          measureLineHeight();
+          if (!prevH || prevH === lineH) return;
+          // пересчитать текущие индексы из текущего Y
+          const curY1 = gsap.getProperty(onesReel, 'y');
+          const curY2 = gsap.getProperty(tenthsReel, 'y');
+          const idx1 = Math.round(-curY1 / prevH);
+          const idx2 = Math.round(-curY2 / prevH);
+          gsap.set(onesReel,   { y: -idx1 * lineH });
+          gsap.set(tenthsReel, { y: -idx2 * lineH });
         });
       });
     }
