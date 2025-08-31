@@ -6,7 +6,22 @@
   <title>Сборка карточки → финальное видео (без 7-го слайда)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
-    :root{ --fg:#fff; --muted:#b5b6bf; --maxw:1200px; }
+    :root{
+      --fg:#fff; --muted:#b5b6bf; --maxw:1200px;
+
+      /* ====== регулируемые переменные ====== */
+      --ctr-label-size: clamp(20px, 3.2vw, 32px);
+      --ctr-digit-size: clamp(28px, 4.8vw, 58px);
+
+      /* ширина окон слота ПО ГОРИЗОНТАЛИ (ch) */
+      --w-ones: 1.05ch;     /* для «4» */
+      --w-tenth: 0.95ch;    /* для «5» */
+
+      /* вертикальные подстройки (em, положительное — НИЖЕ) */
+      --digits-offset: 0.20em; /* опустить цифры к точке */
+      --dot-top: 0.20em;       /* позиция точки */
+    }
+
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
@@ -35,7 +50,7 @@
     /* ===== Сцена ===== */
     .stage{
       position:relative; width:100%; max-width:760px;
-      aspect-ratio: 2048 / 1828;
+      aspect-ratio: 2048 / 1828; /* точное соотношение PNG */
       margin-inline:auto; isolation:isolate;
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
       perspective:1200px; contain:layout paint;
@@ -58,34 +73,35 @@
       max-width:760px; width:100%; margin-inline:auto;
     }
 
-    /* ===== CTR — только текст, одна линия ===== */
+    /* ===== CTR — базовые стили (как в первоначальном варианте) ===== */
     .ctr{ width:100%; margin-bottom:12px; display:flex; justify-content:center; }
     .ctr-row{ display:flex; align-items:flex-end; gap:12px; }
     .ctr-label{
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-weight:800; letter-spacing:.14em; text-transform:uppercase;
-      font-size: clamp(20px, 3.2vw, 32px);
+      font-size: var(--ctr-label-size);
       line-height:1;
     }
 
     .slots{
       display:inline-flex; align-items:flex-end;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-weight:800; font-variant-numeric: tabular-nums;
-      font-size: clamp(28px, 4.8vw, 58px);
+      font-weight:800;
+      font-variant-numeric: tabular-nums;
+      font-size: var(--ctr-digit-size);
       line-height:1; color:var(--fg);
     }
     .digits{
       display:inline-flex; align-items:flex-end; gap:0.12ch;
-      /* чуть опускаем весь блок цифр, чтобы совпасть с точкой */
-      transform: translateY(0.08em);
+      transform: translateY(var(--digits-offset)); /* ОПУСТИТЬ ЦИФРЫ НИЖЕ */
     }
 
-    /* Колонки слота — без подложек/рамок, ширины под глифы */
+    /* Слот-колонки: ТОЛЬКО ГОРИЗОНТАЛЬНО расширены */
     .col{ height:auto; overflow:hidden; position:relative; vertical-align:baseline; }
-    .col-ones{  width:0.95ch; }   /* шире для «4» */
-    .col-tenth{ width:0.88ch; }   /* шире, чтобы «5» не резалась */
+    .col-ones{  width:var(--w-ones); }    /* шире окно для «4» */
+    .col-tenth{ width:var(--w-tenth); }   /* шире окно для «5» */
 
+    /* Рельсы */
     .reel{
       position:absolute; left:0; top:0; will-change:transform;
       display:flex; flex-direction:column; background:transparent!important;
@@ -97,21 +113,41 @@
 
     .dot{
       display:inline-block; font-size:.62em; line-height:1;
-      position:relative; top:.20em; margin:0 0.08ch; opacity:.9;
+      position:relative; top:var(--dot-top); /* позиция точки */
+      margin:0 0.08ch; opacity:.9;
     }
-    .pct{ opacity:.95; font-size:.85em; margin-left:0.22ch; }
+    .pct{ opacity:.95; font-size:.85em; margin-left:0.18ch; }
 
-    /* Финальный тёплый градиент + shine на 4.5% */
+    /* финальный тёплый shine на 4.5% */
     .digits.celebrate .reel span{
-      background: linear-gradient(90deg, #FF7A00 0%, #FFC247 28%, #FFF2D6 52%, #FFB088 78%, #FF7A00 100%);
-      background-size: 200% 100%;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: warmShine 1.05s ease-out 1;
+      background: linear-gradient(90deg,#FF7A00 0%,#FFC247 28%,#FFF2D6 52%,#FFB088 78%,#FF7A00 100%);
+      background-size:200% 100%;
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      animation:warmShine 1.05s ease-out 1;
     }
     @keyframes warmShine{
-      0%   { background-position:   0% 50%; }
-      100% { background-position: 120% 50%; }
+      0%{background-position:0% 50%}100%{background-position:120% 50%}
+    }
+
+    /* ===== Мини-тюннер (можно скрыть) ===== */
+    .tuner-toggle{
+      position:absolute; left:8px; top:8px; z-index:20;
+      background:#ffffff14; border:1px solid #ffffff25; color:#fff;
+      font:600 12px/1 system-ui; padding:8px 10px; border-radius:12px; cursor:pointer;
+    }
+    .tuner{
+      position:absolute; left:8px; top:50px; z-index:20; width:280px;
+      background:#0f1118cc; backdrop-filter:blur(10px);
+      border:1px solid #ffffff26; border-radius:14px; padding:10px; display:none;
+    }
+    .tuner h4{margin:0 0 6px; font:700 12px/1.2 system-ui; letter-spacing:.08em; text-transform:uppercase; opacity:.9}
+    .row{display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; margin:8px 0}
+    .row label{font:600 12px/1 system-ui; opacity:.9}
+    .row input[type="range"]{width:100%}
+    .tuner .btns{display:flex; gap:8px; margin-top:6px}
+    .tuner .btns button{
+      background:#ffffff14; border:1px solid #ffffff25; color:#fff;
+      font:600 12px/1 system-ui; padding:8px 10px; border-radius:10px; cursor:pointer;
     }
   </style>
 </head>
@@ -119,7 +155,35 @@
   <div class="wrap">
     <section class="hero" id="hero">
       <!-- Левая колонка: CTR сверху, сцена снизу -->
-      <div class="visual">
+      <div class="visual" style="position:relative">
+        <!-- Тогглер и тюннер (можно скрыть, кнопка в левом верхнем углу) -->
+        <button class="tuner-toggle" id="toggleTuner">⚙︎ Настроить CTR</button>
+        <div class="tuner" id="tuner" aria-hidden="true">
+          <h4>Настройка CTR</h4>
+          <div class="row">
+            <label>Ширина «4» (ch)</label>
+            <input type="range" id="rWOnes" min="0.80" max="1.40" step="0.01" value="1.05" data-unit="ch">
+          </div>
+          <div class="row">
+            <label>Ширина «5» (ch)</label>
+            <input type="range" id="rWTenth" min="0.80" max="1.40" step="0.01" value="0.95" data-unit="ch">
+          </div>
+          <div class="row">
+            <label>Опустить цифры (em)</label>
+            <input type="range" id="rOffset" min="-0.05" max="0.50" step="0.01" value="0.20" data-unit="em">
+          </div>
+          <div class="row">
+            <label>Положение точки (em)</label>
+            <input type="range" id="rDot" min="0.00" max="0.40" step="0.01" value="0.20" data-unit="em">
+          </div>
+          <div class="btns">
+            <button id="copyCss">Скопировать CSS</button>
+            <button id="resetCss">Сброс</button>
+            <button id="closeTuner" style="margin-left:auto">Закрыть</button>
+          </div>
+        </div>
+
+        <!-- CTR -->
         <div class="ctr">
           <div class="ctr-row">
             <div class="ctr-label">CTR</div>
@@ -137,12 +201,13 @@
         <!-- Сцена -->
         <div class="stage" id="stage" aria-hidden="true">
           <img class="layer device" src="assets/step1.png" alt="tablet frame">
-          <!-- порядок: step2 → step3 → step4 → step5 → step6 -->
+          <!-- порядок показа: step2 → step3 → step4 → step5 → step6 -->
           <img class="layer s1" src="assets/step2.png" alt="">
           <img class="layer s2" src="assets/step3.png" alt="">
           <img class="layer s3" src="assets/step4.png" alt="">
           <img class="layer s4" src="assets/step5.png" alt="">
           <img class="layer s5" src="assets/step6.png" alt="">
+          <!-- Финальное видео -->
           <video class="layer veo" id="veo" muted playsinline preload="auto" poster="assets/step6.png">
             <source src="assets/veo.webm#t=0.001" type="video/webm">
             <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
@@ -165,12 +230,13 @@
   <script>
   (() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     const replayBtn = document.getElementById('replay');
     const heroEl  = document.getElementById('hero');
     const stageEl = document.getElementById('stage');
     const video   = document.getElementById('veo');
 
-    /* ===== CTR: слот-машина (чисто текст) ===== */
+    /* ===== CTR: слот-машина ===== */
     const onesReel   = document.getElementById('ones');
     const tenthsReel = document.getElementById('tenths');
     const digitsBox  = document.getElementById('digits');
@@ -179,9 +245,9 @@
     const ctrPoints   = [1.9, 2.3, 2.6, 3.3, 3.6, 4.5];
     const onesSeq     = ctrPoints.map(v => Math.floor(v));
     const tenthsSeq   = ctrPoints.map(v => Math.round((v%1)*10));
-    let lineH = 0;  // реальная высота строки
+    let lineH = 0;
 
-    const snap = v => Math.round(v); // пиксельная привязка — убирает «чёрную полоску»
+    const snap = v => Math.round(v); // пиксельная привязка
 
     function buildReel(el){
       const frag = document.createDocumentFragment();
@@ -192,15 +258,17 @@
       }
       el.innerHTML=''; el.appendChild(frag);
     }
+
     function measureAndFit(){
       const probe = onesReel.querySelector('span') || tenthsReel.querySelector('span');
       lineH = probe ? probe.getBoundingClientRect().height : 0;
-      // окно заметно выше, чтобы точно не резать глифы
-      const slotH = Math.round(lineH * 1.35);
+      // окно по высоте — с запасом, чтобы не резать (вертикаль не трогаем больше)
+      const slotH = Math.round(lineH * 1.25);
       document.querySelectorAll('.col').forEach(c => { c.style.height = slotH + 'px'; });
       const topPad = Math.round((slotH - lineH)/2);
       document.querySelectorAll('.reel').forEach(r => { r.style.top = topPad + 'px'; });
     }
+
     function setIndex(el, index, immediate=false){
       const y = snap(-index * lineH);
       if (immediate) gsap.set(el, { y }); else gsap.to(el, { y, duration:0.5, ease:'power2.out' });
@@ -232,7 +300,6 @@
     function buildTimeline(){
       const tl = gsap.timeline({ defaults:{ ease:'power3.out' } });
 
-      // Стартовые
       gsap.set('.device', { opacity:0, yPercent:4, scale:0.985, rotateZ:-1, filter:'blur(6px)' });
       gsap.set(['.s1','.s2','.s3','.s4','.s5'], { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
       gsap.set('.veo', { opacity:0 });
@@ -240,16 +307,15 @@
       // 0) планшет
       tl.to('.device', { opacity:1, yPercent:0, scale:1, rotateZ:0, filter:'blur(0px)', duration:0.55, ease:'back.out(1.6)' });
 
-      // Порядок кадров: s1(step2) → s2(step3) → s3(step4) → s4 → s5
+      // Порядок: s1(step2) → s2(step3) → s3(step4) → s4 → s5
       const sels=['.s1','.s2','.s3','.s4','.s5'];
       sels.forEach((sel, i)=>{
         tl.to(sel,{ opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)' }, i===0?'-=0.15':'-=0.10')
           .to(sel,{ scale:1.01,duration:0.10 })
           .to(sel,{ scale:1.00,duration:0.12 },'-=0.05');
 
-        // CTR шаги до 3.6% (первые 4 шага — до видео)
         if (i < ctrPoints.length - 2) {
-          const stepIdx=i+1;
+          const stepIdx=i+1; // 1..4 → до 3.6
           const onesIdx   = stepIdx*10 + onesSeq[stepIdx];
           const tenthsIdx = stepIdx*10 + tenthsSeq[stepIdx];
           const label=`ctr_${stepIdx}`;
@@ -259,7 +325,7 @@
         }
       });
 
-      // Подсвет сцены
+      // Подсвет
       tl.fromTo('#stage',
         { filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))' },
         { filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))', duration:0.45 }, '-=0.2'
@@ -304,18 +370,81 @@
       video.addEventListener('timeupdate', onTime);
     }
 
+    /* ---------- Тюнинг-панель: применение/сохранение переменных ---------- */
+    const $ = sel => document.querySelector(sel);
+    const inputs = {
+      rWOnes:  $('#rWOnes'),
+      rWTenth: $('#rWTenth'),
+      rOffset: $('#rOffset'),
+      rDot:    $('#rDot'),
+    };
+    function applyVars(fromLocal=false){
+      const root = document.documentElement;
+      if (!fromLocal){
+        root.style.setProperty('--w-ones',  inputs.rWOnes.value  + inputs.rWOnes.dataset.unit);
+        root.style.setProperty('--w-tenth', inputs.rWTenth.value + inputs.rWTenth.dataset.unit);
+        root.style.setProperty('--digits-offset', inputs.rOffset.value + inputs.rOffset.dataset.unit);
+        root.style.setProperty('--dot-top', inputs.rDot.value + inputs.rDot.dataset.unit);
+        // сохранить
+        localStorage.setItem('ctrTweaks', JSON.stringify({
+          wOnes: inputs.rWOnes.value,
+          wTenth: inputs.rWTenth.value,
+          offset: inputs.rOffset.value,
+          dot: inputs.rDot.value
+        }));
+      } else {
+        const raw = localStorage.getItem('ctrTweaks');
+        if (!raw) return;
+        try{
+          const o = JSON.parse(raw);
+          if (o.wOnes)  inputs.rWOnes.value  = o.wOnes;
+          if (o.wTenth) inputs.rWTenth.value = o.wTenth;
+          if (o.offset) inputs.rOffset.value = o.offset;
+          if (o.dot)    inputs.rDot.value    = o.dot;
+          applyVars(false);
+        }catch(e){}
+      }
+    }
+    Object.values(inputs).forEach(inp => inp?.addEventListener('input', () => applyVars(false)));
+
+    $('#copyCss')?.addEventListener('click', async () => {
+      const css = `:root{
+  --w-ones:${getComputedStyle(document.documentElement).getPropertyValue('--w-ones').trim()};
+  --w-tenth:${getComputedStyle(document.documentElement).getPropertyValue('--w-tenth').trim()};
+  --digits-offset:${getComputedStyle(document.documentElement).getPropertyValue('--digits-offset').trim()};
+  --dot-top:${getComputedStyle(document.documentElement).getPropertyValue('--dot-top').trim()};
+}`;
+      try{ await navigator.clipboard.writeText(css); }catch(e){}
+    });
+    $('#resetCss')?.addEventListener('click', () => {
+      localStorage.removeItem('ctrTweaks');
+      inputs.rWOnes.value='1.05'; inputs.rWTenth.value='0.95';
+      inputs.rOffset.value='0.20'; inputs.rDot.value='0.20';
+      applyVars(false);
+    });
+    $('#toggleTuner')?.addEventListener('click', () => { const b=$('#tuner'); b.style.display = b.style.display==='block'?'none':'block'; });
+    $('#closeTuner')?.addEventListener('click', () => { $('#tuner').style.display='none'; });
+
     /* ---------- init ---------- */
     async function init(){
-      buildReel(onesReel); buildReel(tenthsReel);
+      // применить сохранённые настройки тюнера
+      applyVars(true);
+
+      // собрать барабаны и рассчитать высоту
+      const buildReelEl = el => buildReel(el);
+      buildReelEl(onesReel); buildReelEl(tenthsReel);
+
       requestAnimationFrame(()=>{
         measureAndFit();
-        const startOnesIdx   = 0*10 + Math.floor(ctrPoints[0]);        // 1
-        const startTenthsIdx = 0*10 + Math.round((ctrPoints[0]%1)*10); // 9
+        // старт 1.9
+        const startOnesIdx   = 0*10 + Math.floor(ctrPoints[0]);
+        const startTenthsIdx = 0*10 + Math.round((ctrPoints[0]%1)*10);
         setIndex(onesReel,   startOnesIdx,   true);
         setIndex(tenthsReel, startTenthsIdx, true);
       });
 
       if (prefersReduced){
+        // Без анимаций — сразу финал
         gsap.set(document.querySelectorAll('.layer'), { opacity:0, clearProps:'transform,filter' });
         gsap.set('.veo', { opacity:1 });
         requestAnimationFrame(()=>{
@@ -332,9 +461,11 @@
 
       const tl = buildTimeline();
 
+      // финал в середине видео
       if (video.readyState >= 1) scheduleFinalDuringVideo();
       else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
 
+      // Повтор
       const restart = () => {
         try { video.pause(); video.currentTime = 0; } catch(e){}
         const startOnesIdx   = 0*10 + Math.floor(ctrPoints[0]);
@@ -366,7 +497,7 @@
       }, { threshold:0.4 });
       io.observe(heroEl);
 
-      // Респонсив: пересчёт окна без обрезаний при ресайзе
+      // Респонсив: пересчёт окна при ресайзе
       let rid;
       window.addEventListener('resize', () => {
         cancelAnimationFrame(rid);
