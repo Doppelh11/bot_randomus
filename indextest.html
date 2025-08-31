@@ -3,13 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Хромакей в браузере — фикс переворота и цвета</title>
+  <title>Hero-анимация — сборка карточки (7 слоёв + видео)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{
-      --fg:#fff; --muted:#b5b6bf;
-      /* Цвет заливки для режима P (если не нужна прозрачность) */
-      --key-bg:#0c0d10;
+      --bg:#0c0d10; --fg:#fff; --muted:#b5b6bf; --maxw:1200px;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -17,222 +15,187 @@
       margin:0; color:var(--fg);
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
       background:radial-gradient(1200px 900px at 20% 20%, #171924 0, #0f1118 50%, #0c0d10 100%);
-      display:grid; place-items:center; padding:24px;
     }
-    .wrap{width:min(100%, 760px)}
+    .wrap{max-width:var(--maxw); margin:auto; padding:clamp(20px,4vw,64px)}
+    .hero{
+      display:grid; grid-template-columns:1.1fr 0.9fr; align-items:center;
+      gap:clamp(20px,5vw,80px); min-height:90svh;
+    }
+    @media (max-width:960px){
+      .hero{grid-template-columns:1fr; min-height:auto}
+      .copy{text-align:center; order:-1}
+    }
+    .copy h1{margin:0 0 .4em; line-height:1.05; font-weight:800; font-size:clamp(28px,6vw,62px); letter-spacing:-.02em}
+    .copy p{margin:0 0 1.25rem; color:var(--muted); font-size:clamp(16px,2.3vw,20px)}
+    .btn{
+      appearance:none; border:none; background:#ffffff10; color:#fff;
+      padding:12px 18px; border-radius:16px; font-weight:600; cursor:pointer;
+      backdrop-filter:blur(6px); transition:transform .15s ease, background .2s ease;
+    }
+    .btn:hover{transform:translateY(-1px); background:#ffffff18}
+    .btn:active{transform:translateY(0)}
+
+    /* ===== Stage ===== */
     .stage{
-      position:relative; width:100%; aspect-ratio: 2048 / 1828;
+      position:relative; width:100%; max-width:760px;
+      /* точное соотношение ваших файлов (2048x1828) */
+      aspect-ratio: 2048 / 1828;
+      margin-inline:auto; isolation:isolate;
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
-      border-radius:18px; overflow:hidden;
+      perspective:1200px; contain:layout paint;
     }
-    canvas#glcanvas, video#src{
+    .layer{
       position:absolute; inset:0; width:100%; height:100%;
-      object-fit:contain; display:block;
+      object-fit:contain; transform-style:preserve-3d; backface-visibility:hidden;
+      will-change:transform,opacity,filter; opacity:0;
+      /* порядок по DOM = порядок наложения */
     }
-    video#src{ display:none } /* рисуем через WebGL */
-    .overlay{
-      position:absolute; inset:0; display:grid; place-items:center;
-      background:linear-gradient(180deg, #0008, #0004);
-      opacity:0; pointer-events:none; transition:opacity .2s ease;
+    /* NEW: видео-слой — поверх всех, без 3D-трансформаций */
+    .veo{
+      pointer-events:none;                 /* чтобы не перехватывать клики */
+      transform:none !important;           /* финальная геометрия без искажений */
+      will-change:opacity;                 /* только плавность появления */
     }
-    .overlay.show{ opacity:1; pointer-events:auto }
-    .overlay button{
-      appearance:none; border:none; background:#ffffff18; color:#fff;
-      padding:14px 18px; border-radius:14px; font-weight:700; cursor:pointer;
-      backdrop-filter:blur(8px);
-    }
-    .hint{ margin-top:14px; color:var(--muted); font-size:14px; text-align:center }
+
+    .hint{ text-align:center; color:#a7aab8; margin-top:22px; font-size:13px; opacity:.75 }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="stage" id="stage">
-      <canvas id="glcanvas"></canvas>
+    <section class="hero" id="hero">
+      <div class="stage" id="stage" aria-hidden="true">
+        <!-- 1) планшет -->
+        <img class="layer device" src="assets/step1.png" alt="tablet frame">
 
-      <!-- ТВОЁ ВИДЕО на хромакее -->
-      <video id="src" playsinline muted loop autoplay preload="auto" crossorigin="anonymous">
-        <source src="https://doppelh11.github.io/sitewb/assets/veo.mp4" type="video/mp4">
-      </video>
+        <!-- 2) 6 экранных слоёв -->
+        <img class="layer s1" src="assets/step2.png" alt="">
+        <img class="layer s2" src="assets/step3.png" alt="">
+        <img class="layer s3" src="assets/step4.png" alt="">
+        <img class="layer s4" src="assets/step5.png" alt="">
+        <img class="layer s5" src="assets/step6.png" alt="">
+        <img class="layer s6" src="assets/step7.png" alt="">
 
-      <div id="overlay" class="overlay"><button id="playBtn">▶︎ Воспроизвести</button></div>
-    </div>
+        <!-- 3) NEW: финишное видео поверх всего.
+               Важно: тот же «кадр 7» как poster для бесшовного совпадения. -->
+        <video
+          class="layer veo"
+          id="veo"
+          muted playsinline preload="auto"                <!-- для автоплея без звука -->
+          poster="assets/step7.png"                       <!-- точное совпадение старта -->
+        >
+          <source src="assets/veo.webm#t=0.001" type="video/webm">
+          <source src="assets/veo.mp4#t=0.001"  type="video/mp4"> <!-- фолбэк для Safari -->
+        </video>
+      </div>
 
-    <div class="hint">
-      Клавиши: [ ] — порог • ; ' — мягкость • , . — despill • P — прозрачность/заливка • 1/2 — зелёный/синий • R — сброс
-    </div>
+      <div class="copy">
+        <h1>Анимация «сборки» — 7 слайдов + видео</h1>
+        <p>Планшет + 6 шагов экрана. В финале поверх — видео <code>veo.webm</code>, пиксель-в-пиксель.</p>
+        <button class="btn" id="replay">Повторить анимацию</button>
+        <div class="hint">Файлы: <code>assets/step1.png…step7.png</code> и <code>assets/veo.webm</code> (+ opc. <code>veo.mp4</code>).</div>
+      </div>
+    </section>
   </div>
 
+  <!-- GSAP -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
   <script>
-  (function(){
-    const video   = document.getElementById('src');
-    const canvas  = document.getElementById('glcanvas');
-    const overlay = document.getElementById('overlay');
-    const playBtn = document.getElementById('playBtn');
+  (() => {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const replayBtn = document.getElementById('replay');
+    const stageEl   = document.getElementById('stage');
+    const layers    = [...document.querySelectorAll('.layer')];
+    const video     = document.getElementById('veo'); // NEW
 
-    // Параметры: бережно к цвету, минимальный despill
-    const cssBg = getComputedStyle(document.documentElement).getPropertyValue('--key-bg').trim() || '#0c0d10';
-    function hexToRGB(h){ const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h); return m?[parseInt(m[1],16)/255,parseInt(m[2],16)/255,parseInt(m[3],16)/255]:[0,0,0]; }
-    const bgRGB = hexToRGB(cssBg);
+    const preloadImages = (srcs) => Promise.all(srcs.map(s => new Promise(res => {
+      const im = new Image(); im.onload = im.onerror = () => res(); im.src = s;
+    })));
 
-    const params = {
-      keyRGB: [0.05, 0.95, 0.05], // зелёный ключ
-      thresh: 0.22,
-      soft:   0.10,
-      despill:0.30,               // помягче, чтобы не «высасывал» цвета
-      fillMode: 0                 // 0 — прозрачность, 1 — заливка цветом (--key-bg)
-    };
+    // NEW: корректная предзагрузка видео, чтобы play() не фейлился
+    const preloadVideo = (v) => new Promise(res => {
+      if (!v) return res();
+      const ready = () => {
+        v.removeEventListener('canplaythrough', ready);
+        v.removeEventListener('loadeddata', ready);
+        res();
+      };
+      if (v.readyState >= 3) return res(); // HAVE_FUTURE_DATA
+      v.addEventListener('canplaythrough', ready, { once:true });
+      v.addEventListener('loadeddata', ready, { once:true });
+      try { v.load(); } catch(e) {}
+    });
 
-    async function ensurePlay(){
-      try{ await video.play(); } catch(e){ overlay.classList.add('show'); }
-    }
-    playBtn.addEventListener('click', async ()=>{ overlay.classList.remove('show'); try{ await video.play(); }catch(e){} });
+    function buildTimeline(){
+      const tl = gsap.timeline({ defaults:{ ease:'power3.out' } });
 
-    function initGL(){
-      const gl = canvas.getContext('webgl', {alpha:true, premultipliedAlpha:true, antialias:false});
-      if(!gl) return null;
+      // стартовые состояния (чтобы финальная позиция была ровной)
+      gsap.set('.device', { opacity:0, yPercent:4, scale:0.985, rotateZ:-1, filter:'blur(6px)' });
+      gsap.set(['.s1','.s2','.s3','.s4','.s5','.s6'], { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
+      gsap.set('.veo', { opacity:0 }); // NEW: видео скрыто до появления
 
-      // === ВАЖНО: фиксы качества/переворота ===
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);                // исправляет «вверх ногами»
-      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE); // без скрытой конверсии цветов
+      // 0) планшет «приземляется»
+      tl.to('.device', { opacity:1, yPercent:0, scale:1, rotateZ:0, filter:'blur(0px)', duration:0.55, ease:'back.out(1.6)' });
 
-      const vert = `
-        attribute vec2 a_pos; varying vec2 v_uv; uniform vec2 u_scale;
-        void main(){ vec2 p = a_pos * u_scale; v_uv = (a_pos + 1.0) * 0.5; gl_Position = vec4(p,0.0,1.0); }
-      `;
-      const frag = `
-        precision mediump float;
-        varying vec2 v_uv;
-        uniform sampler2D u_tex;
-        uniform vec3  u_keyRGB;
-        uniform float u_thresh, u_soft, u_despill;
-        uniform int   u_useBg;     // 0 — прозрачность, 1 — заливка цветом
-        uniform vec3  u_bgRGB;
-
-        // дистанцию считаем в «псевдолинейном» RGB (устойчивей к яркости)
-        vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
-        float colorDist(vec3 a, vec3 b){
-          vec3 da = toLin(a), db = toLin(b);
-          return length(da - db);
-        }
-
-        void main(){
-          vec4 tex = texture2D(u_tex, v_uv);
-          float nd = colorDist(tex.rgb, u_keyRGB) / 1.7320508; // 0..1
-          float a = smoothstep(u_thresh, u_thresh + u_soft, nd);
-
-          // мягкий despill — только по «зелёному», и только у края
-          float spill = 1.0 - smoothstep(u_thresh, u_thresh + u_soft, nd);
-          vec3 col = tex.rgb;
-          float maxRB = max(col.r, col.b);
-          col.g = mix(col.g, maxRB, u_despill * spill);
-
-          if(u_useBg == 1){
-            vec3 outCol = mix(u_bgRGB, col, a);
-            gl_FragColor = vec4(outCol, 1.0);
-          } else {
-            gl_FragColor = vec4(col * a, a); // премультиплированная альфа
-          }
-        }
-      `;
-
-      function sh(t,s){ const o=gl.createShader(t); gl.shaderSource(o,s); gl.compileShader(o); if(!gl.getShaderParameter(o,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; }
-      function prog(vs,fs){ const p=gl.createProgram(); gl.attachShader(p,vs); gl.attachShader(p,fs); gl.linkProgram(p); if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); return p; }
-
-      const program = prog(sh(gl.VERTEX_SHADER,vert), sh(gl.FRAGMENT_SHADER,frag));
-      gl.useProgram(program);
-
-      // Квад
-      const quad = new Float32Array([-1,-1, 1,-1, -1,1, 1,-1, 1,1, -1,1]);
-      const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
-      const locPos = gl.getAttribLocation(program,'a_pos'); gl.enableVertexAttribArray(locPos); gl.vertexAttribPointer(locPos,2,gl.FLOAT,false,0,0);
-
-      // Юниформы
-      const uTex=gl.getUniformLocation(program,'u_tex');
-      const uScale=gl.getUniformLocation(program,'u_scale');
-      const uKey=gl.getUniformLocation(program,'u_keyRGB');
-      const uTh=gl.getUniformLocation(program,'u_thresh');
-      const uSoft=gl.getUniformLocation(program,'u_soft');
-      const uDes=gl.getUniformLocation(program,'u_despill');
-      const uUse=gl.getUniformLocation(program,'u_useBg');
-      const uBg=gl.getUniformLocation(program,'u_bgRGB');
-
-      // Текстура
-      const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-      function resize(){
-        const dpr = Math.min(Math.max(window.devicePixelRatio||1,1), 3); // до 3х DPI — чётче, без дикого веса
-        const w = Math.floor(canvas.clientWidth * dpr);
-        const h = Math.floor(canvas.clientHeight * dpr);
-        if(canvas.width!==w || canvas.height!==h){ canvas.width=w; canvas.height=h; }
-        gl.viewport(0,0,canvas.width,canvas.height);
-
-        // fit-contain (без геометрических искажений)
-        const vw = video.videoWidth||16, vh = video.videoHeight||9;
-        const vidR = vw/vh, canR = canvas.width/canvas.height;
-        let sx=1, sy=1; if(vidR>canR) sy=canR/vidR; else sx=vidR/canR;
-        gl.uniform2f(uScale, sx, sy);
-      }
-      window.addEventListener('resize', resize);
-      video.addEventListener('loadedmetadata', resize, {once:true});
-
-      function draw(){
-        if(video.readyState>=2){
-          gl.bindTexture(gl.TEXTURE_2D, tex);
-          gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,video);
-
-          gl.uniform3f(uKey, params.keyRGB[0], params.keyRGB[1], params.keyRGB[2]);
-          gl.uniform1f(uTh, params.thresh);
-          gl.uniform1f(uSoft, params.soft);
-          gl.uniform1f(uDes, params.despill);
-          gl.uniform1i(uUse, params.fillMode ? 1 : 0);
-          gl.uniform3f(uBg, bgRGB[0], bgRGB[1], bgRGB[2]);
-          gl.uniform1i(uTex, 0);
-
-          gl.drawArrays(gl.TRIANGLES, 0, 6);
-        }
-        requestAnimationFrame(draw);
-      }
-
-      resize();
-      requestAnimationFrame(draw);
-      return { gl };
-    }
-
-    (async function start(){
-      await ensurePlay();
-      await new Promise(res => {
-        if(video.readyState>=1) res();
-        else video.addEventListener('loadedmetadata', res, {once:true});
+      // 1–6) экранные слои (финиш — без трансформаций)
+      ['.s1','.s2','.s3','.s4','.s5','.s6'].forEach((sel, i) => {
+        tl.to(sel, { opacity:1, yPercent:0, rotateX:0, rotateZ:0, scale:1, duration:0.42, ease:'back.out(1.4)' }, i===0 ? '-=0.15' : '-=0.10')
+          .to(sel, { scale:1.01, duration:0.10 })
+          .to(sel, { scale:1.00, duration:0.12 }, '-=0.05');
       });
 
-      const api = initGL();
-      if(!api){
-        overlay.classList.add('show');
-        alert('WebGL недоступен — хромакей в браузере не запустится.');
+      // финальный «подсвет» сцены
+      tl.fromTo('#stage',
+        { filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))' },
+        { filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))', duration:0.45 }, '-=0.2'
+      );
+
+      // NEW: запуск и плавное появление видео поверх кадра s6
+      tl.add('videoIn');
+      tl.call(() => {
+        if (!video) return;
+        try { video.currentTime = 0; } catch(e) {}
+        const p = video.play?.();
+        // подавляем возможный промис-рефьюз (например, если браузер запретил автоплей)
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      }, null, 'videoIn');
+      tl.to('.veo', { opacity:1, duration:0.45 }, 'videoIn'); // кросс-фейд 450 мс
+
+      return tl;
+    }
+
+    async function init(){
+      if (prefersReduced){
+        gsap.set(layers, { opacity:0, clearProps:'transform,filter' });
+        gsap.set('.device, .s6', { opacity:1 }); // показать финальный кадр + планшет
+        if (video) video.style.display = 'none'; // NEW: без движения — без видео
+        replayBtn.style.display = 'none';
         return;
       }
 
-      // Горячие клавиши для тонкой настройки
-      window.addEventListener('keydown', (e)=>{
-        const s=0.01;
-        if(e.key==='['){ params.thresh=Math.max(0, params.thresh-s); }
-        if(e.key===']'){ params.thresh=Math.min(1, params.thresh+s); }
-        if(e.key===';'){ params.soft  =Math.max(0, params.soft-s); }
-        if(e.key==="'"){ params.soft  =Math.min(1, params.soft+s); }
-        if(e.key===','){ params.despill=Math.max(0, params.despill-s); }
-        if(e.key==='.') { params.despill=Math.min(1, params.despill+s); }
-        if(e.key.toLowerCase()==='p'){ params.fillMode^=1; }      // прозрачность ↔ заливка цветом
-        if(e.key==='1'){ params.keyRGB=[0.05,0.95,0.05]; }        // пресет: зелёный
-        if(e.key==='2'){ params.keyRGB=[0.10,0.20,0.90]; }        // пресет: синий
-        if(e.key.toLowerCase()==='r'){ // reset
-          params.thresh=0.22; params.soft=0.10; params.despill=0.30; params.keyRGB=[0.05,0.95,0.05];
+      // предзагрузка ассетов
+      await preloadImages(layers.filter(l => l.tagName === 'IMG').map(l => l.currentSrc || l.src));
+      await preloadVideo(video);
+
+      const tl = buildTimeline();
+
+      const restart = () => {
+        // NEW: гарантированно сбрасываем видео перед рестартом
+        if (video){
+          try { video.pause(); } catch(e){}
+          try { video.currentTime = 0; } catch(e){}
         }
-      });
-    })();
+        tl.restart();
+      };
+
+      replayBtn.addEventListener('click', restart);
+
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => e.isIntersecting && restart());
+      }, { threshold:0.4 });
+      io.observe(document.getElementById('hero'));
+    }
+
+    init();
   })();
   </script>
 </body>
