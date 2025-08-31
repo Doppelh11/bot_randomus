@@ -3,51 +3,39 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Тест видео — белый фон (маска / multiply, fixed)</title>
+  <title>Хромакей в браузере (под цвет фона сайта)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
-    :root{ --fg:#fff; --muted:#b5b6bf; --maxw:1200px }
-    *{ box-sizing:border-box }
-    html,body{ height:100% }
+    :root{
+      --fg:#fff; --muted:#b5b6bf;
+      /* Цвет, которым хотим ЗАЛИВАТЬ «дырку» (режим P). Иначе — прозрачность. */
+      --key-bg:#0c0d10;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0; color:var(--fg);
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+      /* фон сайта — будет виден сквозь прозрачность */
       background:radial-gradient(1200px 900px at 20% 20%, #171924 0, #0f1118 50%, #0c0d10 100%);
       display:grid; place-items:center; padding:24px;
     }
+    .wrap{width:min(100%, 760px)}
 
-    /* Сцена: ВАЖНО — БЕЗ isolation:isolate, чтобы multiply смешивался с фоном body */
+    /* Сцена: без isolation, чтобы прозрачность канваса композилась с body */
     .stage{
-      position:relative; width:min(100%, 760px);
-      aspect-ratio: 2048 / 1828;
-      /* isolation:isolate;  <-- было, удалили */
+      position:relative; width:100%; aspect-ratio: 2048 / 1828;
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
-      border-radius:18px; overflow:hidden; /* опционально, для аккуратности */
+      border-radius:18px; overflow:hidden;
     }
-
-    /* Только видео */
-    .veo{
+    canvas#glcanvas,
+    video#src{
       position:absolute; inset:0; width:100%; height:100%;
-      object-fit:contain; opacity:1; pointer-events:none;
-
-      /* тонкая подгонка при несовпадении размеров (если нужно) */
-      --vx:0px; --vy:0px; --vscale:1;
-      transform: translate(var(--vx), var(--vy)) scale(var(--vscale));
-
-      /* сначала пробуем маску экрана; если файла нет — включим multiply скриптом */
-      -webkit-mask-image: url(assets/screen-mask.png);
-      mask-image: url(assets/screen-mask.png);
-      -webkit-mask-size: contain;  mask-size: contain;
-      -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-      -webkit-mask-position: center;  mask-position: center;
+      object-fit:contain; display:block;
     }
-    .veo.nomask{ -webkit-mask:none; mask:none; }
-    .veo.multiply{ mix-blend-mode: multiply; }
+    /* Видео-источник прячем, чтобы рисовать через WebGL */
+    video#src{ display:none }
 
-    /* Немного компенсируем затемнение при multiply (по вкусу, можно убрать) */
-    .veo.multiply{ filter: brightness(1.04) contrast(1.02); }
-
-    /* Оверлей, если автоплей заблокирован */
     .overlay{
       position:absolute; inset:0; display:grid; place-items:center;
       background:linear-gradient(180deg, #0008, #0004);
@@ -60,63 +48,199 @@
       backdrop-filter:blur(8px);
     }
 
-    .mode{
-      margin-top:14px; color:var(--muted); font-size:14px; text-align:center;
-      font-variant-numeric: tabular-nums;
-    }
+    .hint{ margin-top:14px; color:var(--muted); font-size:14px; text-align:center }
   </style>
 </head>
 <body>
-  <div>
+  <div class="wrap">
     <div class="stage" id="stage">
-      <video id="veo" class="veo" playsinline muted loop autoplay preload="auto" poster="">
-        <!-- твой mp4 -->
+      <canvas id="glcanvas"></canvas>
+
+      <!-- Источник видео на ХРОМАКЕЕ (зелёный/синий фон) -->
+      <video id="src" playsinline muted loop autoplay preload="auto" crossorigin="anonymous">
+        <!-- подставь свой путь к ролику -->
         <source src="https://doppelh11.github.io/sitewb/assets/veo.mp4" type="video/mp4">
       </video>
 
-      <div id="overlay" class="overlay">
-        <button id="playBtn">▶︎ Воспроизвести</button>
-      </div>
+      <div id="overlay" class="overlay"><button id="playBtn">▶︎ Воспроизвести</button></div>
     </div>
-    <div id="mode" class="mode">Режим: определяем…</div>
+
+    <div class="hint">
+      Клавиши: [ ] — порог • ; ' — мягкость • , . — despill • P — прозрачность/заливка • 1/2 — зелёный/синий
+    </div>
   </div>
 
   <script>
-    (function(){
-      const video   = document.getElementById('veo');
-      const overlay = document.getElementById('overlay');
-      const playBtn = document.getElementById('playBtn');
-      const modeEl  = document.getElementById('mode');
+  (function(){
+    const video   = document.getElementById('src');
+    const canvas  = document.getElementById('glcanvas');
+    const overlay = document.getElementById('overlay');
+    const playBtn = document.getElementById('playBtn');
 
-      // Проверяем наличие маски: если 404 — выключаем mask и включаем multiply (для белого фона)
-      function ensureMaskOrMultiply(){
-        return new Promise((resolve) => {
-          const img = new Image();
-          img.onload  = () => { modeEl.textContent = 'Режим: mask (PNG)'; resolve('mask'); };
-          img.onerror = () => {
-            video.classList.add('nomask','multiply'); // белый фон → multiply
-            modeEl.textContent = 'Режим: mix-blend: multiply (без маски)';
-            resolve('multiply');
-          };
-          img.src = 'assets/screen-mask.png';
-        });
+    // ПАРАМЕТРЫ ХРОМАКЕЯ (можно править)
+    const cssBg = getComputedStyle(document.documentElement).getPropertyValue('--key-bg').trim() || '#0c0d10';
+    function hexToRGB(h){ const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h); return m ? [parseInt(m[1],16)/255, parseInt(m[2],16)/255, parseInt(m[3],16)/255] : [0,0,0]; }
+    const bgRGB = hexToRGB(cssBg);
+
+    const params = {
+      keyRGB: [0.05, 0.95, 0.05], // зелёный
+      thresh: 0.22,               // порог
+      soft:   0.10,               // мягкость
+      despill:0.50,               // убираем зелёный ореол
+      fillMode: 0                 // 0 = прозрачность, 1 = заливка цветом (--key-bg)
+    };
+
+    // Автовоспроизведение
+    async function ensurePlay(){
+      try{ await video.play(); }
+      catch(e){ overlay.classList.add('show'); }
+    }
+    playBtn.addEventListener('click', async () => {
+      overlay.classList.remove('show');
+      try{ await video.play(); }catch(e){}
+    });
+
+    function initGL(){
+      const gl = canvas.getContext('webgl', {alpha:true, premultipliedAlpha:true, antialias:false});
+      if(!gl) return null;
+
+      const vert = `
+        attribute vec2 a_pos; varying vec2 v_uv; uniform vec2 u_scale;
+        void main(){ vec2 p = a_pos * u_scale; v_uv = (a_pos + 1.0) * 0.5; gl_Position = vec4(p,0.0,1.0); }
+      `;
+      const frag = `
+        precision mediump float;
+        varying vec2 v_uv;
+        uniform sampler2D u_tex;
+        uniform vec3  u_keyRGB;
+        uniform float u_thresh, u_soft, u_despill;
+        uniform int   u_useBg;     // 0 — прозрачность, 1 — заливка цветом
+        uniform vec3  u_bgRGB;
+
+        vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
+        vec3 toSRGB(vec3 c){ return pow(c, vec3(1.0/2.2)); }
+
+        float colorDist(vec3 a, vec3 b){
+          vec3 da = toLin(a), db = toLin(b);
+          return length(da - db); // 0..sqrt(3)
+        }
+
+        void main(){
+          vec4 tex = texture2D(u_tex, v_uv);
+          float d = colorDist(tex.rgb, u_keyRGB);
+          float nd = d / 1.7320508;                 // нормируем к [0..1]
+          float a = smoothstep(u_thresh, u_thresh + u_soft, nd);
+
+          // despill: притягиваем G к максимуму R/B в приграничной зоне
+          float spill = 1.0 - smoothstep(u_thresh, u_thresh + u_soft, nd);
+          vec3 col = tex.rgb;
+          float maxRB = max(col.r, col.b);
+          col.g = mix(col.g, maxRB, u_despill * spill);
+
+          if(u_useBg == 1){
+            // заливаем «дырку» цветом фона: итог всегда непрозрачный
+            vec3 outCol = mix(u_bgRGB, col, a);
+            gl_FragColor = vec4(outCol, 1.0);
+          } else {
+            // прозрачность: отдаём премультиплированно
+            gl_FragColor = vec4(col * a, a);
+          }
+        }
+      `;
+
+      function sh(t,s){ const o=gl.createShader(t); gl.shaderSource(o,s); gl.compileShader(o); if(!gl.getShaderParameter(o,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; }
+      function prog(vs,fs){ const p=gl.createProgram(); gl.attachShader(p,vs); gl.attachShader(p,fs); gl.linkProgram(p); if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); return p; }
+
+      const program = prog(sh(gl.VERTEX_SHADER,vert), sh(gl.FRAGMENT_SHADER,frag));
+      gl.useProgram(program);
+
+      const quad = new Float32Array([-1,-1, 1,-1, -1,1, 1,-1, 1,1, -1,1]);
+      const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
+      const locPos = gl.getAttribLocation(program,'a_pos'); gl.enableVertexAttribArray(locPos); gl.vertexAttribPointer(locPos,2,gl.FLOAT,false,0,0);
+
+      const uTex=gl.getUniformLocation(program,'u_tex');
+      const uScale=gl.getUniformLocation(program,'u_scale');
+      const uKey=gl.getUniformLocation(program,'u_keyRGB');
+      const uTh=gl.getUniformLocation(program,'u_thresh');
+      const uSoft=gl.getUniformLocation(program,'u_soft');
+      const uDes=gl.getUniformLocation(program,'u_despill');
+      const uUse=gl.getUniformLocation(program,'u_useBg');
+      const uBg=gl.getUniformLocation(program,'u_bgRGB');
+
+      const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+      function resize(){
+        const dpr = Math.min(window.devicePixelRatio||1, 2);
+        const w = Math.floor(canvas.clientWidth*dpr);
+        const h = Math.floor(canvas.clientHeight*dpr);
+        if(canvas.width!==w||canvas.height!==h){ canvas.width=w; canvas.height=h; }
+        gl.viewport(0,0,canvas.width,canvas.height);
+        // fit-contain
+        const vw = video.videoWidth||16, vh = video.videoHeight||9;
+        const vidR = vw/vh, canR = canvas.width/canvas.height;
+        let sx=1, sy=1;
+        if(vidR>canR) sy = canR/vidR; else sx = vidR/canR;
+        gl.uniform2f(uScale, sx, sy);
+      }
+      window.addEventListener('resize', resize);
+      video.addEventListener('loadedmetadata', resize, {once:true});
+
+      function draw(){
+        if(video.readyState>=2){
+          gl.bindTexture(gl.TEXTURE_2D, tex);
+          gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,video);
+
+          gl.uniform3f(uKey, params.keyRGB[0], params.keyRGB[1], params.keyRGB[2]);
+          gl.uniform1f(uTh, params.thresh);
+          gl.uniform1f(uSoft, params.soft);
+          gl.uniform1f(uDes, params.despill);
+          gl.uniform1i(uUse, params.fillMode ? 1 : 0);
+          gl.uniform3f(uBg, bgRGB[0], bgRGB[1], bgRGB[2]);
+          gl.uniform1i(uTex, 0);
+
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+        }
+        requestAnimationFrame(draw);
       }
 
-      // Автоплей: если заблокирован — покажем кнопку
-      async function tryAutoplay(v){
-        try{ await v.play(); }
-        catch(e){ overlay.classList.add('show'); }
-      }
-      playBtn.addEventListener('click', async () => {
-        overlay.classList.remove('show');
-        try{ await video.play(); }catch(e){}
+      resize();
+      requestAnimationFrame(draw);
+      return { gl, program, uniforms:{uKey,uTh,uSoft,uDes,uUse,uBg} };
+    }
+
+    (async function start(){
+      await ensurePlay();
+      await new Promise(res => {
+        if(video.readyState>=1) res();
+        else video.addEventListener('loadedmetadata', res, {once:true});
       });
 
-      (async function start(){
-        await ensureMaskOrMultiply();
-        await tryAutoplay(video);
-      })();
+      const api = initGL();
+      if(!api){
+        overlay.classList.add('show');
+        alert('WebGL недоступен: показать хромакей без WebGL не получится.'); 
+        return;
+      }
+
+      // Горячие клавиши тюнинга
+      window.addEventListener('keydown', (e)=>{
+        const s=0.01;
+        if(e.key==='['){ params.thresh=Math.max(0, params.thresh-s); }
+        if(e.key===']'){ params.thresh=Math.min(1, params.thresh+s); }
+        if(e.key===';'){ params.soft  =Math.max(0, params.soft-s); }
+        if(e.key==="'"){ params.soft  =Math.min(1, params.soft+s); }
+        if(e.key===','){ params.despill=Math.max(0, params.despill-s); }
+        if(e.key==='.') { params.despill=Math.min(1, params.despill+s); }
+        if(e.key.toLowerCase()==='p'){ params.fillMode^=1; } // прозрачность <-> заливка
+        if(e.key==='1'){ params.keyRGB=[0.05,0.95,0.05]; }  // зелёный
+        if(e.key==='2'){ params.keyRGB=[0.10,0.20,0.90]; }  // синий
+      });
     })();
+  })();
   </script>
 </body>
 </html>
