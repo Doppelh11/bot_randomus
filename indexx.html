@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Сборка карточки → финальное видео (hover-replay)</title>
+  <title>Сборка карточки → финальное видео (без 7-го слайда)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{ --fg:#fff; --muted:#b5b6bf; --maxw:1200px; }
@@ -40,7 +40,7 @@
       margin-inline:auto; isolation:isolate;
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
       perspective:1200px; contain:layout paint;
-      cursor:default; /* курсор не меняем */
+      cursor:default;
     }
     .layer{
       position:absolute; inset:0; width:100%; height:100%;
@@ -50,7 +50,7 @@
 
     /* Финальное видео: без искажений (cover), по центру */
     .veo{
-      pointer-events:none;      /* чтобы курсор не «светился» и события шли на .stage */
+      pointer-events:none;      /* курсор не меняем, события идут на .stage */
       width:100%; height:100%;
       object-fit:cover; object-position:50% 50%;
       opacity:0; will-change:opacity;
@@ -66,16 +66,15 @@
         <!-- База: планшет -->
         <img class="layer device" src="assets/step1.png" alt="tablet frame">
 
-        <!-- 6 экранных слоёв -->
+        <!-- 5 экранных слоёв (step2…step6) -->
         <img class="layer s1" src="assets/step2.png" alt="">
         <img class="layer s2" src="assets/step3.png" alt="">
         <img class="layer s3" src="assets/step4.png" alt="">
         <img class="layer s4" src="assets/step5.png" alt="">
         <img class="layer s5" src="assets/step6.png" alt="">
-        <img class="layer s6" src="assets/step7.png" alt="">
 
         <!-- Финальное видео поверх всех слоёв -->
-        <video class="layer veo" id="veo" muted playsinline preload="auto" poster="assets/step7.png">
+        <video class="layer veo" id="veo" muted playsinline preload="auto" poster="assets/step6.png">
           <source src="assets/veo.webm#t=0.001" type="video/webm">
           <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
         </video>
@@ -85,7 +84,7 @@
         <h1>Сборка карточки → финальное видео</h1>
         <p>В конце PNG плавно скрываются, видео занимает их место. Навёл после окончания — снова проигрывается.</p>
         <button class="btn" id="replay">Повторить</button>
-        <div class="hint">Файлы: <code>assets/step1.png…step7.png</code>, <code>veo.webm</code> (+опц. <code>veo.mp4</code>).</div>
+        <div class="hint">Файлы: <code>assets/step1.png…step6.png</code>, <code>veo.webm</code> (+опц. <code>veo.mp4</code>).</div>
       </div>
     </section>
   </div>
@@ -118,14 +117,14 @@
 
       // Стартовые состояния
       gsap.set('.device', { opacity:0, yPercent:4, scale:0.985, rotateZ:-1, filter:'blur(6px)' });
-      gsap.set(['.s1','.s2','.s3','.s4','.s5','.s6'], { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
+      gsap.set(['.s1','.s2','.s3','.s4','.s5'], { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
       gsap.set('.veo', { opacity:0 });
 
       // 0) планшет
       tl.to('.device', { opacity:1, yPercent:0, scale:1, rotateZ:0, filter:'blur(0px)', duration:0.55, ease:'back.out(1.6)' });
 
-      // 1–6) экранные слои
-      ['.s1','.s2','.s3','.s4','.s5','.s6'].forEach((sel, i) => {
+      // 1–5) экранные слои
+      ['.s1','.s2','.s3','.s4','.s5'].forEach((sel, i) => {
         tl.to(sel, { opacity:1, yPercent:0, rotateX:0, rotateZ:0, scale:1, duration:0.42, ease:'back.out(1.4)' }, i===0 ? '-=0.15' : '-=0.10')
           .to(sel, { scale:1.01, duration:0.10 })
           .to(sel, { scale:1.00, duration:0.12 }, '-=0.05');
@@ -144,7 +143,7 @@
         const p = video.play?.(); if (p && p.catch) p.catch(()=>{});
       }, null, 'switchToVideo');
       tl.to('.veo', { opacity:1, duration:0.5 }, 'switchToVideo');
-      tl.to(['.device','.s1','.s2','.s3','.s4','.s5','.s6'], { opacity:0, duration:0.5 }, 'switchToVideo');
+      tl.to(['.device','.s1','.s2','.s3','.s4','.s5'], { opacity:0, duration:0.5 }, 'switchToVideo');
 
       return tl;
     }
