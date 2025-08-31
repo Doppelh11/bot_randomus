@@ -67,7 +67,6 @@
       display:flex; align-items:baseline; gap:10px;
     }
     .ctr-label{
-      /* крупнее и по базовой линии с цифрами */
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-weight:800; letter-spacing:.12em; text-transform:uppercase;
       font-size: clamp(18px, 2.8vw, 28px);
@@ -75,34 +74,32 @@
     }
 
     .slots{
-      display:flex; align-items:baseline; gap:1px; /* плотнее к точке */
+      display:flex; align-items:baseline; gap:1px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-weight:800; letter-spacing:-0.01em;
       font-variant-numeric: tabular-nums;
       font-size: clamp(28px, 4.6vw, 56px);
       line-height:1;
       color:var(--fg);
-      /* никаких подложек/рамок/теней — ровно цифры */
     }
 
-    /* Колонки «слота»: разные ширины под глифы */
     .col{ height:auto; overflow:hidden; position:relative; }
     .col-ones{  width:0.85ch; }    /* шире для «4» */
     .col-tenth{ width:0.70ch; }    /* ближе к точке */
-    .dot{ margin:0 1px 0 2px; opacity:.95 } /* «5» ближе к точке */
+    .dot{ margin:0 1px 0 2px; opacity:.95 }
     .pct{ opacity:.95; font-size:.85em; margin-left:2px }
 
     .reel{
       position:absolute; left:0; top:0;
       will-change:transform; display:flex; flex-direction:column;
-      background:transparent !important; /* исключаем любой фон */
+      background:transparent !important;
     }
     .reel span{
       display:block; height:1em; line-height:1; text-align:center;
       background:transparent; -webkit-text-fill-color: currentColor;
     }
 
-    /* Финальный тёплый градиент + shine только на 4.5% (без рамок/теней) */
+    /* Финальный тёплый градиент + shine на 4.5% */
     .slots.celebrate .reel span{
       background: linear-gradient(90deg, #FF7A00 0%, #FFC247 28%, #FFF2D6 52%, #FFB088 78%, #FF7A00 100%);
       background-size: 200% 100%;
@@ -133,7 +130,7 @@
           </div>
         </div>
 
-        <!-- Сцена (как была) -->
+        <!-- Сцена -->
         <div class="stage" id="stage" aria-hidden="true">
           <img class="layer device" src="assets/step1.png" alt="tablet frame">
           <img class="layer s1" src="assets/step2.png" alt="">
@@ -169,7 +166,7 @@
     const layers  = [...document.querySelectorAll('.layer')];
     const video   = document.getElementById('veo');
 
-    /* ===== CTR: слот-машина (чисто текст) ===== */
+    /* ===== CTR: слот-машина ===== */
     const onesReel   = document.getElementById('ones');
     const tenthsReel = document.getElementById('tenths');
     const slotsBox   = document.getElementById('slots');
@@ -178,7 +175,7 @@
     const ctrPoints   = [1.9, 2.3, 2.6, 3.3, 3.6, 4.5];
     const onesSeq     = ctrPoints.map(v => Math.floor(v));
     const tenthsSeq   = ctrPoints.map(v => Math.round((v%1)*10));
-    let lineH = 0;  // реальная высота строки
+    let lineH = 0;
 
     function buildReel(el){
       const frag = document.createDocumentFragment();
@@ -190,12 +187,10 @@
       el.innerHTML=''; el.appendChild(frag);
     }
     function measureAndFit(){
-      // реальная высота символа
       const probe = onesReel.querySelector('span') || tenthsReel.querySelector('span');
       lineH = probe ? probe.getBoundingClientRect().height : 0;
-      const slotH = Math.round(lineH * 1.28); // окно больше, чтобы не обрезать (и «4», и «5» не резались)
+      const slotH = Math.round(lineH * 1.28);
       document.querySelectorAll('.col').forEach(c => { c.style.height = slotH + 'px'; });
-      // центрируем цифры в окне
       const topPad = Math.round((slotH - lineH)/2);
       document.querySelectorAll('.reel').forEach(r => { r.style.top = topPad + 'px'; });
     }
@@ -230,7 +225,7 @@
     function buildTimeline(){
       const tl = gsap.timeline({ defaults:{ ease:'power3.out' } });
 
-      // Стартовые состояния
+      // Стартовые
       gsap.set('.device', { opacity:0, yPercent:4, scale:0.985, rotateZ:-1, filter:'blur(6px)' });
       gsap.set(['.s1','.s2','.s3','.s4','.s5'], { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
       gsap.set('.veo', { opacity:0 });
@@ -238,159 +233,9 @@
       // 0) планшет
       tl.to('.device', { opacity:1, yPercent:0, scale:1, rotateZ:0, filter:'blur(0px)', duration:0.55, ease:'back.out(1.6)' });
 
-      // 1–5) слои; крутим CTR до 3.6% (последняя смена на s4)
-      const sels=['.s1','.s2','.s3','.s4','.s5'];
-      sels.forEach((sel,i)=>{
-        tl.to(sel,{ opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)' }, i===0?'-=0.15':'-=0.10')
-          .to(sel,{ scale:1.01,duration:0.10 })
-          .to(sel,{ scale:1.00,duration:0.12 },'-=0.05');
-
-        if (i < ctrPoints.length - 2) {
-          const stepIdx=i+1;
-          const onesIdx   = stepIdx*10 + onesSeq[stepIdx];
-          const tenthsIdx = stepIdx*10 + tenthsSeq[stepIdx];
-          const label=`ctr_${stepIdx}`;
-          tl.add(label, '>-0.02');
-          tl.add(spinTo(onesReel,   onesIdx,   0.5, 'power3.out'), label);
-          tl.add(spinTo(tenthsReel, tenthsIdx, 0.5, 'power3.out'), `${label}+=0.06`);
-        }
-      });
-
-      // Подсвет сцены
-      tl.fromTo('#stage',
-        { filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))' },
-        { filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))', duration:0.45 }, '-=0.2'
-      );
-
-      // Переключение на видео
-      tl.add('switchToVideo');
-      tl.call(() => {
-        try{ video.currentTime = 0; }catch(e){}
-        const p=video.play?.(); if(p && p.catch) p.catch(()=>{});
-      }, null, 'switchToVideo');
-      tl.to('.veo', { opacity:1, duration:0.5 }, 'switchToVideo');
-      tl.to(['.device','.s1','.s2','.s3','.s4','.s5'], { opacity:0, duration:0.5 }, 'switchToVideo');
-
-      return tl;
-    }
-
-    /* ---------- финальная 4.5% в середине видео + тёплый shine ---------- */
-    function scheduleFinalDuringVideo(){
-      let fired=false;
-      const doFinal=()=> {
-        if (fired) return; fired=true;
-        const finalOnesIdx   = 5*10 + Math.floor(ctrPoints[5]);          // 4
-        const finalTenthsIdx = 5*10 + Math.round((ctrPoints[5]%1)*10);   // 5
-        const tl = gsap.timeline();
-        tl.add(spinTo(onesReel,   finalOnesIdx,   0.55, 'power3.out'))
-          .add(spinTo(tenthsReel, finalTenthsIdx, 0.55, 'power3.out'), '+=0.08')
-          .fromTo('#slots', { scale:1 }, { scale:1.08, duration:0.12, ease:'power3.out' }, '-=0.10')
-          .to('#slots', { scale:1.00, duration:0.18, ease:'power3.out' }, '>');
-        // тёплый градиентный shine (без рамок/теней)
-        slotsBox.classList.add('celebrate');
-        setTimeout(()=> slotsBox.classList.remove('celebrate'), 1200);
-      };
-
-      if (!isFinite(video.duration) || video.duration === 0) {
-        setTimeout(doFinal, 700); // фолбэк
-        return;
-      }
-      const mid = video.duration * 0.5;
-      const onTime = () => {
-        if (video.currentTime >= mid) {
-          video.removeEventListener('timeupdate', onTime);
-          doFinal();
-        }
-      };
-      video.addEventListener('timeupdate', onTime);
-    }
-
-    /* ---------- init ---------- */
-    async function init(){
-      // собрать барабаны и подогнать окно (без «чёрных рамок»)
-      buildReel(onesReel); buildReel(tenthsReel);
-      requestAnimationFrame(()=>{
-        measureAndFit();
-        // старт 1.9 мгновенно
-        const startOnesIdx   = 0*10 + Math.floor(ctrPoints[0]);
-        const startTenthsIdx = 0*10 + Math.round((ctrPoints[0]%1)*10);
-        setIndex(onesReel,   startOnesIdx,   true);
-        setIndex(tenthsReel, startTenthsIdx, true);
-      });
-
-      if (prefersReduced){
-        gsap.set(layers, { opacity:0, clearProps:'transform,filter' });
-        gsap.set('.veo', { opacity:1 });
-        requestAnimationFrame(()=>{
-          const finalOnesIdx   = 5*10 + Math.floor(ctrPoints[5]);
-          const finalTenthsIdx = 5*10 + Math.round((ctrPoints[5]%1)*10);
-          setIndex(onesReel, finalOnesIdx, true);
-          setIndex(tenthsReel, finalTenthsIdx, true);
-        });
-        return;
-      }
-
-      await preloadImages(['assets/step1.png','assets/step2.png','assets/step3.png','assets/step4.png','assets/step5.png','assets/step6.png']);
-      await preloadVideo(video);
-
-      const tl = buildTimeline();
-
-      // Триггер середины видео
-      if (video.readyState >= 1) scheduleFinalDuringVideo();
-      else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
-
-      // Повтор
-      const restart = () => {
-        try{ video.pause(); video.currentTime = 0; }catch(e){}
-        const startOnesIdx   = 0*10 + Math.floor(ctrPoints[0]);
-        const startTenthsIdx = 0*10 + Math.round((ctrPoints[0]%1)*10);
-        gsap.set(onesReel,   { y: -startOnesIdx   * lineH });
-        gsap.set(tenthsReel, { y: -startTenthsIdx * lineH });
-        slotsBox.classList.remove('celebrate');
-        tl.restart();
-        if (video.readyState >= 1) scheduleFinalDuringVideo();
-        else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
-      };
-      document.getElementById('replay').addEventListener('click', restart);
-
-      // Hover-replay видео: только когда ролик ДОИГРАЛ
-      let ended=false;
-      video.addEventListener('ended', ()=>{ ended=true; });
-      stageEl.addEventListener('mouseenter', ()=>{
-        if (!ended) return;
-        try{ video.currentTime = 0; }catch(e){}
-        const p=video.play?.(); if (p && p.catch) p.catch(()=>{});
-        ended=false;
-        if (video.readyState >= 1) scheduleFinalDuringVideo();
-        else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
-      });
-
-      // Автостарт при входе в вьюпорт
-      const io = new IntersectionObserver((entries) => {
-        entries.forEach(e => e.isIntersecting && restart());
-      }, { threshold:0.4 });
-      io.observe(heroEl);
-
-      // Респонсив: пересчёт окна без обрезаний при ресайзе
-      let rid;
-      window.addEventListener('resize', () => {
-        cancelAnimationFrame(rid);
-        rid = requestAnimationFrame(() => {
-          const prevH = lineH;
-          measureAndFit();
-          if (!prevH || prevH === lineH) return;
-          const curY1 = gsap.getProperty(onesReel, 'y');
-          const curY2 = gsap.getProperty(tenthsReel, 'y');
-          const idx1 = Math.round(-curY1 / prevH);
-          const idx2 = Math.round(-curY2 / prevH);
-          gsap.set(onesReel,   { y: -idx1 * lineH });
-          gsap.set(tenthsReel, { y: -idx2 * lineH });
-        });
-      });
-    }
-
-    init();
-  })();
-  </script>
-</body>
-</html>
+      // Порядок слоёв: s1 (step2) → s3 (step4) → s2 (step3) → s4 → s5
+      const sels = ['.s1','.s3','.s2','.s4','.s5'];
+      sels.forEach((sel, i) => {
+        tl.to(sel, { opacity:1, yPercent:0, rotateX:0, rotateZ:0, scale:1, duration:0.42, ease:'back.out(1.4)' }, i===0 ? '-=0.15' : '-=0.10')
+          .to(sel, { scale:1.01, duration:0.10 })
+          .to(sel, { scale:1.00, dur
