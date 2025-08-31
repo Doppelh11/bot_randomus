@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Хромакей в браузере (под цвет фона сайта)</title>
+  <title>Хромакей в браузере — фикс переворота и цвета</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{
       --fg:#fff; --muted:#b5b6bf;
-      /* Цвет, которым хотим ЗАЛИВАТЬ «дырку» (режим P). Иначе — прозрачность. */
+      /* Цвет заливки для режима P (если не нужна прозрачность) */
       --key-bg:#0c0d10;
     }
     *{box-sizing:border-box}
@@ -16,26 +16,20 @@
     body{
       margin:0; color:var(--fg);
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
-      /* фон сайта — будет виден сквозь прозрачность */
       background:radial-gradient(1200px 900px at 20% 20%, #171924 0, #0f1118 50%, #0c0d10 100%);
       display:grid; place-items:center; padding:24px;
     }
     .wrap{width:min(100%, 760px)}
-
-    /* Сцена: без isolation, чтобы прозрачность канваса композилась с body */
     .stage{
       position:relative; width:100%; aspect-ratio: 2048 / 1828;
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
       border-radius:18px; overflow:hidden;
     }
-    canvas#glcanvas,
-    video#src{
+    canvas#glcanvas, video#src{
       position:absolute; inset:0; width:100%; height:100%;
       object-fit:contain; display:block;
     }
-    /* Видео-источник прячем, чтобы рисовать через WebGL */
-    video#src{ display:none }
-
+    video#src{ display:none } /* рисуем через WebGL */
     .overlay{
       position:absolute; inset:0; display:grid; place-items:center;
       background:linear-gradient(180deg, #0008, #0004);
@@ -47,7 +41,6 @@
       padding:14px 18px; border-radius:14px; font-weight:700; cursor:pointer;
       backdrop-filter:blur(8px);
     }
-
     .hint{ margin-top:14px; color:var(--muted); font-size:14px; text-align:center }
   </style>
 </head>
@@ -56,9 +49,8 @@
     <div class="stage" id="stage">
       <canvas id="glcanvas"></canvas>
 
-      <!-- Источник видео на ХРОМАКЕЕ (зелёный/синий фон) -->
+      <!-- ТВОЁ ВИДЕО на хромакее -->
       <video id="src" playsinline muted loop autoplay preload="auto" crossorigin="anonymous">
-        <!-- подставь свой путь к ролику -->
         <source src="https://doppelh11.github.io/sitewb/assets/veo.mp4" type="video/mp4">
       </video>
 
@@ -66,7 +58,7 @@
     </div>
 
     <div class="hint">
-      Клавиши: [ ] — порог • ; ' — мягкость • , . — despill • P — прозрачность/заливка • 1/2 — зелёный/синий
+      Клавиши: [ ] — порог • ; ' — мягкость • , . — despill • P — прозрачность/заливка • 1/2 — зелёный/синий • R — сброс
     </div>
   </div>
 
@@ -77,32 +69,31 @@
     const overlay = document.getElementById('overlay');
     const playBtn = document.getElementById('playBtn');
 
-    // ПАРАМЕТРЫ ХРОМАКЕЯ (можно править)
+    // Параметры: бережно к цвету, минимальный despill
     const cssBg = getComputedStyle(document.documentElement).getPropertyValue('--key-bg').trim() || '#0c0d10';
-    function hexToRGB(h){ const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h); return m ? [parseInt(m[1],16)/255, parseInt(m[2],16)/255, parseInt(m[3],16)/255] : [0,0,0]; }
+    function hexToRGB(h){ const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h); return m?[parseInt(m[1],16)/255,parseInt(m[2],16)/255,parseInt(m[3],16)/255]:[0,0,0]; }
     const bgRGB = hexToRGB(cssBg);
 
     const params = {
-      keyRGB: [0.05, 0.95, 0.05], // зелёный
-      thresh: 0.22,               // порог
-      soft:   0.10,               // мягкость
-      despill:0.50,               // убираем зелёный ореол
-      fillMode: 0                 // 0 = прозрачность, 1 = заливка цветом (--key-bg)
+      keyRGB: [0.05, 0.95, 0.05], // зелёный ключ
+      thresh: 0.22,
+      soft:   0.10,
+      despill:0.30,               // помягче, чтобы не «высасывал» цвета
+      fillMode: 0                 // 0 — прозрачность, 1 — заливка цветом (--key-bg)
     };
 
-    // Автовоспроизведение
     async function ensurePlay(){
-      try{ await video.play(); }
-      catch(e){ overlay.classList.add('show'); }
+      try{ await video.play(); } catch(e){ overlay.classList.add('show'); }
     }
-    playBtn.addEventListener('click', async () => {
-      overlay.classList.remove('show');
-      try{ await video.play(); }catch(e){}
-    });
+    playBtn.addEventListener('click', async ()=>{ overlay.classList.remove('show'); try{ await video.play(); }catch(e){} });
 
     function initGL(){
       const gl = canvas.getContext('webgl', {alpha:true, premultipliedAlpha:true, antialias:false});
       if(!gl) return null;
+
+      // === ВАЖНО: фиксы качества/переворота ===
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);                // исправляет «вверх ногами»
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE); // без скрытой конверсии цветов
 
       const vert = `
         attribute vec2 a_pos; varying vec2 v_uv; uniform vec2 u_scale;
@@ -117,33 +108,29 @@
         uniform int   u_useBg;     // 0 — прозрачность, 1 — заливка цветом
         uniform vec3  u_bgRGB;
 
+        // дистанцию считаем в «псевдолинейном» RGB (устойчивей к яркости)
         vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
-        vec3 toSRGB(vec3 c){ return pow(c, vec3(1.0/2.2)); }
-
         float colorDist(vec3 a, vec3 b){
           vec3 da = toLin(a), db = toLin(b);
-          return length(da - db); // 0..sqrt(3)
+          return length(da - db);
         }
 
         void main(){
           vec4 tex = texture2D(u_tex, v_uv);
-          float d = colorDist(tex.rgb, u_keyRGB);
-          float nd = d / 1.7320508;                 // нормируем к [0..1]
+          float nd = colorDist(tex.rgb, u_keyRGB) / 1.7320508; // 0..1
           float a = smoothstep(u_thresh, u_thresh + u_soft, nd);
 
-          // despill: притягиваем G к максимуму R/B в приграничной зоне
+          // мягкий despill — только по «зелёному», и только у края
           float spill = 1.0 - smoothstep(u_thresh, u_thresh + u_soft, nd);
           vec3 col = tex.rgb;
           float maxRB = max(col.r, col.b);
           col.g = mix(col.g, maxRB, u_despill * spill);
 
           if(u_useBg == 1){
-            // заливаем «дырку» цветом фона: итог всегда непрозрачный
             vec3 outCol = mix(u_bgRGB, col, a);
             gl_FragColor = vec4(outCol, 1.0);
           } else {
-            // прозрачность: отдаём премультиплированно
-            gl_FragColor = vec4(col * a, a);
+            gl_FragColor = vec4(col * a, a); // премультиплированная альфа
           }
         }
       `;
@@ -154,10 +141,12 @@
       const program = prog(sh(gl.VERTEX_SHADER,vert), sh(gl.FRAGMENT_SHADER,frag));
       gl.useProgram(program);
 
+      // Квад
       const quad = new Float32Array([-1,-1, 1,-1, -1,1, 1,-1, 1,1, -1,1]);
       const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
       const locPos = gl.getAttribLocation(program,'a_pos'); gl.enableVertexAttribArray(locPos); gl.vertexAttribPointer(locPos,2,gl.FLOAT,false,0,0);
 
+      // Юниформы
       const uTex=gl.getUniformLocation(program,'u_tex');
       const uScale=gl.getUniformLocation(program,'u_scale');
       const uKey=gl.getUniformLocation(program,'u_keyRGB');
@@ -167,6 +156,7 @@
       const uUse=gl.getUniformLocation(program,'u_useBg');
       const uBg=gl.getUniformLocation(program,'u_bgRGB');
 
+      // Текстура
       const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -174,16 +164,16 @@
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
       function resize(){
-        const dpr = Math.min(window.devicePixelRatio||1, 2);
-        const w = Math.floor(canvas.clientWidth*dpr);
-        const h = Math.floor(canvas.clientHeight*dpr);
-        if(canvas.width!==w||canvas.height!==h){ canvas.width=w; canvas.height=h; }
+        const dpr = Math.min(Math.max(window.devicePixelRatio||1,1), 3); // до 3х DPI — чётче, без дикого веса
+        const w = Math.floor(canvas.clientWidth * dpr);
+        const h = Math.floor(canvas.clientHeight * dpr);
+        if(canvas.width!==w || canvas.height!==h){ canvas.width=w; canvas.height=h; }
         gl.viewport(0,0,canvas.width,canvas.height);
-        // fit-contain
+
+        // fit-contain (без геометрических искажений)
         const vw = video.videoWidth||16, vh = video.videoHeight||9;
         const vidR = vw/vh, canR = canvas.width/canvas.height;
-        let sx=1, sy=1;
-        if(vidR>canR) sy = canR/vidR; else sx = vidR/canR;
+        let sx=1, sy=1; if(vidR>canR) sy=canR/vidR; else sx=vidR/canR;
         gl.uniform2f(uScale, sx, sy);
       }
       window.addEventListener('resize', resize);
@@ -209,7 +199,7 @@
 
       resize();
       requestAnimationFrame(draw);
-      return { gl, program, uniforms:{uKey,uTh,uSoft,uDes,uUse,uBg} };
+      return { gl };
     }
 
     (async function start(){
@@ -222,11 +212,11 @@
       const api = initGL();
       if(!api){
         overlay.classList.add('show');
-        alert('WebGL недоступен: показать хромакей без WebGL не получится.'); 
+        alert('WebGL недоступен — хромакей в браузере не запустится.');
         return;
       }
 
-      // Горячие клавиши тюнинга
+      // Горячие клавиши для тонкой настройки
       window.addEventListener('keydown', (e)=>{
         const s=0.01;
         if(e.key==='['){ params.thresh=Math.max(0, params.thresh-s); }
@@ -235,9 +225,12 @@
         if(e.key==="'"){ params.soft  =Math.min(1, params.soft+s); }
         if(e.key===','){ params.despill=Math.max(0, params.despill-s); }
         if(e.key==='.') { params.despill=Math.min(1, params.despill+s); }
-        if(e.key.toLowerCase()==='p'){ params.fillMode^=1; } // прозрачность <-> заливка
-        if(e.key==='1'){ params.keyRGB=[0.05,0.95,0.05]; }  // зелёный
-        if(e.key==='2'){ params.keyRGB=[0.10,0.20,0.90]; }  // синий
+        if(e.key.toLowerCase()==='p'){ params.fillMode^=1; }      // прозрачность ↔ заливка цветом
+        if(e.key==='1'){ params.keyRGB=[0.05,0.95,0.05]; }        // пресет: зелёный
+        if(e.key==='2'){ params.keyRGB=[0.10,0.20,0.90]; }        // пресет: синий
+        if(e.key.toLowerCase()==='r'){ // reset
+          params.thresh=0.22; params.soft=0.10; params.despill=0.30; params.keyRGB=[0.05,0.95,0.05];
+        }
       });
     })();
   })();
