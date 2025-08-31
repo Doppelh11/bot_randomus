@@ -47,11 +47,8 @@
       object-fit:contain; transform-style:preserve-3d; backface-visibility:hidden;
       will-change:transform,opacity,filter; opacity:0;
     }
-
-    /* Финальное видео */
     .veo{
-      pointer-events:none;
-      width:100%; height:100%;
+      pointer-events:none; width:100%; height:100%;
       object-fit:cover; object-position:50% 50%;
       opacity:0; will-change:opacity;
     }
@@ -62,83 +59,69 @@
       max-width:760px; width:100%; margin-inline:auto;
     }
 
-    /* ===== CTR-бар (слот-машина) ===== */
-    .ctr{
-      width:100%;
-      margin-bottom:14px;
-      padding:10px 12px; border-radius:12px;
-      background:rgba(11,13,20,.12);
-      outline:1px solid #ffffff22;
-      backdrop-filter: blur(6px);
-      filter: drop-shadow(0 6px 16px rgba(0,0,0,.35));
-    }
-    .ctr-row{
-      display:flex; align-items:baseline; gap:10px; justify-content:flex-start;
-    }
-    .ctr-label{
-      font:600 12px/1.1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      letter-spacing:.12em; text-transform:uppercase; opacity:.85;
-      padding:4px 6px; border-radius:6px; background:rgba(255,255,255,.06); border:1px solid #ffffff1f;
-    }
+    /* ===== CTR-бар (только цифры, без рамок/фонов) ===== */
+    .ctr{ width:100%; margin-bottom:12px; display:flex; justify-content:center }
     .slots{
       display:flex; align-items:baseline; gap:2px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-weight:800; letter-spacing:-0.015em;
       font-variant-numeric: tabular-nums;
-      font-size: clamp(24px, 4.2vw, 44px);
-      line-height:1;
-      transform-origin:left center;
+      font-size: clamp(28px, 4.6vw, 56px);
+      line-height:1; transform-origin:center center;
+      color:var(--fg);
+      /* никаких фонов/рамок/теней — только цифры */
     }
     .col{
-      --slot-h: 1em; /* вычислим точно в JS; резерв тут чтобы не дёргало */
-      height:1em; width:0.75ch; overflow:hidden; position:relative; border-radius:4px;
-      background:rgba(255,255,255,.03);
-      outline:1px solid #ffffff12;
+      --slot-h: 1em;
+      height:1em; width:0.75ch; overflow:hidden; position:relative;
     }
-    .reel{
-      position:absolute; left:0; top:0; will-change:transform;
-      display:flex; flex-direction:column;
-    }
-    .reel span{
-      display:block; height:1em; line-height:1;
-      text-align:center; padding:0 .02ch;
-    }
-    .dot{ opacity:.9; margin:0 2px }
-    .pct{ opacity:.85; font-size:.85em; margin-left:2px }
+    .reel{ position:absolute; left:0; top:0; will-change:transform; display:flex; flex-direction:column; }
+    .reel span{ display:block; height:1em; line-height:1; text-align:center; }
 
-    .hint{ text-align:center; color:#a7aab8; margin-top:22px; font-size:13px; opacity:.75 }
+    .dot{ opacity:.95; margin:0 2px }
+    .pct{ opacity:.95; font-size:.85em; margin-left:2px }
+
+    /* Градиент+shine для финала — включается классом .celebrate (снимается автоматически) */
+    .slots.celebrate{ filter: drop-shadow(0 0 24px rgba(140,200,255,.35)); }
+    .slots.celebrate .reel span{
+      background: linear-gradient(90deg, #9ad6ff 0%, #ffffff 35%, #9bb8ff 100%);
+      background-size: 200% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shine 1.15s ease-out 1;
+    }
+    @keyframes shine{
+      0%   { background-position: 0% 50%; }
+      100% { background-position: 120% 50%; }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <section class="hero" id="hero">
-      <!-- Левая колонка: CTR (над сценой) + сцена -->
+      <!-- Левая колонка: CTR над сценой + сцена -->
       <div class="visual">
-        <!-- CTR-бар -->
-        <div class="ctr" id="ctr">
-          <div class="ctr-row">
-            <span class="ctr-label">CTR</span>
-            <div class="slots" id="slots">
-              <div class="col">
-                <div class="reel" id="ones"></div>
-              </div>
-              <span class="dot">.</span>
-              <div class="col">
-                <div class="reel" id="tenths"></div>
-              </div>
-              <span class="pct">%</span>
-            </div>
+        <!-- CTR (только цифры) -->
+        <div class="ctr">
+          <div class="slots" id="slots" aria-label="CTR">
+            <div class="col"><div class="reel" id="ones"></div></div>
+            <span class="dot">.</span>
+            <div class="col"><div class="reel" id="tenths"></div></div>
+            <span class="pct">%</span>
           </div>
         </div>
 
-        <!-- Сцена (как у тебя) -->
+        <!-- Сцена (без изменений) -->
         <div class="stage" id="stage" aria-hidden="true">
+          <!-- База -->
           <img class="layer device" src="assets/step1.png" alt="tablet frame">
+          <!-- 5 экранных слоёв -->
           <img class="layer s1" src="assets/step2.png" alt="">
           <img class="layer s2" src="assets/step3.png" alt="">
           <img class="layer s3" src="assets/step4.png" alt="">
           <img class="layer s4" src="assets/step5.png" alt="">
           <img class="layer s5" src="assets/step6.png" alt="">
+          <!-- Видео -->
           <video class="layer veo" id="veo" muted playsinline preload="auto" poster="assets/step6.png">
             <source src="assets/veo.webm#t=0.001" type="video/webm">
             <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
@@ -146,10 +129,10 @@
         </div>
       </div>
 
-      <!-- Правая колонка — информация -->
+      <!-- Правая колонка — как было -->
       <div class="copy">
         <h1>Сборка карточки → финальное видео</h1>
-        <p>CTR растёт по шагам сборки. В финале — лайтовый «слот-стоп» и пульс.</p>
+        <p>Число CTR растёт по шагам. Финальные 4.5% появляются уже во время видео (примерно на середине) с коротким эффектом.</p>
         <button class="btn" id="replay">Повторить</button>
         <div class="hint">Файлы: <code>assets/step1.png…step6.png</code>, <code>veo.webm</code> (+опц. <code>veo.mp4</code>).</div>
       </div>
@@ -161,7 +144,6 @@
   <script>
   (() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
     const replayBtn = document.getElementById('replay');
     const heroEl  = document.getElementById('hero');
     const stageEl = document.getElementById('stage');
@@ -172,60 +154,50 @@
     const onesReel   = document.getElementById('ones');
     const tenthsReel = document.getElementById('tenths');
     const slotsBox   = document.getElementById('slots');
-    const DIGITS_LOOP = 8;       // запас для прокрутки
+    const DIGITS_LOOP = 8;
     const ctrPoints = [1.9, 2.3, 2.6, 3.3, 3.6, 4.5]; // start + 5 шагов
-    const onesSeq   = ctrPoints.map(v => Math.floor(v));                // [1,2,2,3,3,4]
-    const tenthsSeq = ctrPoints.map(v => Math.round((v % 1)*10));       // [9,3,6,3,6,5]
+    const onesSeq   = ctrPoints.map(v => Math.floor(v));          // [1,2,2,3,3,4]
+    const tenthsSeq = ctrPoints.map(v => Math.round((v%1)*10));   // [9,3,6,3,6,5]
     let lineH = 0;
 
     function buildReel(el){
       const frag = document.createDocumentFragment();
       for (let k=0;k<DIGITS_LOOP;k++){
-        for (let d=0; d<=9; d++){
-          const s = document.createElement('span');
-          s.textContent = d;
-          frag.appendChild(s);
+        for (let d=0;d<=9;d++){
+          const s=document.createElement('span'); s.textContent=d; frag.appendChild(s);
         }
       }
-      el.innerHTML = '';
-      el.appendChild(frag);
+      el.innerHTML=''; el.appendChild(frag);
     }
     function measureLineHeight(){
       const any = onesReel.querySelector('span') || tenthsReel.querySelector('span');
       lineH = any ? any.getBoundingClientRect().height : 0;
-      // фиксируем CSS-переменную высоты, если понадобится
-      document.querySelectorAll('.col').forEach(c => c.style.setProperty('--slot-h', lineH+'px'));
     }
     function setIndex(el, index, immediate=false){
       const y = -index * lineH;
-      if (immediate){
-        gsap.set(el, { y });
-      } else {
-        gsap.to(el, { y, duration:0.5, ease:'power2.out' });
-      }
+      if (immediate) gsap.set(el, { y }); else gsap.to(el, { y, duration:0.5, ease:'power2.out' });
     }
-    // плавная прокрутка к индексу с «слот-стопом»
-    function spinTo(el, fromIndex, toIndex, dur=0.5, ease='power3.out'){
-      const over = 0.18 * lineH; // небольшой овершут по пикселям
+    function spinTo(el, toIndex, dur=0.5, ease='power3.out'){
+      const over = 0.18 * lineH;
       const y1 = -toIndex * lineH - over;
       const y2 = -toIndex * lineH;
       const tl = gsap.timeline();
-      tl.to(el, { y: y1, duration: dur*0.75, ease })
-        .to(el, { y: y2, duration: dur*0.25, ease:'power2.out' });
+      tl.to(el, { y:y1, duration:dur*0.75, ease })
+        .to(el, { y:y2, duration:dur*0.25, ease:'power2.out' });
       return tl;
     }
 
     /* ---------- ассеты ---------- */
     const preloadImages = (srcs) => Promise.all(srcs.map(s => new Promise(res => {
-      const im = new Image(); im.onload = im.onerror = () => res(); im.src = s;
+      const im=new Image(); im.onload=im.onerror=()=>res(); im.src=s;
     })));
     const preloadVideo = (v) => new Promise(res => {
       if (!v) return res();
       const ready = () => { v.removeEventListener('canplaythrough', ready); v.removeEventListener('loadeddata', ready); res(); };
-      if (v.readyState >= 3) return res();
+      if (v.readyState>=3) return res();
       v.addEventListener('canplaythrough', ready, { once:true });
       v.addEventListener('loadeddata', ready, { once:true });
-      try { v.load(); } catch(e) {}
+      try{ v.load(); }catch(e){}
     });
 
     /* ---------- таймлайн сцены + привязка CTR ---------- */
@@ -240,21 +212,23 @@
       // 0) планшет
       tl.to('.device', { opacity:1, yPercent:0, scale:1, rotateZ:0, filter:'blur(0px)', duration:0.55, ease:'back.out(1.6)' });
 
-      // 1–5) экранные слои + CTR шаги
-      ['.s1','.s2','.s3','.s4','.s5'].forEach((sel, i) => {
-        tl.to(sel, { opacity:1, yPercent:0, rotateX:0, rotateZ:0, scale:1, duration:0.42, ease:'back.out(1.4)' }, i===0 ? '-=0.15' : '-=0.10')
-          .to(sel, { scale:1.01, duration:0.10 })
-          .to(sel, { scale:1.00, duration:0.12 }, '-=0.05');
+      // 1–5) экранные слои; CTR крутим ТОЛЬКО до 3.6 (последнее изменение на s4)
+      const sels=['.s1','.s2','.s3','.s4','.s5'];
+      sels.forEach((sel,i)=>{
+        tl.to(sel,{ opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)' }, i===0?'-=0.15':'-=0.10')
+          .to(sel,{ scale:1.01,duration:0.10 })
+          .to(sel,{ scale:1.00,duration:0.12 },'-=0.05');
 
-        // слот-спин к следующей цифре (целая → десятая с небольшой задержкой)
-        const stepIdx = i+1;
-        const onesTargetIndex   = stepIdx*10 + onesSeq[stepIdx];   // +10 за каждый шаг
-        const tenthsTargetIndex = stepIdx*10 + tenthsSeq[stepIdx];
-
-        const label = `ctr_${stepIdx}`;
-        tl.add(label, ">-0.02");
-        tl.add(spinTo(onesReel, null,   onesTargetIndex, 0.5, 'power3.out'), label);
-        tl.add(spinTo(tenthsReel, null, tenthsTargetIndex, 0.5, 'power3.out'), `${label}+=0.06`);
+        // spin по шагам 1..4 (к индексам i+1); шаг 5 пропускаем — финал будет во время видео
+        if (i < ctrPoints.length - 2) {
+          const stepIdx=i+1;
+          const onesTargetIdx   = stepIdx*10 + onesSeq[stepIdx];
+          const tenthsTargetIdx = stepIdx*10 + tenthsSeq[stepIdx];
+          const label=`ctr_${stepIdx}`;
+          tl.add(label, '>-0.02');
+          tl.add(spinTo(onesReel,   onesTargetIdx,   0.5, 'power3.out'), label);
+          tl.add(spinTo(tenthsReel, tenthsTargetIdx, 0.5, 'power3.out'), `${label}+=0.06`);
+        }
       });
 
       // Подсвет сцены
@@ -263,77 +237,118 @@
         { filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))', duration:0.45 }, '-=0.2'
       );
 
-      // Переключение на видео
+      // Видео
       tl.add('switchToVideo');
       tl.call(() => {
-        try { video.currentTime = 0; } catch(e) {}
-        const p = video.play?.(); if (p && p.catch) p.catch(()=>{});
+        try{ video.currentTime = 0; }catch(e){}
+        const p=video.play?.(); if(p && p.catch) p.catch(()=>{});
       }, null, 'switchToVideo');
       tl.to('.veo', { opacity:1, duration:0.5 }, 'switchToVideo');
       tl.to(['.device','.s1','.s2','.s3','.s4','.s5'], { opacity:0, duration:0.5 }, 'switchToVideo');
 
-      // Финальный «слот-стоп» к 4.5 с небольшой задержкой + пульс
-      tl.add('ctrFinal', 'switchToVideo+=0.18');
-      const finalOnesIdx   = 5*10 + onesSeq[5];   // шаг 5
-      const finalTenthsIdx = 5*10 + tenthsSeq[5];
-      tl.add(spinTo(onesReel, null, finalOnesIdx,   0.55, 'power3.out'),   'ctrFinal');
-      tl.add(spinTo(tenthsReel, null, finalTenthsIdx, 0.55, 'power3.out'), 'ctrFinal+=0.08');
-      tl.fromTo('#slots', { scale:1 }, { scale:1.06, duration:0.10, ease:'power3.out' }, 'ctrFinal+=0.30')
-        .to('#slots', { scale:1.00, duration:0.18, ease:'power3.out' }, '>');
       return tl;
+    }
+
+    /* ---------- финальный апдейт до 4.5 в середине видео ---------- */
+    function scheduleFinalDuringVideo(){
+      let fired=false;
+      const doFinal=()=> {
+        if (fired) return; fired=true;
+        const finalOnesIdx   = 5*10 + Math.floor(ctrPoints[5]);          // 4
+        const finalTenthsIdx = 5*10 + Math.round((ctrPoints[5]%1)*10);   // 5
+        const tl = gsap.timeline();
+        tl.add(spinTo(onesReel,   finalOnesIdx,   0.55, 'power3.out'))
+          .add(spinTo(tenthsReel, finalTenthsIdx, 0.55, 'power3.out'), '+=0.08')
+          .fromTo('#slots', { scale:1 }, { scale:1.08, duration:0.12, ease:'power3.out' }, '-=0.10')
+          .to('#slots', { scale:1.00, duration:0.18, ease:'power3.out' }, '>');
+        // градиентный shine
+        slotsBox.classList.add('celebrate');
+        setTimeout(()=> slotsBox.classList.remove('celebrate'), 1300);
+      };
+
+      // когда узнаем длительность — запускаем триггер на середину
+      if (!isFinite(video.duration) || video.duration === 0) {
+        // fallback: если нет метаданных, запустим через ~0.7с после старта
+        setTimeout(doFinal, 700);
+        return;
+      }
+      const mid = video.duration * 0.5;
+      const onTime = () => {
+        if (video.currentTime >= mid) {
+          video.removeEventListener('timeupdate', onTime);
+          doFinal();
+        }
+      };
+      video.addEventListener('timeupdate', onTime);
     }
 
     /* ---------- init ---------- */
     async function init(){
       // собрать барабаны
-      buildReel(onesReel);
-      buildReel(tenthsReel);
-      // измерить высоту строки (после вставки)
-      requestAnimationFrame(() => {
+      buildReel(onesReel); buildReel(tenthsReel);
+      requestAnimationFrame(()=>{
         measureLineHeight();
-        // старт 1.9 — установить индексы мгновенно
-        const startOnesIdx   = 0*10 + onesSeq[0];   // 1
-        const startTenthsIdx = 0*10 + tenthsSeq[0]; // 9
+        // старт 1.9 мгновенно
+        const startOnesIdx   = 0*10 + Math.floor(ctrPoints[0]);           // 1
+        const startTenthsIdx = 0*10 + Math.round((ctrPoints[0]%1)*10);    // 9
         setIndex(onesReel,   startOnesIdx,   true);
         setIndex(tenthsReel, startTenthsIdx, true);
       });
 
       if (prefersReduced){
+        // Без анимации: сразу показываем финал
         gsap.set(layers, { opacity:0, clearProps:'transform,filter' });
         gsap.set('.veo', { opacity:1 });
+        // финальное 4.5
+        requestAnimationFrame(()=>{
+          const finalOnesIdx   = 5*10 + Math.floor(ctrPoints[5]);
+          const finalTenthsIdx = 5*10 + Math.round((ctrPoints[5]%1)*10);
+          setIndex(onesReel, finalOnesIdx, true);
+          setIndex(tenthsReel, finalTenthsIdx, true);
+        });
         return;
       }
 
+      // предзагрузка ассетов
       await preloadImages(['assets/step1.png','assets/step2.png','assets/step3.png','assets/step4.png','assets/step5.png','assets/step6.png']);
       await preloadVideo(video);
 
       const tl = buildTimeline();
 
+      // как только знаем метаданные — ставим триггер на середину
+      if (video.readyState >= 1) scheduleFinalDuringVideo();
+      else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
+
       // Повтор
       const restart = () => {
-        try { video.pause(); video.currentTime = 0; } catch(e){}
-
+        try{ video.pause(); video.currentTime = 0; }catch(e){}
         // сброс на 1.9
-        const startOnesIdx   = 0*10 + onesSeq[0];
-        const startTenthsIdx = 0*10 + tenthsSeq[0];
+        const startOnesIdx   = 0*10 + Math.floor(ctrPoints[0]);
+        const startTenthsIdx = 0*10 + Math.round((ctrPoints[0]%1)*10);
         gsap.set(onesReel,   { y: -startOnesIdx   * lineH });
         gsap.set(tenthsReel, { y: -startTenthsIdx * lineH });
-
+        slotsBox.classList.remove('celebrate');
         tl.restart();
+        // пересоздать триггер середины
+        if (video.readyState >= 1) scheduleFinalDuringVideo();
+        else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
       };
       replayBtn.addEventListener('click', restart);
 
       // Hover-replay видео (как было): только когда ролик ДОИГРАЛ
-      let ended = false;
-      video.addEventListener('ended', () => { ended = true; });
-      stageEl.addEventListener('mouseenter', () => {
+      let ended=false;
+      video.addEventListener('ended', ()=>{ ended=true; });
+      stageEl.addEventListener('mouseenter', ()=>{
         if (!ended) return;
-        try { video.currentTime = 0; } catch(e){}
-        const p = video.play?.(); if (p && p.catch) p.catch(()=>{});
-        ended = false;
+        try{ video.currentTime = 0; }catch(e){}
+        const p=video.play?.(); if(p && p.catch) p.catch(()=>{});
+        ended=false;
+        // заново запланировать финал на середину
+        if (video.readyState >= 1) scheduleFinalDuringVideo();
+        else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
       });
 
-      // Автоповтор при входе в вьюпорт
+      // Автостарт при входе в вьюпорт
       const io = new IntersectionObserver((entries) => {
         entries.forEach(e => e.isIntersecting && restart());
       }, { threshold:0.4 });
@@ -344,16 +359,14 @@
       window.addEventListener('resize', () => {
         cancelAnimationFrame(rid);
         rid = requestAnimationFrame(() => {
-          const prevH = lineH;
-          measureLineHeight();
-          if (!prevH || prevH === lineH) return;
-          // пересчитать текущие индексы из текущего Y
-          const curY1 = gsap.getProperty(onesReel, 'y');
-          const curY2 = gsap.getProperty(tenthsReel, 'y');
-          const idx1 = Math.round(-curY1 / prevH);
-          const idx2 = Math.round(-curY2 / prevH);
-          gsap.set(onesReel,   { y: -idx1 * lineH });
-          gsap.set(tenthsReel, { y: -idx2 * lineH });
+          const prevH=lineH; measureLineHeight();
+          if (!prevH || prevH===lineH) return;
+          const curY1 = gsap.getProperty(onesReel,'y');
+          const curY2 = gsap.getProperty(tenthsReel,'y');
+          const idx1 = Math.round(-curY1/prevH);
+          const idx2 = Math.round(-curY2/prevH);
+          gsap.set(onesReel,   { y: -idx1*lineH });
+          gsap.set(tenthsReel, { y: -idx2*lineH });
         });
       });
     }
