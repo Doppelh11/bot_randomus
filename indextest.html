@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Hero-анимация — живой финал (WebM+MP4)</title>
+  <title>Hero-анимация — живой финал (WebM+MP4, белый фон)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{ --bg:#0c0d10; --fg:#fff; --muted:#b5b6bf; --maxw:1200px; }
@@ -36,9 +36,9 @@
     /* ===== Stage ===== */
     .stage{
       position:relative; width:100%; max-width:760px;
-      /* твоя базовая геометрия (2048x1828) */
+      /* базовая геометрия исходников (2048x1828) */
       aspect-ratio: 2048 / 1828;
-      margin-inline:auto; isolation:isolate;
+      margin-inline:auto; isolation:isolate; /* важно для корректного blend внутри сцены */
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
       perspective:1200px; contain:layout paint;
     }
@@ -48,14 +48,14 @@
       will-change:transform,opacity,filter; opacity:0;
     }
 
-    /* Видео-слой: маска PNG (если есть), иначе — режим screen */
+    /* Видео-слой: сначала пробуем маску PNG; если её нет — включим multiply */
     .layer.veo{
       opacity:0; pointer-events:none;
       /* тонкая подгонка, если видео не 2048×1828 */
       --vx:0px; --vy:0px; --vscale:1;
       transform: translate(var(--vx), var(--vy)) scale(var(--vscale));
 
-      /* маска экрана (assets/screen-mask.png: экран белым, остальное чёрным) */
+      /* маска экрана (assets/screen-mask.png: экран белым/непрозрачным) */
       -webkit-mask-image: url(assets/screen-mask.png);
       mask-image: url(assets/screen-mask.png);
       -webkit-mask-size: contain;  mask-size: contain;
@@ -63,7 +63,12 @@
       -webkit-mask-position: center;  mask-position: center;
     }
     .layer.veo.nomask{ -webkit-mask:none; mask:none; }
-    .layer.veo.screen{ mix-blend-mode: screen; opacity:.98; } /* быстрый ключ чёрного */
+
+    /* Fallback для БЕЛОГО фона видео: делаем белое «прозрачным» */
+    .layer.veo.multiply{ mix-blend-mode: multiply; opacity:.98; }
+
+    /* (на всякий случай оставлю для чёрного фона) */
+    .layer.veo.screen{ mix-blend-mode: screen; opacity:.98; }
 
     .hint{ text-align:center; color:#a7aab8; margin-top:22px; font-size:13px; opacity:.75 }
   </style>
@@ -83,7 +88,7 @@
         <img class="layer s5" src="assets/step6.png" alt="">
         <img class="layer s6" src="assets/step7.png" alt="">
 
-        <!-- Живой финал: два источника (WebM сначала, затем MP4) -->
+        <!-- Живой финал: два источника (WebM → MP4) -->
         <video
           class="layer veo" id="veo"
           playsinline muted loop preload="auto"
@@ -96,11 +101,11 @@
 
       <div class="copy">
         <h1>Анимация «сборки» + WebM/MP4</h1>
-        <p>В финале — крестфейд в ролик внутри экрана. Маска вырезает чёрный фон.</p>
+        <p>Финал — крестфейд в ролик внутри экрана. Маска или multiply убирают белый фон.</p>
         <button class="btn" id="replay">Повторить анимацию</button>
         <div class="hint">
-          <b>Опционально:</b> положи <code>assets/screen-mask.png</code> (2048×1828, экран белый).<br>
-          Если маски нет — автоматически включится режим <code>screen</code>.
+          <b>Рекомендуется:</b> <code>assets/screen-mask.png</code> (2048×1828, экран белым/непрозрачным).<br>
+          Если маски нет — автоматически включится <code>mix-blend-mode: multiply</code>.
         </div>
       </div>
     </section>
@@ -120,6 +125,95 @@
       const im = new Image(); im.onload = im.onerror = () => res(); im.src = s;
     })));
 
-    // Если маски нет (404), отключаем mask и включаем mix-blend: screen
+    // Проверяем маску: если 404 — выключаем mask и включаем multiply (для белого фона)
     function ensureMaskOrFallback(){
-      return new Prom
+      return new Promise((res) => {
+        const test = new Image();
+        test.onload = () => res(true);
+        test.onerror = () => {
+          video.classList.add('nomask','multiply'); // белый фон → multiply
+          res(false);
+        };
+        test.src = 'assets/screen-mask.png';
+      });
+    }
+
+    function buildTimeline(){
+      const tl = gsap.timeline({ defaults:{ ease:'power3.out' } });
+
+      // стартовые состояния
+      gsap.set('.device', { opacity:0, yPercent:4, scale:0.985, rotateZ:-1, filter:'blur(6px)' });
+      gsap.set(['.s1','.s2','.s3','.s4','.s5','.s6'], { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
+
+      // 0) планшет «приземляется»
+      tl.to('.device', { opacity:1, yPercent:0, scale:1, rotateZ:0, filter:'blur(0px)', duration:0.55, ease:'back.out(1.6)' });
+
+      // 1–6) экранные слои
+      ['.s1','.s2','.s3','.s4','.s5','.s6'].forEach((sel, i) => {
+        tl.to(sel, { opacity:1, yPercent:0, rotateX:0, rotateZ:0, scale:1, duration:0.42, ease:'back.out(1.4)' }, i===0 ? '-=0.15' : '-=0.10')
+          .to(sel, { scale:1.01, duration:0.10 })
+          .to(sel, { scale:1.00, duration:0.12 }, '-=0.05');
+      });
+
+      // финальный «подсвет»
+      tl.fromTo('#stage',
+        { filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))' },
+        { filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))', duration:0.45 }, '-=0.2'
+      );
+
+      // === ЖИВОЙ ФИНАЛ: крестфейд PNG → VIDEO (гасим все s1…s6) ===
+      tl.add('videoReveal', '-=0.05')
+        .call(() => { if (video){ try { video.currentTime = 0; video.play(); } catch(e) {} } }, null, 'videoReveal')
+        .to(['.s1','.s2','.s3','.s4','.s5','.s6'], { opacity:0, duration:0.28, ease:'power2.out' }, 'videoReveal+=0.05')
+        .to('#veo', { opacity:1, duration:0.35, ease:'power2.out' }, 'videoReveal+=0.05');
+
+      // лёгкое «дыхание» сцены
+      gsap.to('#stage', { yPercent:-0.3, rotateZ:0.15, duration:2.2, ease:'sine.inOut', yoyo:true, repeat:-1 });
+
+      // едва заметный зум у видео
+      gsap.to('#veo', { scale:1.003, transformOrigin:'50% 50%', duration:3.4, ease:'sine.inOut', yoyo:true, repeat:-1 });
+
+      return tl;
+    }
+
+    async function init(){
+      if (prefersReduced){
+        gsap.set(layers, { opacity:0, clearProps:'transform,filter' });
+        gsap.set('.device, .s6', { opacity:1 });
+        if (video) video.remove();
+        replayBtn.style.display = 'none';
+        return;
+      }
+
+      await preload(layers.map(l => l.currentSrc || l.src));
+      await ensureMaskOrFallback();
+
+      // автоплей (чаще разрешён с muted)
+      try { await video.play(); } catch (e) {}
+
+      const tl = buildTimeline();
+
+      replayBtn.addEventListener('click', () => {
+        if (video){ try { video.currentTime = 0; video.play(); } catch(e) {} }
+        tl.restart();
+      });
+
+      // Перезапуск при видимости
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting){
+            if (video){ try { video.currentTime = 0; video.play(); } catch(err){} }
+            tl.restart();
+          } else {
+            if (video){ try { video.pause(); } catch(err){} }
+          }
+        });
+      }, { threshold:0.4 });
+      io.observe(document.getElementById('hero'));
+    }
+
+    init();
+  })();
+  </script>
+</body>
+</html>
