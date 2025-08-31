@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Сборка карточки → финальное видео (без дубля + hover replay + 3D tilt)</title>
+  <meta name="color-scheme" content="light dark" />
+  <style>
+    :root{ --fg:#fff; --muted:#b5b6bf; --maxw:1200px; }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--fg);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+      background:radial-gradient(1200px 900px at 20% 20%, #171924 0, #0f1118 50%, #0c0d10 100%);
+    }
+    .wrap{max-width:var(--maxw); margin:auto; padding:clamp(20px,4vw,64px)}
+    .hero{
+      display:grid; grid-template-columns:1.1fr 0.9fr; align-items:center;
+      gap:clamp(20px,5vw,80px); min-height:90svh;
+    }
+    @media (max-width:960px){
+      .hero{grid-template-columns:1fr; min-height:auto}
+      .copy{text-align:center; order:-1}
+    }
+    .copy h1{margin:0 0 .4em; line-height:1.05; font-weight:800; font-size:clamp(28px,6vw,62px); letter-spacing:-.02em}
+    .copy p{margin:0 0 1.25rem; color:var(--muted); font-size:clamp(16px,2.3vw,20px)}
+    .btn{
+      appearance:none; border:none; background:#ffffff10; color:#fff;
+      padding:12px 18px; border-radius:16px; font-weight:600; cursor:pointer;
+      backdrop-filter:blur(6px); transition:transform .15s ease, background .2s ease;
+    }
+    .btn:hover{transform:translateY(-1px); background:#ffffff18}
+
+    /* ===== Сцена ===== */
+    .stage{
+      position:relative; width:100%; max-width:760px;
+      aspect-ratio: 2048 / 1828;          /* точное соотношение PNG */
+      margin-inline:auto; isolation:isolate;
+      filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
+      perspective:1000px; contain:layout paint;
+      transform-style:preserve-3d;
+      will-change:transform;
+    }
+    .layer{
+      position:absolute; inset:0; width:100%; height:100%;
+      object-fit:contain; transform-style:preserve-3d; backface-visibility:hidden;
+      will-change:transform,opacity,filter; opacity:0;
+    }
+
+    /* Финальное видео: без искажений, можно кропать края при несовпадении пропорций */
+    .veo{
+      pointer-events:auto;               /* нужно для hover replay */
+      width:100%; height:100%;
+      object-fit:cover; object-position:50% 50%;
+      opacity:0; will-change:opacity;
+    }
+
+    /* Блик (дорогой sheen), поверх всего, но клики не перехватывает */
+    .sheen{
+      position:absolute; inset:0; pointer-events:none; opacity:0;
+      mix-blend-mode:screen;             /* мягкий свет */
+      background:
+        radial-gradient(120% 120% at var(--sx,50%) var(--sy,50%),
+          rgba(255,255,255,.22) 0, rgba(255,255,255,.08) 20%,
+          rgba(255,255,255,.02) 45%, rgba(255,255,255,0) 60%);
+      transition:opacity .25s ease;
+    }
+    .stage:hover .sheen{ opacity:.85 }
+
+    .hint{ text-align:center; color:#a7aab8; margin-top:22px; font-size:13px; opacity:.75 }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero" id="hero">
+      <div class="stage" id="stage" aria-hidden="true">
+        <!-- База: планшет -->
+        <img class="layer device" src="assets/step1.png" alt="tablet frame">
+
+        <!-- 6 экранных слоёв -->
+        <img class="layer s1" src="assets/step2.png" alt="">
+        <img class="layer s2" src="assets/step3.png" alt="">
+        <img class="layer s3" src="assets/step4.png" alt="">
+        <img class="layer s4" src="assets/step5.png" alt="">
+        <img class="layer s5" src="assets/step6.png" alt="">
+        <img class="layer s6" src="assets/step7.png" alt="">
+
+        <!-- Финальное видео (покажем строго после первого декодированного кадра) -->
+        <video class="layer veo" id="veo" muted playsinline preload="auto">
+          <source src="assets/veo.webm#t=0.001" type="video/webm">
+          <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
+        </video>
+
+        <!-- Блик для «дорогого» эффекта -->
+        <div class="sheen" id="sheen"></div>
+      </div>
+
+      <div class="copy">
+        <h1>Сборка карточки → финальное видео</h1>
+        <p>Без дубля кадров. Когда ролик доиграет — наведи курсор, и он начнётся снова. Плюс 3D-tilt с бликом.</p>
+        <button class="btn" id="replay">Повторить</button>
+        <div class="hint">Файлы в <code>assets/</code>: <code>step1.png…step7.png</code>, <code>veo.webm</code> (+опц. <code>veo.mp4</code>).</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- GSAP -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+  <script>
+  (() => {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const heroEl  = document.getElementById('hero');
+    const stage   = document.getElementById('stage');
+    const sheen   = document.getElementById('sheen');
+    const replayBtn = document.getElementById('replay');
+    const video   = document.getElementById('veo');
+    const imgLayers = ['.device','.s1','.s2','.s3','.s4','.s5','.s6'];
+
+    /* ---------- helpers: preload ---------- */
+    const preloadImages = (srcs) => Promise.all(srcs.map(s => new Promise(res => {
+      const im = new Image(); im.onload = im.onerror = () => res(); im.src = s;
+    })));
+
+    // гарантируем, что первый кадр доступен к показу (без poster)
+    function ensureFirstFrame(v){
+      return new Promise(res => {
+        const done = () => res();
+        if (v.readyState >= 2) return done(); // HAVE_CURRENT_DATA
+
+        const onLoaded = () => { v.removeEventListener('loadeddata', onLoaded); done(); };
+        v.addEventListener('loadeddata', onLoaded, { once:true });
+
+        try { v.load(); } catch(e){}
+        try { v.currentTime = 0.001; } catch(e){}
+      });
+    }
+
+    /* ---------- build animation ---------- */
+    function buildTimeline(){
+      const tl = gsap.timeline({ defaults:{ ease:'power3.out' } });
+
+      gsap.set('.device', { opacity:0, yPercent:4, scale:0.985, rotateZ:-1, filter:'blur(6px)' });
+      gsap.set(['.s1','.s2','.s3','.s4','.s5','.s6'], { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
+      gsap.set(video, { opacity:0 });
+
+      // 0) планшет
+      tl.to('.device', { opacity:1, yPercent:0, scale:1, rotateZ:0, filter:'blur(0px)', duration:0.55, ease:'back.out(1.6)' });
+
+      // 1–6) экранные слои
+      ['.s1','.s2','.s3','.s4','.s5','.s6'].forEach((sel, i) => {
+        tl.to(sel, { opacity:1, yPercent:0, rotateX:0, rotateZ:0, scale:1, duration:0.42, ease:'back.out(1.4)' }, i===0 ? '-=0.15' : '-=0.10')
+          .to(sel, { scale:1.01, duration:0.10 })
+          .to(sel, { scale:1.00, duration:0.12 }, '-=0.05');
+      });
+
+      // Подсвет сцены
+      tl.fromTo('#stage',
+        { filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))' },
+        { filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))', duration:0.45 }, '-=0.2'
+      );
+
+      // Финиш: мгновенная подмена без наложения
+      tl.add('swap');
+      tl.call(async () => {
+        // ждём, чтобы первый кадр был гарантирован (без постера)
+        await ensureFirstFrame(video);
+
+        // показать ВИДЕО и тут же скрыть PNG — в один тик
+        gsap.set(video, { opacity:1 });
+        gsap.set(imgLayers, { opacity:0 });
+
+        // запуск
+        const p = video.play?.();
+        if (p && p.catch) p.catch(()=>{ /* в маловероятном случае блокировки просто оставим первый кадр */ });
+      }, null, 'swap');
+
+      return tl;
+    }
+
+    /* ---------- hover replay when ended ---------- */
+    function setupHoverReplay(){
+      let ended = false;
+      video.addEventListener('ended', () => { ended = true; });
+      video.addEventListener('mouseenter', () => {
+        if (!ended) return;
+        try { video.currentTime = 0; } catch(e){}
+        const p = video.play?.(); if (p && p.catch) p.catch(()=>{});
+        ended = false;
+      });
+    }
+
+    /* ---------- «дорогой» 3D-tilt + sheen ---------- */
+    function setupLuxuryMotion(){
+      if (prefersReduced) return;
+
+      const maxRx = 7;   // max rotateX
+      const maxRy = 9;   // max rotateY
+      const damp  = 0.18; // плавность (0..1), меньше — мягче
+
+      const qx = gsap.quickTo(stage, "rotateX", { duration:damp, ease:"power3.out" });
+      const qy = gsap.quickTo(stage, "rotateY", { duration:damp, ease:"power3.out" });
+      const qz = gsap.quickTo(stage, "translateZ", { duration:damp, ease:"power3.out" });
+      const qf = gsap.quickTo(stage, "filter",    { duration:.25,  ease:"power3.out" });
+
+      function pointer(e){
+        const r = stage.getBoundingClientRect();
+        const cx = r.left + r.width/2;
+        const cy = r.top  + r.height/2;
+        const dx = (e.clientX - cx) / (r.width/2);   // -1..1
+        const dy = (e.clientY - cy) / (r.height/2);  // -1..1
+
+        qx(dy * -maxRx);
+        qy(dx *  maxRy);
+        qz(18); // лёгкий «выпуклый» подъём
+
+        // позиция блика
+        sheen.style.setProperty('--sx', `${((dx+1)/2)*100}%`);
+        sheen.style.setProperty('--sy', `${((dy+1)/2)*100}%`);
+        qf(`drop-shadow(0 50px 140px rgba(0,0,0,.6))`);
+      }
+      function leave(){
+        qx(0); qy(0); qz(0);
+        qf(`drop-shadow(0 40px 120px rgba(0,0,0,.55))`);
+      }
+
+      stage.addEventListener('pointermove', pointer);
+      stage.addEventListener('pointerleave', leave);
+    }
+
+    /* ---------- main ---------- */
+    (async function init(){
+      const layers = [...document.querySelectorAll('.layer')];
+
+      if (prefersReduced){
+        // без анимации: сразу показываем последний PNG, по наведению — проигрываем видео
+        gsap.set(layers, { opacity:0, clearProps:'transform,filter' });
+        gsap.set('.s6', { opacity:1 });
+      }
+
+      // предзагрузка PNG
+      await preloadImages(
+        ['assets/step1.png','assets/step2.png','assets/step3.png','assets/step4.png','assets/step5.png','assets/step6.png','assets/step7.png']
+      );
+
+      // готовим первый кадр видео заблаговременно (чтобы на свитче не мигало)
+      await ensureFirstFrame(video);
+
+      const tl = buildTimeline();
+
+      // кнопка «повторить»
+      replayBtn.addEventListener('click', () => {
+        try { video.pause(); video.currentTime = 0; } catch(e){}
+        gsap.set(video, { opacity:0 });      // вернуть невидимым до свитча
+        gsap.set('.s6', { opacity:1 });      // вернуть последний PNG для сборки
+        tl.restart();
+      });
+
+      // повтор при входе в вьюпорт
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => e.isIntersecting && replayBtn.click());
+      }, { threshold:0.4 });
+      io.observe(heroEl);
+
+      setupHoverReplay();
+      setupLuxuryMotion();
+    })();
+  })();
+  </script>
+</body>
+</html>
