@@ -3,21 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Hero-анимация — 7 слоёв + видео (калибровка)</title>
+  <title>Hero-анимация — 7 слоёв + видео (одна гибкая настройка)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{
       --bg:#0c0d10; --fg:#fff; --muted:#b5b6bf; --maxw:1200px;
 
-      /* ========= ПАРАМЕТРЫ ПОДГОНКИ ВИДЕО (меняйте и сохраняйте) ========= */
-      --veo-shift-x: 0px;    /* сдвиг по X (например 2px или -1px) */
-      --veo-shift-y: 0px;    /* сдвиг по Y */
-      --veo-scale-x: 1;      /* масштаб по X (например 1.003) */
-      --veo-scale-y: 1;      /* масштаб по Y */
-      --veo-rot: 0deg;       /* микроповорот, если нужен (например 0.2deg) */
-      --veo-object-fit: fill;/* fill | cover | contain — влияет на «внутреннюю» укладку */
-      /* ====== эти две переменные используются только в режиме калибровки ====== */
-      --veo-calib-opacity: .6;   /* прозрачность видео при «луковичной» подложке */
+      /* ===== Единственная настройка: соберите любую трансформацию тут =====
+         Примеры:
+         translate(2px,-1px) scale(1.004) rotate(0.05deg)
+         translate(0px,0px)  scale(1.003, 0.998)
+      */
+      --veo: translate(0px,0px) scale(1) rotate(0deg);
     }
 
     *{box-sizing:border-box}
@@ -43,14 +40,13 @@
       padding:12px 18px; border-radius:16px; font-weight:600; cursor:pointer;
       backdrop-filter:blur(6px); transition:transform .15s ease, background .2s ease;
     }
-    .btn + .btn{ margin-left:10px }
     .btn:hover{transform:translateY(-1px); background:#ffffff18}
     .btn:active{transform:translateY(0)}
 
     /* ===== Сцена ===== */
     .stage{
       position:relative; width:100%; max-width:760px;
-      aspect-ratio: 2048 / 1828; /* точное соотношение файлов */
+      aspect-ratio: 2048 / 1828; /* точное соотношение исходников */
       margin-inline:auto; isolation:isolate;
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
       perspective:1200px; contain:layout paint;
@@ -61,45 +57,36 @@
       will-change:transform,opacity,filter; opacity:0;
     }
 
-    /* ===== Видео: растягиваем как надо и тонко подгоняем ===== */
+    /* ===== Видео: заполняем рамку PNG + применяем единственную переменную ===== */
     .veo{
       pointer-events:none;
       width:100%;
       height:100%;
-      object-fit: var(--veo-object-fit);
-      transform-origin: top left; /* удобнее подгонять относительно левого верхнего угла */
+      object-fit: fill;            /* чтобы заняло рамку один-в-один */
+      transform-origin: top left;  /* удобная точка для подгонки */
       will-change:opacity, transform;
-      transform:
-        translate(var(--veo-shift-x), var(--veo-shift-y))
-        scale(var(--veo-scale-x), var(--veo-scale-y))
-        rotate(var(--veo-rot));
+      transform: var(--veo);       /* ВСЯ подгонка — одной переменной */
     }
-    /* Режим калибровки: делаем видео полупрозрачным поверх PNG */
-    body.calib .veo{ opacity: var(--veo-calib-opacity) !important; }
 
     .hint{ text-align:center; color:#a7aab8; margin-top:22px; font-size:13px; opacity:.75 }
 
-    /* ===== Мини-панель калибровки ===== */
-    .calib-panel{
-      position:fixed; right:16px; bottom:16px; width:min(360px, 92vw);
+    /* ===== Одна компактная настройка на странице (без режимов) ===== */
+    .one-var{
+      position:fixed; right:16px; bottom:16px; width:min(520px, 94vw);
       background:#0e1016cc; color:#fff; border:1px solid #ffffff22; border-radius:14px;
       box-shadow:0 20px 60px rgba(0,0,0,.5); backdrop-filter:blur(10px);
-      padding:12px; z-index:9999; display:none;
+      padding:10px; z-index:9999;
+      display:flex; gap:8px; align-items:center;
     }
-    .calib-panel.show{ display:block }
-    .calib-panel h3{ margin:0 0 8px; font-size:16px }
-    .calib-panel .row{ display:grid; grid-template-columns:1fr 90px; gap:10px; align-items:center; margin:8px 0 }
-    .calib-panel label{ font-size:12px; color:#c8cad7 }
-    .calib-panel input[type="range"]{ width:100% }
-    .calib-panel input[type="number"], .calib-panel select{
-      width:100%; padding:6px 8px; border-radius:8px; background:#151826; color:#fff; border:1px solid #ffffff28;
+    .one-var label{ font:12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color:#b9bfd4 }
+    .one-var input{
+      flex:1; min-width:0; padding:10px 12px; border-radius:10px;
+      background:#151826; color:#fff; border:1px solid #ffffff28;
+      font:12px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
-    .calib-panel .actions{ display:flex; gap:8px; margin-top:10px }
-    .calib-panel .actions button{
-      flex:1; padding:10px 12px; border-radius:10px; border:1px solid #ffffff22; background:#ffffff12; color:#fff; cursor:pointer;
-    }
-    .calib-panel small.kbd{
-      font:11px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color:#9aa0b6;
+    .one-var button{
+      padding:10px 12px; border-radius:10px; border:1px solid #ffffff22;
+      background:#ffffff12; color:#fff; cursor:pointer; white-space:nowrap;
     }
   </style>
 </head>
@@ -118,7 +105,7 @@
         <img class="layer s5" src="assets/step6.png" alt="">
         <img class="layer s6" src="assets/step7.png" alt="">
 
-        <!-- 3) Финишное видео поверх всего -->
+        <!-- 3) Финальное видео поверх -->
         <video class="layer veo" id="veo" muted playsinline preload="auto" poster="assets/step7.png">
           <source src="assets/veo.webm#t=0.001" type="video/webm">
           <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
@@ -127,55 +114,20 @@
 
       <div class="copy">
         <h1>Анимация «сборки» — 7 слайдов + видео</h1>
-        <p>Подгоните видео к PNG, сохраните значения и пришлите мне.</p>
+        <p>Вся подгонка видео — одной переменной <code>--veo</code>.</p>
         <button class="btn" id="replay">Повторить</button>
-        <button class="btn" id="toggleCalib">Настроить видео (C)</button>
-        <div class="hint">Файлы в <code>assets/</code>. Панель калибровки сохраняет значения в <code>localStorage</code>.</div>
+        <div class="hint">Формируйте значение, например: <code>translate(2px,-1px) scale(1.003) rotate(0.04deg)</code>.</div>
       </div>
     </section>
   </div>
 
-  <!-- Панель калибровки -->
-  <aside class="calib-panel" id="calibPanel" aria-live="polite">
-    <h3>Калибровка видео</h3>
-    <div class="row">
-      <label>Object-fit</label>
-      <select id="fitSel">
-        <option value="fill">fill (растянуть в рамки)</option>
-        <option value="cover">cover (без деформации, с кропом)</option>
-        <option value="contain">contain (без деформации, с полями)</option>
-      </select>
-    </div>
-    <div class="row">
-      <label>X (px)</label>
-      <div><input type="range" id="xRange" min="-40" max="40" step="1"><input type="number" id="xNum" step="1"></div>
-    </div>
-    <div class="row">
-      <label>Y (px)</label>
-      <div><input type="range" id="yRange" min="-40" max="40" step="1"><input type="number" id="yNum" step="1"></div>
-    </div>
-    <div class="row">
-      <label>Scale X</label>
-      <div><input type="range" id="sxRange" min="0.98" max="1.05" step="0.001"><input type="number" id="sxNum" step="0.001"></div>
-    </div>
-    <div class="row">
-      <label>Scale Y</label>
-      <div><input type="range" id="syRange" min="0.98" max="1.05" step="0.001"><input type="number" id="syNum" step="0.001"></div>
-    </div>
-    <div class="row">
-      <label>Rotate (deg)</label>
-      <div><input type="range" id="rotRange" min="-2" max="2" step="0.01"><input type="number" id="rotNum" step="0.01"></div>
-    </div>
-    <div class="row">
-      <label>Прозрачность (режим калибровки)</label>
-      <div><input type="range" id="opRange" min="0" max="1" step="0.01"><input type="number" id="opNum" step="0.01"></div>
-    </div>
-    <div class="actions">
-      <button id="copyBtn">Скопировать CSS</button>
-      <button id="resetBtn">Сброс</button>
-    </div>
-    <small class="kbd">Подсказка: включить/выключить панель — кнопка «Настроить видео» или клавиша <b>C</b>.</small>
-  </aside>
+  <!-- Единственный контрол: правый нижний угол -->
+  <div class="one-var" role="group" aria-label="Единственная настройка видео">
+    <label for="veoInput">--veo:</label>
+    <input id="veoInput" spellcheck="false" autocomplete="off" />
+    <button id="copyVar">Скопировать CSS</button>
+    <button id="resetVar" title="Сброс к значению по умолчанию">Сброс</button>
+  </div>
 
   <!-- GSAP -->
   <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
@@ -184,9 +136,47 @@
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const replayBtn = document.getElementById('replay');
-    const toggleCalibBtn = document.getElementById('toggleCalib');
     const layers    = [...document.querySelectorAll('.layer')];
     const video     = document.getElementById('veo');
+
+    /* ========= Единственная настройка (переменная --veo) ========= */
+    const STORAGE_KEY = 'veoSingleVar';
+    const input = document.getElementById('veoInput');
+    const copyBtn = document.getElementById('copyVar');
+    const resetBtn = document.getElementById('resetVar');
+    const defaultVeo = getComputedStyle(document.documentElement).getPropertyValue('--veo').trim() || 'translate(0px,0px) scale(1) rotate(0deg)';
+
+    function setVeo(val){
+      document.documentElement.style.setProperty('--veo', val);
+      localStorage.setItem(STORAGE_KEY, val);
+    }
+    function loadVeo(){
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const val = saved || defaultVeo;
+      input.value = val;
+      document.documentElement.style.setProperty('--veo', val);
+    }
+
+    input.addEventListener('input', () => {
+      // применяем «как есть» — одна переменная управляет всем
+      setVeo(input.value.trim());
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      const css = `:root{ --veo: ${input.value.trim()}; }`;
+      try{
+        await navigator.clipboard.writeText(css);
+        copyBtn.textContent = 'Скопировано!';
+        setTimeout(() => copyBtn.textContent = 'Скопировать CSS', 1200);
+      }catch{
+        prompt('Скопируйте CSS вручную:', css);
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      input.value = defaultVeo;
+      setVeo(defaultVeo);
+    });
 
     /* ========= Предзагрузка ========= */
     const preloadImages = (srcs) => Promise.all(srcs.map(s => new Promise(res => {
@@ -233,121 +223,21 @@
       return tl;
     }
 
-    /* ========= Калибровка (UI + CSS-переменные + localStorage) ========= */
-    const $ = (sel) => document.querySelector(sel);
-    const panel = $('#calibPanel');
-    const fitSel = $('#fitSel');
-    const xR = $('#xRange'), xN = $('#xNum');
-    const yR = $('#yRange'), yN = $('#yNum');
-    const sxR = $('#sxRange'), sxN = $('#sxNum');
-    const syR = $('#syRange'), syN = $('#syNum');
-    const rotR = $('#rotRange'), rotN = $('#rotNum');
-    const opR = $('#opRange'), opN = $('#opNum');
-
-    const STORAGE_KEY = 'veoCalibV1';
-
-    const state = {
-      fit: getComputedStyle(document.documentElement).getPropertyValue('--veo-object-fit').trim() || 'fill',
-      x: 0, y: 0, sx: 1, sy: 1, rot: 0, op: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--veo-calib-opacity')) || 0.6
-    };
-
-    function applyVars(){
-      const root = document.documentElement.style;
-      root.setProperty('--veo-object-fit', state.fit);
-      root.setProperty('--veo-shift-x', `${Math.round(state.x)}px`);
-      root.setProperty('--veo-shift-y', `${Math.round(state.y)}px`);
-      root.setProperty('--veo-scale-x', `${state.sx}`);
-      root.setProperty('--veo-scale-y', `${state.sy}`);
-      root.setProperty('--veo-rot', `${state.rot}deg`);
-      root.setProperty('--veo-calib-opacity', `${state.op}`);
-    }
-
-    function syncUI(){
-      fitSel.value = state.fit;
-      xR.value = xN.value = Math.round(state.x);
-      yR.value = yN.value = Math.round(state.y);
-      sxR.value = sxN.value = state.sx;
-      syR.value = syN.value = state.sy;
-      rotR.value = rotN.value = state.rot;
-      opR.value = opN.value = state.op;
-    }
-
-    function loadState(){
-      try{
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-        if (saved && typeof saved === 'object'){
-          Object.assign(state, saved);
-        }
-      }catch{}
-      applyVars(); syncUI();
-    }
-
-    function saveState(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }
-
-    function bindCalib(){
-      fitSel.addEventListener('change', () => { state.fit = fitSel.value; applyVars(); saveState(); });
-
-      const link = (range, num, key, toNum = (v)=>+v, toState = (v)=>+v) => {
-        range.addEventListener('input', () => { state[key] = toState(range.value); num.value = toNum(range.value); applyVars(); saveState(); });
-        num.addEventListener('input', () => { state[key] = toState(num.value); range.value = toNum(num.value); applyVars(); saveState(); });
-      };
-
-      link(xR, xN, 'x');
-      link(yR, yN, 'y');
-      link(sxR, sxN, 'sx', v=>(+v).toFixed(3), v=>+v);
-      link(syR, syN, 'sy', v=>(+v).toFixed(3), v=>+v);
-      link(rotR, rotN, 'rot', v=>(+v).toFixed(2), v=>+v);
-      link(opR, opN, 'op', v=>(+v).toFixed(2), v=>+v);
-
-      $('#copyBtn').addEventListener('click', async () => {
-        const css = `:root{
-  --veo-shift-x: ${Math.round(state.x)}px;
-  --veo-shift-y: ${Math.round(state.y)}px;
-  --veo-scale-x: ${state.sx};
-  --veo-scale-y: ${state.sy};
-  --veo-rot: ${state.rot}deg;
-  --veo-object-fit: ${state.fit};
-}`;
-        try{
-          await navigator.clipboard.writeText(css);
-          alert('CSS переменные скопированы! Вставьте их в :root вашего проекта.');
-        }catch{
-          prompt('Скопируйте CSS вручную:', css);
-        }
-      });
-
-      $('#resetBtn').addEventListener('click', () => {
-        Object.assign(state, { fit:'fill', x:0, y:0, sx:1, sy:1, rot:0, op:0.6 });
-        applyVars(); syncUI(); saveState();
-      });
-    }
-
-    function togglePanel(force){
-      const show = typeof force === 'boolean' ? force : !panel.classList.contains('show');
-      panel.classList.toggle('show', show);
-      document.body.classList.toggle('calib', show);
-    }
-
     /* ========= Инициализация ========= */
     async function init(){
+      loadVeo(); // подтянуть сохранённую единственную настройку
+
       if (prefersReduced){
         gsap.set(layers, { opacity:0, clearProps:'transform,filter' });
         gsap.set('.device, .s6', { opacity:1 });
         if (video) video.style.display = 'none';
+        document.querySelector('.one-var').style.display = 'none';
         document.getElementById('replay').style.display = 'none';
-        document.getElementById('toggleCalib').style.display = 'none';
         return;
       }
 
-      // Загрузка ассетов
       await preloadImages(layers.filter(l => l.tagName === 'IMG').map(l => l.currentSrc || l.src));
       await preloadVideo(video);
-
-      // Калибровка: загрузить сохранённые значения и связать UI
-      loadState();
-      bindCalib();
 
       const tl = buildTimeline();
 
@@ -355,17 +245,8 @@
         if (video){ try { video.pause(); video.currentTime = 0; } catch(e){} }
         tl.restart();
       };
-      replayBtn.addEventListener('click', restart);
+      document.getElementById('replay').addEventListener('click', restart);
 
-      // Показ/скрытие панели
-      toggleCalibBtn.addEventListener('click', () => togglePanel());
-      window.addEventListener('keydown', (e) => {
-        if (e.key.toLowerCase() === 'c' && !e.metaKey && !e.ctrlKey && !e.altKey){
-          e.preventDefault(); togglePanel();
-        }
-      });
-
-      // Авто-ребоот при входе в вьюпорт
       const io = new IntersectionObserver((entries) => {
         entries.forEach(e => e.isIntersecting && restart());
       }, { threshold:0.4 });
