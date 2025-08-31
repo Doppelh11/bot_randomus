@@ -3,40 +3,40 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Hero-анимация — живой финал (видео с GitHub + маска PNG)</title>
+  <title>Hero-анимация — живой финал (видео из GitHub Pages)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{ --bg:#0c0d10; --fg:#fff; --muted:#b5b6bf; --maxw:1200px; }
-    *{ box-sizing:border-box }
-    html,body{ height:100% }
+    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0; color:var(--fg);
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
       background:radial-gradient(1200px 900px at 20% 20%, #171924 0, #0f1118 50%, #0c0d10 100%);
     }
-    .wrap{ max-width:var(--maxw); margin:auto; padding:clamp(20px,4vw,64px) }
+    .wrap{max-width:var(--maxw); margin:auto; padding:clamp(20px,4vw,64px)}
     .hero{
       display:grid; grid-template-columns:1.1fr 0.9fr; align-items:center;
       gap:clamp(20px,5vw,80px); min-height:90svh;
     }
     @media (max-width:960px){
-      .hero{ grid-template-columns:1fr; min-height:auto }
-      .copy{ text-align:center; order:-1 }
+      .hero{grid-template-columns:1fr; min-height:auto}
+      .copy{text-align:center; order:-1}
     }
-    .copy h1{ margin:0 0 .4em; line-height:1.05; font-weight:800; font-size:clamp(28px,6vw,62px); letter-spacing:-.02em }
-    .copy p{ margin:0 0 1.25rem; color:var(--muted); font-size:clamp(16px,2.3vw,20px) }
+    .copy h1{margin:0 0 .4em; line-height:1.05; font-weight:800; font-size:clamp(28px,6vw,62px); letter-spacing:-.02em}
+    .copy p{margin:0 0 1.25rem; color:var(--muted); font-size:clamp(16px,2.3vw,20px)}
     .btn{
       appearance:none; border:none; background:#ffffff10; color:#fff;
       padding:12px 18px; border-radius:16px; font-weight:600; cursor:pointer;
       backdrop-filter:blur(6px); transition:transform .15s ease, background .2s ease;
     }
-    .btn:hover{ transform:translateY(-1px); background:#ffffff18 }
-    .btn:active{ transform:translateY(0) }
+    .btn:hover{transform:translateY(-1px); background:#ffffff18}
+    .btn:active{transform:translateY(0)}
 
-    /* ===== Сцена ===== */
+    /* ===== Stage ===== */
     .stage{
       position:relative; width:100%; max-width:760px;
-      /* точное соотношение твоих исходников (2048x1828) */
+      /* точное соотношение файлов (2048x1828) */
       aspect-ratio: 2048 / 1828;
       margin-inline:auto; isolation:isolate;
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
@@ -48,22 +48,20 @@
       will-change:transform,opacity,filter; opacity:0;
     }
 
-    /* Видео-слой: вырезаем чёрный фон по маске экрана (вариант B) */
+    /* Видео-слой: вариант B — маска PNG. Если маски нет, JS добавит .nomask.screen */
     .layer.veo{
       opacity:0; pointer-events:none;
-      /* если видео не 2048×1828 — подстрой один раз: */
-      --vx: 0px; --vy: 0px; --vscale: 1;
+      --vx:0px; --vy:0px; --vscale:1;               /* при надобности тонкая подгонка */
       transform: translate(var(--vx), var(--vy)) scale(var(--vscale));
 
-      /* Маска (белое = видно, чёрное = скрыто) */
       -webkit-mask-image: url(assets/screen-mask.png);
       mask-image: url(assets/screen-mask.png);
       -webkit-mask-size: contain;  mask-size: contain;
       -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
       -webkit-mask-position: center;  mask-position: center;
     }
-    /* Если маски ещё нет — быстрый лайфхак (удали после появления mask.png) */
-    .layer.veo.blend-lighten{ mix-blend-mode: screen; opacity:.95 }
+    .layer.veo.nomask{ -webkit-mask:none; mask:none; }
+    .layer.veo.screen{ mix-blend-mode: screen; opacity:.98; } /* быстрый ключ чёрного */
 
     .hint{ text-align:center; color:#a7aab8; margin-top:22px; font-size:13px; opacity:.75 }
   </style>
@@ -83,25 +81,23 @@
         <img class="layer s5" src="assets/step6.png" alt="">
         <img class="layer s6" src="assets/step7.png" alt="">
 
-        <!-- Живой финал: видео с GitHub (RAW URL). 
-             Временно можно добавить class="layer veo blend-lighten" если маски нет -->
-        <video class="layer veo" id="veo" playsinline muted loop preload="auto"
-               poster="assets/step7.png" crossorigin="anonymous">
-          <!-- ЗАМЕНИ НиЖЕ НА СВОЙ RAW-URL GITHUB -->
-          <source src="https://raw.githubusercontent.com/USER/REPO/BRANCH/assets/veo3.mp4" type="video/mp4">
-          <!-- При желании добавь VP9-версии:
-          <source src="https://raw.githubusercontent.com/USER/REPO/BRANCH/assets/veo3.webm" type="video/webm">
-          -->
+        <!-- Живой финал: видео с GitHub Pages -->
+        <video
+          class="layer veo" id="veo"
+          playsinline muted loop preload="auto"
+          poster="assets/step7.png"
+        >
+          <source src="https://doppelh11.github.io/sitewb/assets/veo3.mp4" type="video/mp4">
         </video>
       </div>
 
       <div class="copy">
-        <h1>Анимация «сборки» + видео с GitHub</h1>
-        <p>Крестфейд от PNG-слоёв к ролику. Чёрный фон вырезает CSS-маска.</p>
+        <h1>Анимация «сборки» + видео</h1>
+        <p>Финал — крестфейд в ролик поверх экрана. Чёрный фон вырезает маска.</p>
         <button class="btn" id="replay">Повторить анимацию</button>
         <div class="hint">
-          Положи <code>screen-mask.png</code> (2048×1828) в <code>assets/</code>. 
-          В <code>&lt;source&gt;</code> укажи <b>RAW</b>-ссылку GitHub (не страница <i>blob</i>).
+          Положи <code>assets/screen-mask.png</code> (2048×1828, экран белым, остальное чёрным).<br>
+          Если маски нет — включится режим <code>screen</code> автоматически.
         </div>
       </div>
     </section>
@@ -120,6 +116,19 @@
     const preload = (srcs) => Promise.all(srcs.map(s => new Promise(res => {
       const im = new Image(); im.onload = im.onerror = () => res(); im.src = s;
     })));
+
+    // Проверяем наличие маски: если 404 — отключаем mask и включаем mix-blend
+    function ensureMaskOrFallback(){
+      return new Promise((res) => {
+        const m = new Image();
+        m.onload = () => res(true);
+        m.onerror = () => {
+          video.classList.add('nomask','screen'); // fallback без маски
+          res(false);
+        };
+        m.src = 'assets/screen-mask.png';
+      });
+    }
 
     function buildTimeline(){
       const tl = gsap.timeline({ defaults:{ ease:'power3.out' } });
@@ -144,7 +153,7 @@
         { filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))', duration:0.45 }, '-=0.2'
       );
 
-      // === ЖИВОЙ ФИНАЛ: крестфейд PNG → видео (гасим ВСЕ s1…s6) ===
+      // === ЖИВОЙ ФИНАЛ: крестфейд PNG → видео (гасим все s1…s6) ===
       tl.add('videoReveal', '-=0.05')
         .call(() => { if (video){ try { video.currentTime = 0; video.play(); } catch(e) {} } }, null, 'videoReveal')
         .to(['.s1','.s2','.s3','.s4','.s5','.s6'], { opacity:0, duration:0.28, ease:'power2.out' }, 'videoReveal+=0.05')
@@ -156,7 +165,7 @@
         ease:'sine.inOut', yoyo:true, repeat:-1
       });
 
-      // едва заметный зум у видео (чтоб оживить)
+      // едва заметный зум у видео
       gsap.to('#veo', {
         scale:1.003, transformOrigin:'50% 50%',
         duration:3.4, ease:'sine.inOut', yoyo:true, repeat:-1
@@ -174,10 +183,10 @@
         return;
       }
 
-      // Прелоад PNG + ждём, чтобы видео было готово играть (без чёрного)
       await preload(layers.map(l => l.currentSrc || l.src));
+      await ensureMaskOrFallback();
 
-      // пробуем проигрывать (autoplay чаще разрешён для muted)
+      // Автоплей (чаще разрешён с muted)
       try { await video.play(); } catch (e) {}
 
       const tl = buildTimeline();
