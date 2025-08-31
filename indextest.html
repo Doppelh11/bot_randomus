@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Сборка карточки → CTR-оверлей (1.9 → 4.5) + финальное видео</title>
+  <title>Сборка карточки → финальное видео (без 7-го слайда)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{ --fg:#fff; --muted:#b5b6bf; --maxw:1200px; }
@@ -25,11 +25,18 @@
     }
     .copy h1{margin:0 0 .4em; line-height:1.05; font-weight:800; font-size:clamp(28px,6vw,62px); letter-spacing:-.02em}
     .copy p{margin:0 0 1.25rem; color:var(--muted); font-size:clamp(16px,2.3vw,20px)}
+    .btn{
+      appearance:none; border:none; background:#ffffff10; color:#fff;
+      padding:12px 18px; border-radius:16px; font-weight:600; cursor:pointer;
+      backdrop-filter:blur(6px); transition:transform .15s ease, background .2s ease;
+    }
+    .btn:hover{transform:translateY(-1px); background:#ffffff18}
 
     /* ===== Сцена ===== */
     .stage{
       position:relative; width:100%; max-width:760px;
-      aspect-ratio: 2048 / 1828; /* точное соотношение PNG */
+      /* точное соотношение PNG (2048×1828) */
+      aspect-ratio: 2048 / 1828;
       margin-inline:auto; isolation:isolate;
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
       perspective:1200px; contain:layout paint;
@@ -43,48 +50,47 @@
 
     /* Финальное видео: без искажений (cover), по центру */
     .veo{
-      pointer-events:none;
+      pointer-events:none; /* курсор не меняем, события идут на .stage */
       width:100%; height:100%;
       object-fit:cover; object-position:50% 50%;
       opacity:0; will-change:opacity;
     }
 
-    /* ===== CTR оверлей (только цифра + спарклайн) ===== */
+    /* ===== Контейнер визуала (CTR + Stage) слева в колонке ===== */
+    .visual{
+      display:flex; flex-direction:column; align-items:center;
+      /* чтобы ширина CTR соответствовала сцене */
+      max-width:760px; width:100%; margin-inline:auto;
+    }
+
+    /* ===== CTR блок (отдельно, над сценой) — только цифра и спарклайн ===== */
     .ctr{
-      position:absolute; inset:auto auto 0 0; /* по умолчанию слева-сверху, но с отступами ниже */
-      left:16px; top:16px; z-index:5; pointer-events:none;
-      display:flex; flex-direction:column; gap:8px;
+      width:100%;
+      margin-bottom:14px;
       padding:10px 12px; border-radius:12px;
-      background:color-mix(in oklab, #0b0d14 88%, transparent);
+      background:rgba(11,13,20,.12); /* лёгкий фон ради читаемости */
       outline:1px solid #ffffff22;
       backdrop-filter: blur(6px);
       filter: drop-shadow(0 6px 16px rgba(0,0,0,.35));
     }
-    @media (max-width:520px){
-      .ctr{ right:12px; left:auto; top:12px; padding:8px 10px; gap:6px }
-    }
+    .ctr-inner{ display:flex; flex-direction:column; gap:8px }
     .ctr-number{
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-weight:700; letter-spacing: -0.02em;
+      font-weight:700; letter-spacing:-0.02em;
       font-variant-numeric: tabular-nums;
       line-height:1; white-space:nowrap;
       font-size: clamp(24px, 4.2vw, 44px);
       transform-origin: left center;
-      transition: filter .25s ease;
     }
-    .ctr-number .pct{ opacity:.85; font-size: .85em }
-    .ctr-spark{
-      width:min(52vw, 360px); height:36px;
-    }
+    .ctr-number .pct{ opacity:.85; font-size:.85em }
+
+    .ctr-spark{ width:100%; height:36px }
     .ctr-spark path{
       fill:none; stroke:#8dd0ff; stroke-width:2;
       opacity:.95; filter: drop-shadow(0 1px 0 rgba(255,255,255,.15));
       stroke-linejoin:round; stroke-linecap:round;
     }
-    .ctr-spark circle{
-      r:4; fill:#8dd0ff; opacity:.95;
-      filter: drop-shadow(0 0 4px rgba(96,180,255,.7));
-    }
+    .ctr-spark circle{ r:4; fill:#8dd0ff; opacity:.95; filter: drop-shadow(0 0 4px rgba(96,180,255,.7)) }
 
     .hint{ text-align:center; color:#a7aab8; margin-top:22px; font-size:13px; opacity:.75 }
   </style>
@@ -92,36 +98,44 @@
 <body>
   <div class="wrap">
     <section class="hero" id="hero">
-      <div class="stage" id="stage" aria-hidden="true">
-        <!-- CTR-оверлей (над всеми слоями) -->
+      <!-- ЛЕВАЯ колонка: CTR выше, ниже — сцена -->
+      <div class="visual">
+        <!-- CTR-бар над картинками/видео -->
         <div class="ctr" id="ctr">
-          <div class="ctr-number" id="ctrValue"><span class="num">1.9</span><span class="pct">%</span></div>
-          <svg class="ctr-spark" viewBox="0 0 320 36" preserveAspectRatio="none" id="spark">
-            <path id="sparkPath" d="M0,0" />
-            <circle id="sparkDot" cx="0" cy="0" />
-          </svg>
+          <div class="ctr-inner">
+            <div class="ctr-number" id="ctrValue"><span class="num">1.9</span><span class="pct">%</span></div>
+            <svg class="ctr-spark" viewBox="0 0 760 36" preserveAspectRatio="none" id="spark">
+              <path id="sparkPath" d="M0,0" />
+              <circle id="sparkDot" cx="0" cy="0" />
+            </svg>
+          </div>
         </div>
 
-        <!-- База: планшет -->
-        <img class="layer device" src="assets/step1.png" alt="tablet frame">
+        <!-- СЦЕНА (как было) -->
+        <div class="stage" id="stage" aria-hidden="true">
+          <!-- База: планшет -->
+          <img class="layer device" src="assets/step1.png" alt="tablet frame">
 
-        <!-- 5 экранных слоёв (step2…step6) -->
-        <img class="layer s1" src="assets/step2.png" alt="">
-        <img class="layer s2" src="assets/step3.png" alt="">
-        <img class="layer s3" src="assets/step4.png" alt="">
-        <img class="layer s4" src="assets/step5.png" alt="">
-        <img class="layer s5" src="assets/step6.png" alt="">
+          <!-- 5 экранных слоёв (step2…step6) -->
+          <img class="layer s1" src="assets/step2.png" alt="">
+          <img class="layer s2" src="assets/step3.png" alt="">
+          <img class="layer s3" src="assets/step4.png" alt="">
+          <img class="layer s4" src="assets/step5.png" alt="">
+          <img class="layer s5" src="assets/step6.png" alt="">
 
-        <!-- Финальное видео поверх всех слоёв -->
-        <video class="layer veo" id="veo" muted playsinline preload="auto" poster="assets/step6.png">
-          <source src="assets/veo.webm#t=0.001" type="video/webm">
-          <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
-        </video>
+          <!-- Финальное видео поверх всех слоёв -->
+          <video class="layer veo" id="veo" muted playsinline preload="auto" poster="assets/step6.png">
+            <source src="assets/veo.webm#t=0.001" type="video/webm">
+            <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
+          </video>
+        </div>
       </div>
 
+      <!-- ПРАВАЯ колонка — как было -->
       <div class="copy">
-        <h1>Сборка карточки → CTR растёт 1.9 → 4.5</h1>
-        <p>Над сценой — только цифры CTR и спарклайн. Финал фиксируется на 4.5%.</p>
+        <h1>Сборка карточки → финальное видео</h1>
+        <p>В конце PNG плавно скрываются, видео занимает их место. Навёл после окончания — снова проигрывается.</p>
+        <button class="btn" id="replay">Повторить</button>
         <div class="hint">Файлы: <code>assets/step1.png…step6.png</code>, <code>veo.webm</code> (+опц. <code>veo.mp4</code>).</div>
       </div>
     </section>
@@ -132,7 +146,7 @@
   <script>
   (() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
+    const replayBtn = document.getElementById('replay');
     const heroEl  = document.getElementById('hero');
     const stageEl = document.getElementById('stage');
     const layers  = [...document.querySelectorAll('.layer')];
@@ -140,7 +154,6 @@
 
     /* ======= CTR data ======= */
     const ctrPoints = [1.9, 2.3, 2.6, 3.3, 3.6, 4.5]; // start + 5 шагов
-    const SPARK_W = 320, SPARK_H = 36;
     const spark   = document.getElementById('spark');
     const pathEl  = document.getElementById('sparkPath');
     const dotEl   = document.getElementById('sparkDot');
@@ -157,22 +170,21 @@
       v.addEventListener('canplaythrough', ready, { once:true });
       v.addEventListener('loadeddata', ready, { once:true });
       try { v.load(); } catch(e) {}
-    }));
+    });
 
     /* ---------- build sparkline path from ctrPoints ---------- */
-    function buildSparkPath(values){
+    function buildSparkPath(values, width){
+      const SPARK_W = width, SPARK_H = 36;
       const min = Math.min(...values), max = Math.max(...values);
       const xStep = SPARK_W / (values.length - 1);
       const pts = values.map((v,i) => {
         const x = i * xStep;
-        // инвертируем Y: % выше → точка выше (верх = 0)
-        const y = SPARK_H - ((v - min)/(max - min)) * (SPARK_H * 0.86) - 3; // маленький верхний паддинг
+        const y = SPARK_H - ((v - min)/(max - min)) * (SPARK_H * 0.86) - 3; // верхний паддинг
         return [x, Math.max(2, Math.min(SPARK_H-2, y))];
       });
       let d = `M ${pts[0][0]},${pts[0][1]}`;
       for (let i=1;i<pts.length;i++){
         const [x,y] = pts[i];
-        // лёгкая сглаженность: квадр. Без усложнений.
         const [px,py] = pts[i-1];
         const cx = (px + x)/2;
         d += ` Q ${cx},${py} ${x},${y}`;
@@ -186,7 +198,6 @@
 
     /* ---------- animate CTR number to target with small lock ---------- */
     function animateNumber(from, to, tl, label){
-      // лёгкий «перелёт» на +0.02 и фиксация
       const over = Math.min(to + 0.02, to + 0.03);
       const obj = { v: from };
       tl.to(obj, { v: over, duration:0.20, ease:'power2.out',
@@ -201,10 +212,9 @@
     function animateSparkToIndex(idx, tl, label){
       const total = pathEl.getTotalLength();
       const segLen = total * (idx/(ctrPoints.length-1)); // доля по индексу
-      // рисуем от конца: dasharray = total, dashoffset убывает
       tl.to(pathEl, { strokeDashoffset: total - segLen, duration:0.38, ease:'power3.out' }, label);
-      // бегущая точка
-      const proxy = { len: pathEl.getTotalLength() - (total - segLen) }; // текущая длина
+
+      const proxy = { len: total - parseFloat(pathEl.style.strokeDashoffset||total) };
       tl.to(proxy, {
         len: segLen,
         duration:0.38, ease:'power3.out',
@@ -225,7 +235,7 @@
       gsap.set(['.s1','.s2','.s3','.s4','.s5'], { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
       gsap.set('.veo', { opacity:0 });
 
-      // Подготовка спарклайна (скрыт линией)
+      // Подготовка спарклайна
       const totalLen = pathEl.getTotalLength();
       pathEl.style.strokeDasharray = totalLen;
       pathEl.style.strokeDashoffset = totalLen;
@@ -234,21 +244,18 @@
       tl.to('.device', { opacity:1, yPercent:0, scale:1, rotateZ:0, filter:'blur(0px)', duration:0.55, ease:'back.out(1.6)' });
 
       // 1–5) экранные слои + CTR шаги
-      const sels = ['.s1','.s2','.s3','.s4','.s5'];
-      sels.forEach((sel, i) => {
-        // слой
+      ['.s1','.s2','.s3','.s4','.s5'].forEach((sel, i) => {
         tl.to(sel, { opacity:1, yPercent:0, rotateX:0, rotateZ:0, scale:1, duration:0.42, ease:'back.out(1.4)' }, i===0 ? '-=0.15' : '-=0.10')
           .to(sel, { scale:1.01, duration:0.10 })
           .to(sel, { scale:1.00, duration:0.12 }, '-=0.05');
 
-        // CTR: на завершении слоя — следующий таргет
         const label = `ctrStep_${i+1}`;
-        tl.add(label, ">-0.02"); // чуть внахлёст к финальному твину слоя
+        tl.add(label, ">-0.02");
         animateNumber(ctrPoints[i], ctrPoints[i+1], tl, label);
         animateSparkToIndex(i+1, tl, label);
       });
 
-      // Подсвет сцены (как было)
+      // Подсвет сцены
       tl.fromTo('#stage',
         { filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))' },
         { filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))', duration:0.45 }, '-=0.2'
@@ -263,7 +270,7 @@
       tl.to('.veo', { opacity:1, duration:0.5 }, 'switchToVideo');
       tl.to(['.device','.s1','.s2','.s3','.s4','.s5'], { opacity:0, duration:0.5 }, 'switchToVideo');
 
-      // Финальный «лок-ин» 4.5% (микропульс цифры, без лишней графики)
+      // Финальный «лок-ин» 4.5% (микропульс)
       tl.add('ctrLock', 'switchToVideo+=0.02');
       const lockObj = { v: ctrPoints.at(-1) };
       tl.to(lockObj, { v: 4.52, duration:0.12, ease:'power2.out',
@@ -279,34 +286,77 @@
 
     /* ---------- init ---------- */
     async function init(){
-      // Предсобрать спарклайн (геометрию)
-      buildSparkPath(ctrPoints);
+      // построить спарклайн под текущую ширину (равен ширине .visual/.stage)
+      const w = Math.round(document.querySelector('.visual').getBoundingClientRect().width);
+      spark.setAttribute('viewBox', `0 0 ${w} 36`);
+      buildSparkPath(ctrPoints, w);
 
       if (prefersReduced){
         // Без анимации: показать финальные значения сразу
-        const { d } = buildSparkPath(ctrPoints);
-        pathEl.setAttribute('d', d);
-        const total = pathEl.getTotalLength();
-        pathEl.style.strokeDasharray = total;
-        pathEl.style.strokeDashoffset = 0;
-        const p = pathEl.getPointAtLength(total);
-        dotEl.setAttribute('cx', p.x); dotEl.setAttribute('cy', p.y);
+        const total = document.getElementById('sparkPath').getTotalLength();
+        document.getElementById('sparkPath').style.strokeDasharray = total;
+        document.getElementById('sparkPath').style.strokeDashoffset = 0;
+        const p = document.getElementById('sparkPath').getPointAtLength(total);
+        document.getElementById('sparkDot').setAttribute('cx', p.x);
+        document.getElementById('sparkDot').setAttribute('cy', p.y);
         document.querySelector('#ctrValue .num').textContent = ctrPoints.at(-1).toFixed(1);
         gsap.set(layers, { opacity:0, clearProps:'transform,filter' });
         gsap.set('.veo', { opacity:1 });
         return;
       }
 
-      // Предзагрузка ассетов
-      await preloadImages(['assets/step1.png','assets/step2.png','assets/step3.png','assets/step4.png','assets/step5.png','assets/step6.png']);
+      await preloadImages(layers.filter(l => l.tagName === 'IMG').map(l => l.currentSrc || l.src));
       await preloadVideo(video);
 
-      // Первый кадр спарклайна и цифры
+      // стартовое значение CTR
       document.querySelector('#ctrValue .num').textContent = ctrPoints[0].toFixed(1);
+
       const tl = buildTimeline();
 
-      // Никаких повторов и hover-replay — один прогон
-      // (если потребуется автостарт при скролле — раскомментировать IntersectionObserver)
+      const restart = () => {
+        try { video.pause(); video.currentTime = 0; } catch(e){}
+        // сброс CTR
+        document.querySelector('#ctrValue .num').textContent = ctrPoints[0].toFixed(1);
+        const totalLen = pathEl.getTotalLength();
+        pathEl.style.strokeDasharray = totalLen;
+        pathEl.style.strokeDashoffset = totalLen;
+        const p = pathEl.getPointAtLength(0);
+        dotEl.setAttribute('cx', p.x); dotEl.setAttribute('cy', p.y);
+        tl.restart();
+      };
+      replayBtn.addEventListener('click', restart);
+
+      // Hover-replay видео (как было): только когда ролик ДОИГРАЛ
+      let ended = false;
+      video.addEventListener('ended', () => { ended = true; });
+      stageEl.addEventListener('mouseenter', () => {
+        if (!ended) return;
+        try { video.currentTime = 0; } catch(e){}
+        const p = video.play?.(); if (p && p.catch) p.catch(()=>{});
+        ended = false;
+      });
+
+      // Автоповтор при входе в вьюпорт
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => e.isIntersecting && restart());
+      }, { threshold:0.4 });
+      io.observe(heroEl);
+
+      // Респонсив: перестроить спарклайн при ресайзе
+      let rid;
+      window.addEventListener('resize', () => {
+        cancelAnimationFrame(rid);
+        rid = requestAnimationFrame(() => {
+          const w2 = Math.round(document.querySelector('.visual').getBoundingClientRect().width);
+          spark.setAttribute('viewBox', `0 0 ${w2} 36`);
+          buildSparkPath(ctrPoints, w2);
+          const totalLen = pathEl.getTotalLength();
+          pathEl.style.strokeDasharray = totalLen;
+          pathEl.style.strokeDashoffset = totalLen;
+          const p = pathEl.getPointAtLength(0);
+          dotEl.setAttribute('cx', p.x); dotEl.setAttribute('cy', p.y);
+        });
+      });
     }
 
     init();
