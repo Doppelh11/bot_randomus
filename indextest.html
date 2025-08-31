@@ -3,23 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Сборка карточки → финальное видео (без 7-го слайда)</title>
+  <title>Карточка + CTR</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{
       --fg:#fff; --muted:#b5b6bf; --maxw:1200px;
 
-      /* ====== регулируемые переменные ====== */
+      /* === фиксируем твои значения === */
+      --w-ones:1.05ch;
+      --w-tenth:0.95ch;
+      --digits-offset:0.2em;
+      --dot-top:-0.25em;
+
       --ctr-label-size: clamp(20px, 3.2vw, 32px);
       --ctr-digit-size: clamp(28px, 4.8vw, 58px);
-
-      /* ширина окон слота ПО ГОРИЗОНТАЛИ (ch) */
-      --w-ones: 1.05ch;     /* для «4» */
-      --w-tenth: 0.95ch;    /* для «5» */
-
-      /* вертикальные подстройки (em, положительное — НИЖЕ) */
-      --digits-offset: 0.20em; /* опустить цифры к точке */
-      --dot-top: -0.20em;       /* позиция точки */
     }
 
     *{box-sizing:border-box}
@@ -30,24 +27,69 @@
       background:radial-gradient(1200px 900px at 20% 20%, #171924 0, #0f1118 50%, #0c0d10 100%);
     }
     .wrap{max-width:var(--maxw); margin:auto; padding:clamp(20px,4vw,64px)}
-    .hero{
-      display:grid; grid-template-columns:1.1fr 0.9fr; align-items:center;
-      gap:clamp(20px,5vw,80px); min-height:90svh;
-    }
-    @media (max-width:960px){
-      .hero{grid-template-columns:1fr; min-height:auto}
-      .copy{text-align:center; order:-1}
-    }
-    .copy h1{margin:0 0 .4em; line-height:1.05; font-weight:800; font-size:clamp(28px,6vw,62px); letter-spacing:-.02em}
-    .copy p{margin:0 0 1.25rem; color:var(--muted); font-size:clamp(16px,2.3vw,20px)}
-    .btn{
-      appearance:none; border:none; background:#ffffff10; color:#fff;
-      padding:12px 18px; border-radius:16px; font-weight:600; cursor:pointer;
-      backdrop-filter:blur(6px); transition:transform .15s ease, background .2s ease;
-    }
-    .btn:hover{transform:translateY(-1px); background:#ffffff18}
 
-    /* ===== Сцена ===== */
+    /* ===== верхняя панель CTR ===== */
+    .ctr-bar{
+      display:flex; justify-content:center; margin-bottom:14px;
+    }
+    .ctr-row{ display:flex; align-items:flex-end; gap:12px; }
+    .ctr-label{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-weight:800; letter-spacing:.14em; text-transform:uppercase;
+      font-size: var(--ctr-label-size);
+      line-height:1;
+    }
+    .slots{
+      display:inline-flex; align-items:flex-end;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-weight:800; font-variant-numeric: tabular-nums;
+      font-size: var(--ctr-digit-size);
+      line-height:1; color:var(--fg);
+    }
+    .digits{
+      display:inline-flex; align-items:flex-end; gap:0.12ch;
+      transform: translateY(var(--digits-offset)); /* опустить цифры к точке */
+    }
+    .col{ height:auto; overflow:hidden; position:relative; vertical-align:baseline; }
+    .col-ones{  width:var(--w-ones); }
+    .col-tenth{ width:var(--w-tenth); }
+    .reel{
+      position:absolute; left:0; top:0; will-change:transform;
+      display:flex; flex-direction:column; background:transparent!important;
+    }
+    .reel span{
+      display:block; height:1em; width:1ch; line-height:1; text-align:center;
+      background:transparent; -webkit-text-fill-color: currentColor;
+    }
+    .dot{
+      display:inline-block; font-size:.62em; line-height:1;
+      position:relative; top:var(--dot-top); margin:0 0.08ch; opacity:.9;
+    }
+    .pct{ opacity:.95; font-size:.85em; margin-left:0.18ch; }
+
+    /* === постоянный градиент + мягкий пульс для финальных 4.5% === */
+    .digits.celebrate .reel span{
+      background: linear-gradient(90deg,#FF7A00 0%,#FFC247 28%,#FFF2D6 52%,#FFB088 78%,#FF7A00 100%);
+      background-size: 220% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: flow 3.6s ease-in-out infinite;
+    }
+    .digits.celebrate{
+      animation: pulse 2.8s ease-in-out infinite;
+      transform-origin: left bottom;
+    }
+    @keyframes flow{
+      0%{background-position:0% 50%}
+      50%{background-position:100% 50%}
+      100%{background-position:0% 50%}
+    }
+    @keyframes pulse{
+      0%,100%{ transform: translateY(var(--digits-offset)) scale(1) }
+      50%{    transform: translateY(calc(var(--digits-offset) - 0.01em)) scale(1.04) }
+    }
+
+    /* ===== сцена ===== */
     .stage{
       position:relative; width:100%; max-width:760px;
       aspect-ratio: 2048 / 1828; /* точное соотношение PNG */
@@ -66,163 +108,40 @@
       object-fit:cover; object-position:50% 50%;
       opacity:0; will-change:opacity;
     }
-
-    /* ===== Левая колонка: CTR (сверху) + сцена ===== */
-    .visual{
-      display:flex; flex-direction:column; align-items:center;
-      max-width:760px; width:100%; margin-inline:auto;
-    }
-
-    /* ===== CTR — базовые стили (как в первоначальном варианте) ===== */
-    .ctr{ width:100%; margin-bottom:12px; display:flex; justify-content:center; }
-    .ctr-row{ display:flex; align-items:flex-end; gap:12px; }
-    .ctr-label{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-weight:800; letter-spacing:.14em; text-transform:uppercase;
-      font-size: var(--ctr-label-size);
-      line-height:1;
-    }
-
-    .slots{
-      display:inline-flex; align-items:flex-end;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-weight:800;
-      font-variant-numeric: tabular-nums;
-      font-size: var(--ctr-digit-size);
-      line-height:1; color:var(--fg);
-    }
-    .digits{
-      display:inline-flex; align-items:flex-end; gap:0.12ch;
-      transform: translateY(var(--digits-offset)); /* ОПУСТИТЬ ЦИФРЫ НИЖЕ */
-    }
-
-    /* Слот-колонки: ТОЛЬКО ГОРИЗОНТАЛЬНО расширены */
-    .col{ height:auto; overflow:hidden; position:relative; vertical-align:baseline; }
-    .col-ones{  width:var(--w-ones); }    /* шире окно для «4» */
-    .col-tenth{ width:var(--w-tenth); }   /* шире окно для «5» */
-
-    /* Рельсы */
-    .reel{
-      position:absolute; left:0; top:0; will-change:transform;
-      display:flex; flex-direction:column; background:transparent!important;
-    }
-    .reel span{
-      display:block; height:1em; width:1ch; line-height:1; text-align:center;
-      background:transparent; -webkit-text-fill-color: currentColor;
-    }
-
-    .dot{
-      display:inline-block; font-size:.62em; line-height:1;
-      position:relative; top:var(--dot-top); /* позиция точки */
-      margin:0 0.08ch; opacity:.9;
-    }
-    .pct{ opacity:.95; font-size:.85em; margin-left:0.18ch; }
-
-    /* финальный тёплый shine на 4.5% */
-    .digits.celebrate .reel span{
-      background: linear-gradient(90deg,#FF7A00 0%,#FFC247 28%,#FFF2D6 52%,#FFB088 78%,#FF7A00 100%);
-      background-size:200% 100%;
-      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-      animation:warmShine 1.05s ease-out 1;
-    }
-    @keyframes warmShine{
-      0%{background-position:0% 50%}100%{background-position:120% 50%}
-    }
-
-    /* ===== Мини-тюннер (можно скрыть) ===== */
-    .tuner-toggle{
-      position:absolute; left:8px; top:8px; z-index:20;
-      background:#ffffff14; border:1px solid #ffffff25; color:#fff;
-      font:600 12px/1 system-ui; padding:8px 10px; border-radius:12px; cursor:pointer;
-    }
-    .tuner{
-      position:absolute; left:8px; top:50px; z-index:20; width:280px;
-      background:#0f1118cc; backdrop-filter:blur(10px);
-      border:1px solid #ffffff26; border-radius:14px; padding:10px; display:none;
-    }
-    .tuner h4{margin:0 0 6px; font:700 12px/1.2 system-ui; letter-spacing:.08em; text-transform:uppercase; opacity:.9}
-    .row{display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; margin:8px 0}
-    .row label{font:600 12px/1 system-ui; opacity:.9}
-    .row input[type="range"]{width:100%}
-    .tuner .btns{display:flex; gap:8px; margin-top:6px}
-    .tuner .btns button{
-      background:#ffffff14; border:1px solid #ffffff25; color:#fff;
-      font:600 12px/1 system-ui; padding:8px 10px; border-radius:10px; cursor:pointer;
-    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <section class="hero" id="hero">
-      <!-- Левая колонка: CTR сверху, сцена снизу -->
-      <div class="visual" style="position:relative">
-        <!-- Тогглер и тюннер (можно скрыть, кнопка в левом верхнем углу) -->
-        <button class="tuner-toggle" id="toggleTuner">⚙︎ Настроить CTR</button>
-        <div class="tuner" id="tuner" aria-hidden="true">
-          <h4>Настройка CTR</h4>
-          <div class="row">
-            <label>Ширина «4» (ch)</label>
-            <input type="range" id="rWOnes" min="0.80" max="1.40" step="0.01" value="1.05" data-unit="ch">
+    <!-- CTR над сценой -->
+    <div class="ctr-bar">
+      <div class="ctr-row">
+        <div class="ctr-label">CTR</div>
+        <div class="slots" aria-label="CTR">
+          <div class="digits" id="digits">
+            <div class="col col-ones"><div class="reel" id="ones"></div></div>
+            <span class="dot">.</span>
+            <div class="col col-tenth"><div class="reel" id="tenths"></div></div>
+            <span class="pct">%</span>
           </div>
-          <div class="row">
-            <label>Ширина «5» (ch)</label>
-            <input type="range" id="rWTenth" min="0.80" max="1.40" step="0.01" value="0.95" data-unit="ch">
-          </div>
-          <div class="row">
-            <label>Опустить цифры (em)</label>
-            <input type="range" id="rOffset" min="-0.05" max="0.50" step="0.01" value="0.20" data-unit="em">
-          </div>
-          <div class="row">
-            <label>Положение точки (em)</label>
-            <input type="range" id="rDot" min="0.00" max="0.40" step="0.01" value="0.20" data-unit="em">
-          </div>
-          <div class="btns">
-            <button id="copyCss">Скопировать CSS</button>
-            <button id="resetCss">Сброс</button>
-            <button id="closeTuner" style="margin-left:auto">Закрыть</button>
-          </div>
-        </div>
-
-        <!-- CTR -->
-        <div class="ctr">
-          <div class="ctr-row">
-            <div class="ctr-label">CTR</div>
-            <div class="slots" aria-label="CTR">
-              <div class="digits" id="digits">
-                <div class="col col-ones"><div class="reel" id="ones"></div></div>
-                <span class="dot">.</span>
-                <div class="col col-tenth"><div class="reel" id="tenths"></div></div>
-                <span class="pct">%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Сцена -->
-        <div class="stage" id="stage" aria-hidden="true">
-          <img class="layer device" src="assets/step1.png" alt="tablet frame">
-          <!-- порядок показа: step2 → step3 → step4 → step5 → step6 -->
-          <img class="layer s1" src="assets/step2.png" alt="">
-          <img class="layer s2" src="assets/step3.png" alt="">
-          <img class="layer s3" src="assets/step4.png" alt="">
-          <img class="layer s4" src="assets/step5.png" alt="">
-          <img class="layer s5" src="assets/step6.png" alt="">
-          <!-- Финальное видео -->
-          <video class="layer veo" id="veo" muted playsinline preload="auto" poster="assets/step6.png">
-            <source src="assets/veo.webm#t=0.001" type="video/webm">
-            <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
-          </video>
         </div>
       </div>
+    </div>
 
-      <!-- Правая колонка -->
-      <div class="copy">
-        <h1>Сборка карточки → финальное видео</h1>
-        <p>CTR растёт до 3.6% по шагам. Финальные 4.5% — в середине видео с тёплым shine.</p>
-        <button class="btn" id="replay">Повторить</button>
-        <div class="hint">Файлы: <code>assets/step1.png…step6.png</code>, <code>veo.webm</code> (+опц. <code>veo.mp4</code>).</div>
-      </div>
-    </section>
+    <!-- Сцена -->
+    <div class="stage" id="stage" aria-hidden="true">
+      <img class="layer device" src="assets/step1.png" alt="tablet frame">
+      <!-- порядок: step2 → step3 → step4 → step5 → step6 -->
+      <img class="layer s1" src="assets/step2.png" alt="">
+      <img class="layer s2" src="assets/step3.png" alt="">
+      <img class="layer s3" src="assets/step4.png" alt="">
+      <img class="layer s4" src="assets/step5.png" alt="">
+      <img class="layer s5" src="assets/step6.png" alt="">
+      <!-- Финальное видео -->
+      <video class="layer veo" id="veo" muted playsinline preload="auto" poster="assets/step6.png">
+        <source src="assets/veo.webm#t=0.001" type="video/webm">
+        <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
+      </video>
+    </div>
   </div>
 
   <!-- GSAP -->
@@ -230,13 +149,10 @@
   <script>
   (() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    const replayBtn = document.getElementById('replay');
-    const heroEl  = document.getElementById('hero');
     const stageEl = document.getElementById('stage');
     const video   = document.getElementById('veo');
 
-    /* ===== CTR: слот-машина ===== */
+    /* ===== CTR: слот ===== */
     const onesReel   = document.getElementById('ones');
     const tenthsReel = document.getElementById('tenths');
     const digitsBox  = document.getElementById('digits');
@@ -247,7 +163,7 @@
     const tenthsSeq   = ctrPoints.map(v => Math.round((v%1)*10));
     let lineH = 0;
 
-    const snap = v => Math.round(v); // пиксельная привязка
+    const snap = v => Math.round(v);
 
     function buildReel(el){
       const frag = document.createDocumentFragment();
@@ -258,17 +174,14 @@
       }
       el.innerHTML=''; el.appendChild(frag);
     }
-
     function measureAndFit(){
       const probe = onesReel.querySelector('span') || tenthsReel.querySelector('span');
       lineH = probe ? probe.getBoundingClientRect().height : 0;
-      // окно по высоте — с запасом, чтобы не резать (вертикаль не трогаем больше)
       const slotH = Math.round(lineH * 1.25);
       document.querySelectorAll('.col').forEach(c => { c.style.height = slotH + 'px'; });
       const topPad = Math.round((slotH - lineH)/2);
       document.querySelectorAll('.reel').forEach(r => { r.style.top = topPad + 'px'; });
     }
-
     function setIndex(el, index, immediate=false){
       const y = snap(-index * lineH);
       if (immediate) gsap.set(el, { y }); else gsap.to(el, { y, duration:0.5, ease:'power2.out' });
@@ -307,15 +220,16 @@
       // 0) планшет
       tl.to('.device', { opacity:1, yPercent:0, scale:1, rotateZ:0, filter:'blur(0px)', duration:0.55, ease:'back.out(1.6)' });
 
-      // Порядок: s1(step2) → s2(step3) → s3(step4) → s4 → s5
+      // step2 → step3 → step4 → step5 → step6
       const sels=['.s1','.s2','.s3','.s4','.s5'];
       sels.forEach((sel, i)=>{
         tl.to(sel,{ opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)' }, i===0?'-=0.15':'-=0.10')
           .to(sel,{ scale:1.01,duration:0.10 })
           .to(sel,{ scale:1.00,duration:0.12 },'-=0.05');
 
+        // CTR шаги до 3.6% (первые 4 шага)
         if (i < ctrPoints.length - 2) {
-          const stepIdx=i+1; // 1..4 → до 3.6
+          const stepIdx=i+1;
           const onesIdx   = stepIdx*10 + onesSeq[stepIdx];
           const tenthsIdx = stepIdx*10 + tenthsSeq[stepIdx];
           const label=`ctr_${stepIdx}`;
@@ -325,13 +239,13 @@
         }
       });
 
-      // Подсвет
+      // подсвет
       tl.fromTo('#stage',
         { filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))' },
         { filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))', duration:0.45 }, '-=0.2'
       );
 
-      // Переключение на видео
+      // переключение на видео
       tl.add('switchToVideo');
       tl.call(() => {
         try { video.currentTime = 0; } catch(e) {}
@@ -343,7 +257,7 @@
       return tl;
     }
 
-    /* ---------- финальная 4.5% в середине видео + тёплый shine ---------- */
+    /* ---------- финальная 4.5% в середине видео + перманентный градиент-пульс ---------- */
     function scheduleFinalDuringVideo(){
       let fired=false;
       const doFinal=()=> {
@@ -352,11 +266,9 @@
         const finalTenthsIdx = 5*10 + Math.round((ctrPoints[5]%1)*10);   // 5
         const tl = gsap.timeline();
         tl.add(spinTo(onesReel,   finalOnesIdx,   0.55, 'power3.out'))
-          .add(spinTo(tenthsReel, finalTenthsIdx, 0.55, 'power3.out'), '+=0.08')
-          .fromTo('#digits', { scale:1 }, { scale:1.06, duration:0.12, ease:'power3.out' }, '-=0.10')
-          .to('#digits', { scale:1.00, duration:0.18, ease:'power3.out' }, '>');
+          .add(spinTo(tenthsReel, finalTenthsIdx, 0.55, 'power3.out'), '+=0.08');
+        // включаем постоянный градиент и пульс — без отключения
         digitsBox.classList.add('celebrate');
-        setTimeout(()=> digitsBox.classList.remove('celebrate'), 1100);
       };
 
       if (!isFinite(video.duration) || video.duration === 0) { setTimeout(doFinal, 700); return; }
@@ -370,69 +282,9 @@
       video.addEventListener('timeupdate', onTime);
     }
 
-    /* ---------- Тюнинг-панель: применение/сохранение переменных ---------- */
-    const $ = sel => document.querySelector(sel);
-    const inputs = {
-      rWOnes:  $('#rWOnes'),
-      rWTenth: $('#rWTenth'),
-      rOffset: $('#rOffset'),
-      rDot:    $('#rDot'),
-    };
-    function applyVars(fromLocal=false){
-      const root = document.documentElement;
-      if (!fromLocal){
-        root.style.setProperty('--w-ones',  inputs.rWOnes.value  + inputs.rWOnes.dataset.unit);
-        root.style.setProperty('--w-tenth', inputs.rWTenth.value + inputs.rWTenth.dataset.unit);
-        root.style.setProperty('--digits-offset', inputs.rOffset.value + inputs.rOffset.dataset.unit);
-        root.style.setProperty('--dot-top', inputs.rDot.value + inputs.rDot.dataset.unit);
-        // сохранить
-        localStorage.setItem('ctrTweaks', JSON.stringify({
-          wOnes: inputs.rWOnes.value,
-          wTenth: inputs.rWTenth.value,
-          offset: inputs.rOffset.value,
-          dot: inputs.rDot.value
-        }));
-      } else {
-        const raw = localStorage.getItem('ctrTweaks');
-        if (!raw) return;
-        try{
-          const o = JSON.parse(raw);
-          if (o.wOnes)  inputs.rWOnes.value  = o.wOnes;
-          if (o.wTenth) inputs.rWTenth.value = o.wTenth;
-          if (o.offset) inputs.rOffset.value = o.offset;
-          if (o.dot)    inputs.rDot.value    = o.dot;
-          applyVars(false);
-        }catch(e){}
-      }
-    }
-    Object.values(inputs).forEach(inp => inp?.addEventListener('input', () => applyVars(false)));
-
-    $('#copyCss')?.addEventListener('click', async () => {
-      const css = `:root{
-  --w-ones:${getComputedStyle(document.documentElement).getPropertyValue('--w-ones').trim()};
-  --w-tenth:${getComputedStyle(document.documentElement).getPropertyValue('--w-tenth').trim()};
-  --digits-offset:${getComputedStyle(document.documentElement).getPropertyValue('--digits-offset').trim()};
-  --dot-top:${getComputedStyle(document.documentElement).getPropertyValue('--dot-top').trim()};
-}`;
-      try{ await navigator.clipboard.writeText(css); }catch(e){}
-    });
-    $('#resetCss')?.addEventListener('click', () => {
-      localStorage.removeItem('ctrTweaks');
-      inputs.rWOnes.value='1.05'; inputs.rWTenth.value='0.95';
-      inputs.rOffset.value='0.20'; inputs.rDot.value='0.20';
-      applyVars(false);
-    });
-    $('#toggleTuner')?.addEventListener('click', () => { const b=$('#tuner'); b.style.display = b.style.display==='block'?'none':'block'; });
-    $('#closeTuner')?.addEventListener('click', () => { $('#tuner').style.display='none'; });
-
-    /* ---------- init ---------- */
     async function init(){
-      // применить сохранённые настройки тюнера
-      applyVars(true);
-
-      // собрать барабаны и рассчитать высоту
-      const buildReelEl = el => buildReel(el);
-      buildReelEl(onesReel); buildReelEl(tenthsReel);
+      // собрать барабаны
+      buildReel(onesReel); buildReel(tenthsReel);
 
       requestAnimationFrame(()=>{
         measureAndFit();
@@ -444,7 +296,7 @@
       });
 
       if (prefersReduced){
-        // Без анимаций — сразу финал
+        // без анимаций — сразу финал
         gsap.set(document.querySelectorAll('.layer'), { opacity:0, clearProps:'transform,filter' });
         gsap.set('.veo', { opacity:1 });
         requestAnimationFrame(()=>{
@@ -452,6 +304,7 @@
           const finalTenthsIdx = 5*10 + Math.round((ctrPoints[5]%1)*10);
           setIndex(onesReel, finalOnesIdx, true);
           setIndex(tenthsReel, finalTenthsIdx, true);
+          digitsBox.classList.add('celebrate');
         });
         return;
       }
@@ -461,25 +314,10 @@
 
       const tl = buildTimeline();
 
-      // финал в середине видео
       if (video.readyState >= 1) scheduleFinalDuringVideo();
       else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
 
-      // Повтор
-      const restart = () => {
-        try { video.pause(); video.currentTime = 0; } catch(e){}
-        const startOnesIdx   = 0*10 + Math.floor(ctrPoints[0]);
-        const startTenthsIdx = 0*10 + Math.round((ctrPoints[0]%1)*10);
-        gsap.set(onesReel,   { y: snap(-startOnesIdx   * lineH) });
-        gsap.set(tenthsReel, { y: snap(-startTenthsIdx * lineH) });
-        digitsBox.classList.remove('celebrate');
-        tl.restart();
-        if (video.readyState >= 1) scheduleFinalDuringVideo();
-        else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
-      };
-      replayBtn.addEventListener('click', restart);
-
-      // Hover-replay видео: только когда ролик доиграл
+      // hover-replay видео: когда ролик доиграл
       let ended=false;
       video.addEventListener('ended', ()=>{ ended=true; });
       stageEl.addEventListener('mouseenter', ()=>{
@@ -491,13 +329,13 @@
         else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
       });
 
-      // Автостарт при входе в вьюпорт
+      // автозапуск при входе в вьюпорт
       const io = new IntersectionObserver((entries) => {
-        entries.forEach(e => e.isIntersecting && restart());
+        entries.forEach(e => e.isIntersecting && tl.restart());
       }, { threshold:0.4 });
-      io.observe(heroEl);
+      io.observe(stageEl);
 
-      // Респонсив: пересчёт окна при ресайзе
+      // ресайз — пересчёт высоты слотов без сдвига текущих индексов
       let rid;
       window.addEventListener('resize', () => {
         cancelAnimationFrame(rid);
