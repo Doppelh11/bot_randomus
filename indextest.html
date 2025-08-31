@@ -66,11 +66,11 @@
       position:relative; top:var(--dot-top); margin:0 0.08ch; opacity:.9;
     }
     .pct{
-  opacity:.95;
-  font-size:.85em;
-  margin-left:0.18ch;
-  position:relative;         /* ← добавить */
-  top:var(--pct-top);        /* ← добавить */
+  opacity: .95;
+  font-size: .85em;
+  margin-left: 0.18ch;
+  position: relative;
+  top: var(--pct-top, -0.12em); /* отрицательное — выше, положительное — ниже */
 }
 
     /* === постоянный градиент + мягкий пульс для финальных 4.5% === */
