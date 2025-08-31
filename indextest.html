@@ -65,7 +65,13 @@
       display:inline-block; font-size:.62em; line-height:1;
       position:relative; top:var(--dot-top); margin:0 0.08ch; opacity:.9;
     }
-    .pct{ opacity:.95; font-size:.85em; margin-left:0.18ch; }
+    .pct{
+  opacity:.95;
+  font-size:.85em;
+  margin-left:0.18ch;
+  position:relative;         /* ← добавить */
+  top:var(--pct-top);        /* ← добавить */
+}
 
     /* === постоянный градиент + мягкий пульс для финальных 4.5% === */
     .digits.celebrate .reel span{
