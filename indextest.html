@@ -35,7 +35,7 @@
     /* ===== Сцена ===== */
     .stage{
       position:relative; width:100%; max-width:760px;
-      aspect-ratio: 2048 / 1828;
+      aspect-ratio: 2048 / 1828; /* точное соотношение PNG */
       margin-inline:auto; isolation:isolate;
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
       perspective:1200px; contain:layout paint;
@@ -59,57 +59,45 @@
     }
 
     /* ===== CTR — только текст, строго по одной линии ===== */
-    .ctr{
-      width:100%; margin-bottom:12px;
-      display:flex; justify-content:center;
-    }
-    .ctr-row{
-      display:flex; align-items:flex-end; gap:12px; /* ровняем по нижней кромке */
-    }
+    .ctr{ width:100%; margin-bottom:12px; display:flex; justify-content:center; }
+    .ctr-row{ display:flex; align-items:flex-end; gap:12px; }
     .ctr-label{
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-weight:800; letter-spacing:.14em; text-transform:uppercase;
       font-size: clamp(20px, 3.2vw, 32px);
-      line-height:1; font-style:normal;
+      line-height:1;
     }
 
     .slots{
-      display:inline-flex; align-items:flex-end; gap:0.5ch; /* общий интервал между группами */
+      display:inline-flex; align-items:flex-end;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-weight:800; letter-spacing:0;
-      font-variant-numeric: tabular-nums;
-      font-style:normal;
+      font-weight:800; font-variant-numeric: tabular-nums;
       font-size: clamp(28px, 4.8vw, 58px);
-      line-height:1;
-      color:var(--fg);
+      line-height:1; color:var(--fg);
     }
+    .digits{ display:inline-flex; align-items:flex-end; gap:0.12ch; }
 
-    /* Группа цифр: «4», «.» и «5%» с тонкой ручной подгонкой */
-    .digits{ display:inline-flex; align-items:flex-end; gap:0.18ch; }
-
-    /* Колонки «слота»: ширины под глифы и без фонов/рамок */
+    /* Колонки слота — без подложек/рамок, ширины под глифы */
     .col{ height:auto; overflow:hidden; position:relative; vertical-align:baseline; }
-    .col-ones{  width:0.90ch; }    /* шире для «4», чтобы не резалось */
-    .col-tenth{ width:0.66ch; }    /* уже — «5» ближе к точке */
-
-    .dot{
-      display:inline-block; transform:translateY(-0.08em) scale(.82); /* меньше и чуть выше */
-      margin:0 0.12ch 0 0.02ch; opacity:.95;
-    }
-    .pct{ opacity:.95; font-size:.85em; margin-left:0.12ch; font-style:normal }
+    .col-ones{  width:0.90ch; }   /* шире для «4» */
+    .col-tenth{ width:0.82ch; }   /* «5» ближе к точке, но не тесно */
 
     .reel{
-      position:absolute; left:0; top:0;
-      will-change:transform; display:flex; flex-direction:column;
-      background:transparent !important;
+      position:absolute; left:0; top:0; will-change:transform;
+      display:flex; flex-direction:column; background:transparent!important;
     }
     .reel span{
-      display:block; height:1em; line-height:1;
-      text-align:center; background:transparent;
-      -webkit-text-fill-color: currentColor;
+      display:block; height:1em; width:1ch; line-height:1; text-align:center;
+      background:transparent; -webkit-text-fill-color: currentColor;
     }
 
-    /* Финальный тёплый градиент + shine на 4.5% (без подложек) */
+    .dot{
+      display:inline-block; font-size:.62em; line-height:1;
+      position:relative; top:.20em; margin:0 0.08ch; opacity:.9;
+    }
+    .pct{ opacity:.95; font-size:.85em; margin-left:0.18ch; }
+
+    /* Финальный тёплый градиент + shine на 4.5% */
     .digits.celebrate .reel span{
       background: linear-gradient(90deg, #FF7A00 0%, #FFC247 28%, #FFF2D6 52%, #FFB088 78%, #FF7A00 100%);
       background-size: 200% 100%;
@@ -134,7 +122,7 @@
             <div class="slots" aria-label="CTR">
               <div class="digits" id="digits">
                 <div class="col col-ones"><div class="reel" id="ones"></div></div>
-                <span class="dot">•</span>
+                <span class="dot">.</span>
                 <div class="col col-tenth"><div class="reel" id="tenths"></div></div>
                 <span class="pct">%</span>
               </div>
@@ -145,12 +133,15 @@
         <!-- Сцена -->
         <div class="stage" id="stage" aria-hidden="true">
           <img class="layer device" src="assets/step1.png" alt="tablet frame">
-          <!-- порядок: step2 → step4 → step3 → step5 → step6 -->
+
+          <!-- порядок показа: step2 → step4 → step3 → step5 → step6 -->
           <img class="layer s1" src="assets/step2.png" alt="">
           <img class="layer s3" src="assets/step4.png" alt="">
           <img class="layer s2" src="assets/step3.png" alt="">
           <img class="layer s4" src="assets/step5.png" alt="">
           <img class="layer s5" src="assets/step6.png" alt="">
+
+          <!-- Финальное видео -->
           <video class="layer veo" id="veo" muted playsinline preload="auto" poster="assets/step6.png">
             <source src="assets/veo.webm#t=0.001" type="video/webm">
             <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
@@ -173,7 +164,6 @@
   <script>
   (() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
     const replayBtn = document.getElementById('replay');
     const heroEl  = document.getElementById('hero');
     const stageEl = document.getElementById('stage');
@@ -202,11 +192,9 @@
     function measureAndFit(){
       const probe = onesReel.querySelector('span') || tenthsReel.querySelector('span');
       lineH = probe ? probe.getBoundingClientRect().height : 0;
-      // окно чуть выше, чтобы глифы не обрезались; контент центрируем,
-      // сам ряд ниже ровняем по нижней кромке .ctr-row (align-items:flex-end)
-      const slotH = Math.round(lineH * 1.15);
+      const slotH = Math.round(lineH * 1.22);           // окно выше, чтобы не обрезать
       document.querySelectorAll('.col').forEach(c => { c.style.height = slotH + 'px'; });
-      const topPad = Math.round((slotH - lineH)/2);
+      const topPad = Math.round((slotH - lineH)/2);      // центрируем контент
       document.querySelectorAll('.reel').forEach(r => { r.style.top = topPad + 'px'; });
     }
     function setIndex(el, index, immediate=false){
@@ -255,7 +243,7 @@
           .to(sel,{ scale:1.01,duration:0.10 })
           .to(sel,{ scale:1.00,duration:0.12 },'-=0.05');
 
-        // CTR шаги до 3.6% (только первые 4 шага — до видео)
+        // CTR шаги до 3.6% (первые 4 шага — до видео)
         if (i < ctrPoints.length - 2) {
           const stepIdx=i+1;
           const onesIdx   = stepIdx*10 + onesSeq[stepIdx];
@@ -297,21 +285,14 @@
           .add(spinTo(tenthsReel, finalTenthsIdx, 0.55, 'power3.out'), '+=0.08')
           .fromTo('#digits', { scale:1 }, { scale:1.06, duration:0.12, ease:'power3.out' }, '-=0.10')
           .to('#digits', { scale:1.00, duration:0.18, ease:'power3.out' }, '>');
-        // тёплый градиентный shine (без подложек)
-        digitsBox.classList.add('celebrate');
+        digitsBox.classList.add('celebrate');            // тёплый градиентный shine
         setTimeout(()=> digitsBox.classList.remove('celebrate'), 1100);
       };
 
-      if (!isFinite(video.duration) || video.duration === 0) {
-        setTimeout(doFinal, 700); // фолбэк
-        return;
-      }
+      if (!isFinite(video.duration) || video.duration === 0) { setTimeout(doFinal, 700); return; }
       const mid = video.duration * 0.5;
       const onTime = () => {
-        if (video.currentTime >= mid) {
-          video.removeEventListener('timeupdate', onTime);
-          doFinal();
-        }
+        if (video.currentTime >= mid) { video.removeEventListener('timeupdate', onTime); doFinal(); }
       };
       video.addEventListener('timeupdate', onTime);
     }
@@ -328,7 +309,6 @@
       });
 
       if (prefersReduced){
-        // Без анимаций — сразу финал
         gsap.set(document.querySelectorAll('.layer'), { opacity:0, clearProps:'transform,filter' });
         gsap.set('.veo', { opacity:1 });
         requestAnimationFrame(()=>{
@@ -345,9 +325,11 @@
 
       const tl = buildTimeline();
 
+      // триггер финала в середине видео
       if (video.readyState >= 1) scheduleFinalDuringVideo();
       else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
 
+      // Повтор
       const restart = () => {
         try { video.pause(); video.currentTime = 0; } catch(e){}
         const startOnesIdx   = 0*10 + Math.floor(ctrPoints[0]);
@@ -359,21 +341,21 @@
         if (video.readyState >= 1) scheduleFinalDuringVideo();
         else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
       };
-      document.getElementById('replay').addEventListener('click', restart);
+      replayBtn.addEventListener('click', restart);
 
-      // Hover-replay видео: только когда ролик доиграл
+      // Hover-replay видео (только когда ролик доиграл)
       let ended=false;
       video.addEventListener('ended', ()=>{ ended=true; });
       stageEl.addEventListener('mouseenter', ()=>{
         if (!ended) return;
-        try{ video.currentTime = 0; }catch(e){}
-        const p=video.play?.(); if (p && p.catch) p.catch(()=>{});
+        try { video.currentTime = 0; } catch(e){}
+        const p=video.play?.(); if(p && p.catch) p.catch(()=>{});
         ended=false;
         if (video.readyState >= 1) scheduleFinalDuringVideo();
         else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
       });
 
-      // Автозапуск при входе в вьюпорт
+      // Автостарт при входе в вьюпорт
       const io = new IntersectionObserver((entries) => {
         entries.forEach(e => e.isIntersecting && restart());
       }, { threshold:0.4 });
