@@ -3,12 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Анимация — 7 слоёв + финальное видео</title>
+  <title>Сборка карточки → финальное видео (без искажений)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
-    :root{
-      --fg:#fff; --muted:#b5b6bf; --maxw:1200px;
-    }
+    :root{ --fg:#fff; --muted:#b5b6bf; --maxw:1200px; }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
@@ -37,7 +35,7 @@
     /* ===== Сцена ===== */
     .stage{
       position:relative; width:100%; max-width:760px;
-      /* точное соотношение исходников (ваши PNG 2048×1828) */
+      /* точное соотношение исходников PNG (2048×1828) */
       aspect-ratio: 2048 / 1828;
       margin-inline:auto; isolation:isolate;
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
@@ -49,14 +47,15 @@
       will-change:transform,opacity,filter; opacity:0;
     }
 
-    /* Видео: поверх всего, растянуть ровно в канву (без чёрных полей) */
+    /* Финальное видео: без искажения (cover), по центру.
+       Ширина/высота могут обрезаться, зато пропорции верные. */
     .veo{
       pointer-events:none;
       width:100%; height:100%;
-      object-fit: fill;       /* гарантирует 1:1 к канве, даже если исходник 16:9 */
-      transform:none;
+      object-fit: cover;           /* <= главное изменение */
+      object-position: 50% 50%;
       will-change:opacity;
-      opacity:0;              /* появится только в финале */
+      opacity:0;                   /* показываем только в конце */
     }
 
     .hint{ text-align:center; color:#a7aab8; margin-top:22px; font-size:13px; opacity:.75 }
@@ -66,10 +65,10 @@
   <div class="wrap">
     <section class="hero" id="hero">
       <div class="stage" id="stage" aria-hidden="true">
-        <!-- База: планшет (step1) -->
+        <!-- База: планшет -->
         <img class="layer device" src="assets/step1.png" alt="tablet frame">
 
-        <!-- 6 экранных слоёв (совмещены по канве) -->
+        <!-- 6 экранных слоёв -->
         <img class="layer s1" src="assets/step2.png" alt="">
         <img class="layer s2" src="assets/step3.png" alt="">
         <img class="layer s3" src="assets/step4.png" alt="">
@@ -86,9 +85,9 @@
 
       <div class="copy">
         <h1>Сборка карточки → финальное видео</h1>
-        <p>В конце PNG-слои плавно скрываются, видео занимает их место 1:1 по канве.</p>
+        <p>В конце PNG плавно скрываются, видео занимает их место без «сужения».</p>
         <button class="btn" id="replay">Повторить</button>
-        <div class="hint">Положите файлы в <code>assets/</code>: <code>step1.png…step7.png</code>, <code>veo.webm</code> (+опц. <code>veo.mp4</code>).</div>
+        <div class="hint">Файлы в <code>assets/</code>: <code>step1.png…step7.png</code>, <code>veo.webm</code> (+опц. <code>veo.mp4</code>).</div>
       </div>
     </section>
   </div>
@@ -118,12 +117,12 @@
     function buildTimeline(){
       const tl = gsap.timeline({ defaults:{ ease:'power3.out' } });
 
-      // Стартовые состояния (финал — идеально ровный)
+      // Стартовые состояния
       gsap.set('.device', { opacity:0, yPercent:4, scale:0.985, rotateZ:-1, filter:'blur(6px)' });
       gsap.set(['.s1','.s2','.s3','.s4','.s5','.s6'], { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
       gsap.set('.veo', { opacity:0 });
 
-      // 0) планшет «приземляется»
+      // 0) планшет
       tl.to('.device', { opacity:1, yPercent:0, scale:1, rotateZ:0, filter:'blur(0px)', duration:0.55, ease:'back.out(1.6)' });
 
       // 1–6) экранные слои
@@ -133,13 +132,13 @@
           .to(sel, { scale:1.00, duration:0.12 }, '-=0.05');
       });
 
-      // финальный «подсвет» сцены
+      // Подсвет сцены
       tl.fromTo('#stage',
         { filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))' },
         { filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))', duration:0.45 }, '-=0.2'
       );
 
-      // 7) Переключение на видео: PNG исчезают, видео появляется
+      // Переключение на видео
       tl.add('switchToVideo');
       tl.call(() => {
         try { video.currentTime = 0; } catch(e) {}
@@ -153,14 +152,12 @@
 
     async function init(){
       if (prefersReduced){
-        // Без анимации: сразу показать видео
         gsap.set(layers, { opacity:0, clearProps:'transform,filter' });
         gsap.set('.veo', { opacity:1 });
         replayBtn.style.display = 'none';
         return;
       }
 
-      // Предзагрузка
       await preloadImages(layers.filter(l => l.tagName === 'IMG').map(l => l.currentSrc || l.src));
       await preloadVideo(video);
 
@@ -172,7 +169,6 @@
       };
       replayBtn.addEventListener('click', restart);
 
-      // Повтор при входе в вьюпорт
       const io = new IntersectionObserver((entries) => {
         entries.forEach(e => e.isIntersecting && restart());
       }, { threshold:0.4 });
