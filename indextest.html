@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Тест видео — белый фон (маска / multiply)</title>
+  <title>Тест видео — белый фон (маска / multiply, fixed)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{ --fg:#fff; --muted:#b5b6bf; --maxw:1200px }
@@ -16,19 +16,20 @@
       display:grid; place-items:center; padding:24px;
     }
 
-    /* Сцена под нужное соотношение (как у мокапа 2048×1828) */
+    /* Сцена: ВАЖНО — БЕЗ isolation:isolate, чтобы multiply смешивался с фоном body */
     .stage{
       position:relative; width:min(100%, 760px);
       aspect-ratio: 2048 / 1828;
-      isolation:isolate; /* важно для корректного blend */
+      /* isolation:isolate;  <-- было, удалили */
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
-      border-radius:18px; overflow:hidden; /* опционально, чтобы было аккуратнее */
+      border-radius:18px; overflow:hidden; /* опционально, для аккуратности */
     }
 
-    /* Только видео-слой */
+    /* Только видео */
     .veo{
       position:absolute; inset:0; width:100%; height:100%;
       object-fit:contain; opacity:1; pointer-events:none;
+
       /* тонкая подгонка при несовпадении размеров (если нужно) */
       --vx:0px; --vy:0px; --vscale:1;
       transform: translate(var(--vx), var(--vy)) scale(var(--vscale));
@@ -43,7 +44,10 @@
     .veo.nomask{ -webkit-mask:none; mask:none; }
     .veo.multiply{ mix-blend-mode: multiply; }
 
-    /* Небольшой оверлей, если автоплей заблокирован */
+    /* Немного компенсируем затемнение при multiply (по вкусу, можно убрать) */
+    .veo.multiply{ filter: brightness(1.04) contrast(1.02); }
+
+    /* Оверлей, если автоплей заблокирован */
     .overlay{
       position:absolute; inset:0; display:grid; place-items:center;
       background:linear-gradient(180deg, #0008, #0004);
@@ -56,7 +60,6 @@
       backdrop-filter:blur(8px);
     }
 
-    /* Подпись режима (необязательно, чисто для наглядности) */
     .mode{
       margin-top:14px; color:var(--muted); font-size:14px; text-align:center;
       font-variant-numeric: tabular-nums;
@@ -66,8 +69,8 @@
 <body>
   <div>
     <div class="stage" id="stage">
-      <video id="veo" class="veo" playsinline muted loop autoplay preload="auto">
-        <!-- укажи свой путь; сейчас стоит твой GitHub Pages -->
+      <video id="veo" class="veo" playsinline muted loop autoplay preload="auto" poster="">
+        <!-- твой mp4 -->
         <source src="https://doppelh11.github.io/sitewb/assets/veo.mp4" type="video/mp4">
       </video>
 
@@ -85,13 +88,13 @@
       const playBtn = document.getElementById('playBtn');
       const modeEl  = document.getElementById('mode');
 
-      // Проверим наличие маски: если 404 — включим multiply (для БЕЛОГО фона)
+      // Проверяем наличие маски: если 404 — выключаем mask и включаем multiply (для белого фона)
       function ensureMaskOrMultiply(){
         return new Promise((resolve) => {
           const img = new Image();
           img.onload  = () => { modeEl.textContent = 'Режим: mask (PNG)'; resolve('mask'); };
           img.onerror = () => {
-            video.classList.add('nomask','multiply');
+            video.classList.add('nomask','multiply'); // белый фон → multiply
             modeEl.textContent = 'Режим: mix-blend: multiply (без маски)';
             resolve('multiply');
           };
