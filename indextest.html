@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Сборка карточки → финальное видео (без искажений)</title>
+  <title>Сборка карточки → CTR-оверлей (1.9 → 4.5) + финальное видео</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{ --fg:#fff; --muted:#b5b6bf; --maxw:1200px; }
@@ -25,21 +25,15 @@
     }
     .copy h1{margin:0 0 .4em; line-height:1.05; font-weight:800; font-size:clamp(28px,6vw,62px); letter-spacing:-.02em}
     .copy p{margin:0 0 1.25rem; color:var(--muted); font-size:clamp(16px,2.3vw,20px)}
-    .btn{
-      appearance:none; border:none; background:#ffffff10; color:#fff;
-      padding:12px 18px; border-radius:16px; font-weight:600; cursor:pointer;
-      backdrop-filter:blur(6px); transition:transform .15s ease, background .2s ease;
-    }
-    .btn:hover{transform:translateY(-1px); background:#ffffff18}
 
     /* ===== Сцена ===== */
     .stage{
       position:relative; width:100%; max-width:760px;
-      /* точное соотношение исходников PNG (2048×1828) */
-      aspect-ratio: 2048 / 1828;
+      aspect-ratio: 2048 / 1828; /* точное соотношение PNG */
       margin-inline:auto; isolation:isolate;
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
       perspective:1200px; contain:layout paint;
+      cursor:default;
     }
     .layer{
       position:absolute; inset:0; width:100%; height:100%;
@@ -47,15 +41,49 @@
       will-change:transform,opacity,filter; opacity:0;
     }
 
-    /* Финальное видео: без искажения (cover), по центру.
-       Ширина/высота могут обрезаться, зато пропорции верные. */
+    /* Финальное видео: без искажений (cover), по центру */
     .veo{
       pointer-events:none;
       width:100%; height:100%;
-      object-fit: cover;           /* <= главное изменение */
-      object-position: 50% 50%;
-      will-change:opacity;
-      opacity:0;                   /* показываем только в конце */
+      object-fit:cover; object-position:50% 50%;
+      opacity:0; will-change:opacity;
+    }
+
+    /* ===== CTR оверлей (только цифра + спарклайн) ===== */
+    .ctr{
+      position:absolute; inset:auto auto 0 0; /* по умолчанию слева-сверху, но с отступами ниже */
+      left:16px; top:16px; z-index:5; pointer-events:none;
+      display:flex; flex-direction:column; gap:8px;
+      padding:10px 12px; border-radius:12px;
+      background:color-mix(in oklab, #0b0d14 88%, transparent);
+      outline:1px solid #ffffff22;
+      backdrop-filter: blur(6px);
+      filter: drop-shadow(0 6px 16px rgba(0,0,0,.35));
+    }
+    @media (max-width:520px){
+      .ctr{ right:12px; left:auto; top:12px; padding:8px 10px; gap:6px }
+    }
+    .ctr-number{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-weight:700; letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+      line-height:1; white-space:nowrap;
+      font-size: clamp(24px, 4.2vw, 44px);
+      transform-origin: left center;
+      transition: filter .25s ease;
+    }
+    .ctr-number .pct{ opacity:.85; font-size: .85em }
+    .ctr-spark{
+      width:min(52vw, 360px); height:36px;
+    }
+    .ctr-spark path{
+      fill:none; stroke:#8dd0ff; stroke-width:2;
+      opacity:.95; filter: drop-shadow(0 1px 0 rgba(255,255,255,.15));
+      stroke-linejoin:round; stroke-linecap:round;
+    }
+    .ctr-spark circle{
+      r:4; fill:#8dd0ff; opacity:.95;
+      filter: drop-shadow(0 0 4px rgba(96,180,255,.7));
     }
 
     .hint{ text-align:center; color:#a7aab8; margin-top:22px; font-size:13px; opacity:.75 }
@@ -65,29 +93,36 @@
   <div class="wrap">
     <section class="hero" id="hero">
       <div class="stage" id="stage" aria-hidden="true">
+        <!-- CTR-оверлей (над всеми слоями) -->
+        <div class="ctr" id="ctr">
+          <div class="ctr-number" id="ctrValue"><span class="num">1.9</span><span class="pct">%</span></div>
+          <svg class="ctr-spark" viewBox="0 0 320 36" preserveAspectRatio="none" id="spark">
+            <path id="sparkPath" d="M0,0" />
+            <circle id="sparkDot" cx="0" cy="0" />
+          </svg>
+        </div>
+
         <!-- База: планшет -->
         <img class="layer device" src="assets/step1.png" alt="tablet frame">
 
-        <!-- 6 экранных слоёв -->
+        <!-- 5 экранных слоёв (step2…step6) -->
         <img class="layer s1" src="assets/step2.png" alt="">
         <img class="layer s2" src="assets/step3.png" alt="">
         <img class="layer s3" src="assets/step4.png" alt="">
         <img class="layer s4" src="assets/step5.png" alt="">
         <img class="layer s5" src="assets/step6.png" alt="">
-        <img class="layer s6" src="assets/step7.png" alt="">
 
         <!-- Финальное видео поверх всех слоёв -->
-        <video class="layer veo" id="veo" muted playsinline preload="auto" poster="assets/step7.png">
+        <video class="layer veo" id="veo" muted playsinline preload="auto" poster="assets/step6.png">
           <source src="assets/veo.webm#t=0.001" type="video/webm">
           <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
         </video>
       </div>
 
       <div class="copy">
-        <h1>Сборка карточки → финальное видео</h1>
-        <p>В конце PNG плавно скрываются, видео занимает их место без «сужения».</p>
-        <button class="btn" id="replay">Повторить</button>
-        <div class="hint">Файлы в <code>assets/</code>: <code>step1.png…step7.png</code>, <code>veo.webm</code> (+опц. <code>veo.mp4</code>).</div>
+        <h1>Сборка карточки → CTR растёт 1.9 → 4.5</h1>
+        <p>Над сценой — только цифры CTR и спарклайн. Финал фиксируется на 4.5%.</p>
+        <div class="hint">Файлы: <code>assets/step1.png…step6.png</code>, <code>veo.webm</code> (+опц. <code>veo.mp4</code>).</div>
       </div>
     </section>
   </div>
@@ -97,11 +132,21 @@
   <script>
   (() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const replayBtn = document.getElementById('replay');
-    const heroEl = document.getElementById('hero');
-    const layers = [...document.querySelectorAll('.layer')];
-    const video  = document.getElementById('veo');
 
+    const heroEl  = document.getElementById('hero');
+    const stageEl = document.getElementById('stage');
+    const layers  = [...document.querySelectorAll('.layer')];
+    const video   = document.getElementById('veo');
+
+    /* ======= CTR data ======= */
+    const ctrPoints = [1.9, 2.3, 2.6, 3.3, 3.6, 4.5]; // start + 5 шагов
+    const SPARK_W = 320, SPARK_H = 36;
+    const spark   = document.getElementById('spark');
+    const pathEl  = document.getElementById('sparkPath');
+    const dotEl   = document.getElementById('sparkDot');
+    const ctrNum  = document.querySelector('#ctrValue .num');
+
+    /* ---------- helpers: preload ---------- */
     const preloadImages = (srcs) => Promise.all(srcs.map(s => new Promise(res => {
       const im = new Image(); im.onload = im.onerror = () => res(); im.src = s;
     })));
@@ -112,27 +157,98 @@
       v.addEventListener('canplaythrough', ready, { once:true });
       v.addEventListener('loadeddata', ready, { once:true });
       try { v.load(); } catch(e) {}
-    });
+    }));
 
+    /* ---------- build sparkline path from ctrPoints ---------- */
+    function buildSparkPath(values){
+      const min = Math.min(...values), max = Math.max(...values);
+      const xStep = SPARK_W / (values.length - 1);
+      const pts = values.map((v,i) => {
+        const x = i * xStep;
+        // инвертируем Y: % выше → точка выше (верх = 0)
+        const y = SPARK_H - ((v - min)/(max - min)) * (SPARK_H * 0.86) - 3; // маленький верхний паддинг
+        return [x, Math.max(2, Math.min(SPARK_H-2, y))];
+      });
+      let d = `M ${pts[0][0]},${pts[0][1]}`;
+      for (let i=1;i<pts.length;i++){
+        const [x,y] = pts[i];
+        // лёгкая сглаженность: квадр. Без усложнений.
+        const [px,py] = pts[i-1];
+        const cx = (px + x)/2;
+        d += ` Q ${cx},${py} ${x},${y}`;
+      }
+      pathEl.setAttribute('d', d);
+      // стартовая позиция точки
+      dotEl.setAttribute('cx', pts[0][0]);
+      dotEl.setAttribute('cy', pts[0][1]);
+      return { pts, d };
+    }
+
+    /* ---------- animate CTR number to target with small lock ---------- */
+    function animateNumber(from, to, tl, label){
+      // лёгкий «перелёт» на +0.02 и фиксация
+      const over = Math.min(to + 0.02, to + 0.03);
+      const obj = { v: from };
+      tl.to(obj, { v: over, duration:0.20, ease:'power2.out',
+        onUpdate: () => { ctrNum.textContent = obj.v.toFixed(1); }
+      }, label);
+      tl.to(obj, { v: to, duration:0.18, ease:'power2.out',
+        onUpdate: () => { ctrNum.textContent = obj.v.toFixed(1); }
+      }, ">");
+    }
+
+    /* ---------- animate spark to index ---------- */
+    function animateSparkToIndex(idx, tl, label){
+      const total = pathEl.getTotalLength();
+      const segLen = total * (idx/(ctrPoints.length-1)); // доля по индексу
+      // рисуем от конца: dasharray = total, dashoffset убывает
+      tl.to(pathEl, { strokeDashoffset: total - segLen, duration:0.38, ease:'power3.out' }, label);
+      // бегущая точка
+      const proxy = { len: pathEl.getTotalLength() - (total - segLen) }; // текущая длина
+      tl.to(proxy, {
+        len: segLen,
+        duration:0.38, ease:'power3.out',
+        onUpdate: () => {
+          const p = pathEl.getPointAtLength(proxy.len);
+          dotEl.setAttribute('cx', p.x);
+          dotEl.setAttribute('cy', p.y);
+        }
+      }, label);
+    }
+
+    /* ---------- timeline ---------- */
     function buildTimeline(){
       const tl = gsap.timeline({ defaults:{ ease:'power3.out' } });
 
       // Стартовые состояния
       gsap.set('.device', { opacity:0, yPercent:4, scale:0.985, rotateZ:-1, filter:'blur(6px)' });
-      gsap.set(['.s1','.s2','.s3','.s4','.s5','.s6'], { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
+      gsap.set(['.s1','.s2','.s3','.s4','.s5'], { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
       gsap.set('.veo', { opacity:0 });
+
+      // Подготовка спарклайна (скрыт линией)
+      const totalLen = pathEl.getTotalLength();
+      pathEl.style.strokeDasharray = totalLen;
+      pathEl.style.strokeDashoffset = totalLen;
 
       // 0) планшет
       tl.to('.device', { opacity:1, yPercent:0, scale:1, rotateZ:0, filter:'blur(0px)', duration:0.55, ease:'back.out(1.6)' });
 
-      // 1–6) экранные слои
-      ['.s1','.s2','.s3','.s4','.s5','.s6'].forEach((sel, i) => {
+      // 1–5) экранные слои + CTR шаги
+      const sels = ['.s1','.s2','.s3','.s4','.s5'];
+      sels.forEach((sel, i) => {
+        // слой
         tl.to(sel, { opacity:1, yPercent:0, rotateX:0, rotateZ:0, scale:1, duration:0.42, ease:'back.out(1.4)' }, i===0 ? '-=0.15' : '-=0.10')
           .to(sel, { scale:1.01, duration:0.10 })
           .to(sel, { scale:1.00, duration:0.12 }, '-=0.05');
+
+        // CTR: на завершении слоя — следующий таргет
+        const label = `ctrStep_${i+1}`;
+        tl.add(label, ">-0.02"); // чуть внахлёст к финальному твину слоя
+        animateNumber(ctrPoints[i], ctrPoints[i+1], tl, label);
+        animateSparkToIndex(i+1, tl, label);
       });
 
-      // Подсвет сцены
+      // Подсвет сцены (как было)
       tl.fromTo('#stage',
         { filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))' },
         { filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))', duration:0.45 }, '-=0.2'
@@ -145,34 +261,52 @@
         const p = video.play?.(); if (p && p.catch) p.catch(()=>{});
       }, null, 'switchToVideo');
       tl.to('.veo', { opacity:1, duration:0.5 }, 'switchToVideo');
-      tl.to(['.device','.s1','.s2','.s3','.s4','.s5','.s6'], { opacity:0, duration:0.5 }, 'switchToVideo');
+      tl.to(['.device','.s1','.s2','.s3','.s4','.s5'], { opacity:0, duration:0.5 }, 'switchToVideo');
 
+      // Финальный «лок-ин» 4.5% (микропульс цифры, без лишней графики)
+      tl.add('ctrLock', 'switchToVideo+=0.02');
+      const lockObj = { v: ctrPoints.at(-1) };
+      tl.to(lockObj, { v: 4.52, duration:0.12, ease:'power2.out',
+        onUpdate: () => { ctrNum.textContent = lockObj.v.toFixed(1); }
+      }, 'ctrLock')
+        .to(lockObj, { v: 4.50, duration:0.14, ease:'power2.out',
+        onUpdate: () => { ctrNum.textContent = lockObj.v.toFixed(1); }
+      }, '>')
+        .fromTo('#ctr', { scale:1 }, { scale:1.06, duration:0.10, ease:'power3.out' }, 'ctrLock')
+        .to('#ctr', { scale:1.00, duration:0.18, ease:'power3.out' }, '>');
       return tl;
     }
 
+    /* ---------- init ---------- */
     async function init(){
+      // Предсобрать спарклайн (геометрию)
+      buildSparkPath(ctrPoints);
+
       if (prefersReduced){
+        // Без анимации: показать финальные значения сразу
+        const { d } = buildSparkPath(ctrPoints);
+        pathEl.setAttribute('d', d);
+        const total = pathEl.getTotalLength();
+        pathEl.style.strokeDasharray = total;
+        pathEl.style.strokeDashoffset = 0;
+        const p = pathEl.getPointAtLength(total);
+        dotEl.setAttribute('cx', p.x); dotEl.setAttribute('cy', p.y);
+        document.querySelector('#ctrValue .num').textContent = ctrPoints.at(-1).toFixed(1);
         gsap.set(layers, { opacity:0, clearProps:'transform,filter' });
         gsap.set('.veo', { opacity:1 });
-        replayBtn.style.display = 'none';
         return;
       }
 
-      await preloadImages(layers.filter(l => l.tagName === 'IMG').map(l => l.currentSrc || l.src));
+      // Предзагрузка ассетов
+      await preloadImages(['assets/step1.png','assets/step2.png','assets/step3.png','assets/step4.png','assets/step5.png','assets/step6.png']);
       await preloadVideo(video);
 
+      // Первый кадр спарклайна и цифры
+      document.querySelector('#ctrValue .num').textContent = ctrPoints[0].toFixed(1);
       const tl = buildTimeline();
 
-      const restart = () => {
-        try { video.pause(); video.currentTime = 0; } catch(e){}
-        tl.restart();
-      };
-      replayBtn.addEventListener('click', restart);
-
-      const io = new IntersectionObserver((entries) => {
-        entries.forEach(e => e.isIntersecting && restart());
-      }, { threshold:0.4 });
-      io.observe(heroEl);
+      // Никаких повторов и hover-replay — один прогон
+      // (если потребуется автостарт при скролле — раскомментировать IntersectionObserver)
     }
 
     init();
