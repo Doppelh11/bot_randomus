@@ -35,7 +35,7 @@
     /* ===== Сцена ===== */
     .stage{
       position:relative; width:100%; max-width:760px;
-      aspect-ratio: 2048 / 1828; /* точное соотношение PNG */
+      aspect-ratio: 2048 / 1828;
       margin-inline:auto; isolation:isolate;
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
       perspective:1200px; contain:layout paint;
@@ -58,7 +58,7 @@
       max-width:760px; width:100%; margin-inline:auto;
     }
 
-    /* ===== CTR — только текст, строго по одной линии ===== */
+    /* ===== CTR — только текст, одна линия ===== */
     .ctr{ width:100%; margin-bottom:12px; display:flex; justify-content:center; }
     .ctr-row{ display:flex; align-items:flex-end; gap:12px; }
     .ctr-label{
@@ -75,12 +75,16 @@
       font-size: clamp(28px, 4.8vw, 58px);
       line-height:1; color:var(--fg);
     }
-    .digits{ display:inline-flex; align-items:flex-end; gap:0.12ch; }
+    .digits{
+      display:inline-flex; align-items:flex-end; gap:0.12ch;
+      /* чуть опускаем весь блок цифр, чтобы совпасть с точкой */
+      transform: translateY(0.08em);
+    }
 
     /* Колонки слота — без подложек/рамок, ширины под глифы */
     .col{ height:auto; overflow:hidden; position:relative; vertical-align:baseline; }
-    .col-ones{  width:0.90ch; }   /* шире для «4» */
-    .col-tenth{ width:0.82ch; }   /* «5» ближе к точке, но не тесно */
+    .col-ones{  width:0.95ch; }   /* шире для «4» */
+    .col-tenth{ width:0.88ch; }   /* шире, чтобы «5» не резалась */
 
     .reel{
       position:absolute; left:0; top:0; will-change:transform;
@@ -95,7 +99,7 @@
       display:inline-block; font-size:.62em; line-height:1;
       position:relative; top:.20em; margin:0 0.08ch; opacity:.9;
     }
-    .pct{ opacity:.95; font-size:.85em; margin-left:0.18ch; }
+    .pct{ opacity:.95; font-size:.85em; margin-left:0.22ch; }
 
     /* Финальный тёплый градиент + shine на 4.5% */
     .digits.celebrate .reel span{
@@ -133,15 +137,12 @@
         <!-- Сцена -->
         <div class="stage" id="stage" aria-hidden="true">
           <img class="layer device" src="assets/step1.png" alt="tablet frame">
-
-          <!-- порядок показа: step2 → step4 → step3 → step5 → step6 -->
+          <!-- порядок: step2 → step3 → step4 → step5 → step6 -->
           <img class="layer s1" src="assets/step2.png" alt="">
-          <img class="layer s3" src="assets/step4.png" alt="">
           <img class="layer s2" src="assets/step3.png" alt="">
+          <img class="layer s3" src="assets/step4.png" alt="">
           <img class="layer s4" src="assets/step5.png" alt="">
           <img class="layer s5" src="assets/step6.png" alt="">
-
-          <!-- Финальное видео -->
           <video class="layer veo" id="veo" muted playsinline preload="auto" poster="assets/step6.png">
             <source src="assets/veo.webm#t=0.001" type="video/webm">
             <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
@@ -180,6 +181,8 @@
     const tenthsSeq   = ctrPoints.map(v => Math.round((v%1)*10));
     let lineH = 0;  // реальная высота строки
 
+    const snap = v => Math.round(v); // пиксельная привязка — убирает «чёрную полоску»
+
     function buildReel(el){
       const frag = document.createDocumentFragment();
       for (let k=0;k<DIGITS_LOOP;k++){
@@ -192,19 +195,20 @@
     function measureAndFit(){
       const probe = onesReel.querySelector('span') || tenthsReel.querySelector('span');
       lineH = probe ? probe.getBoundingClientRect().height : 0;
-      const slotH = Math.round(lineH * 1.22);           // окно выше, чтобы не обрезать
+      // окно заметно выше, чтобы точно не резать глифы
+      const slotH = Math.round(lineH * 1.35);
       document.querySelectorAll('.col').forEach(c => { c.style.height = slotH + 'px'; });
-      const topPad = Math.round((slotH - lineH)/2);      // центрируем контент
+      const topPad = Math.round((slotH - lineH)/2);
       document.querySelectorAll('.reel').forEach(r => { r.style.top = topPad + 'px'; });
     }
     function setIndex(el, index, immediate=false){
-      const y = -index * lineH;
+      const y = snap(-index * lineH);
       if (immediate) gsap.set(el, { y }); else gsap.to(el, { y, duration:0.5, ease:'power2.out' });
     }
     function spinTo(el, toIndex, dur=0.5, ease='power3.out'){
       const over = 0.18 * lineH;
-      const y1 = -toIndex * lineH - over;
-      const y2 = -toIndex * lineH;
+      const y1 = snap(-toIndex * lineH - over);
+      const y2 = snap(-toIndex * lineH);
       const tl = gsap.timeline();
       tl.to(el, { y:y1, duration:dur*0.75, ease })
         .to(el, { y:y2, duration:dur*0.25, ease:'power2.out' });
@@ -236,8 +240,8 @@
       // 0) планшет
       tl.to('.device', { opacity:1, yPercent:0, scale:1, rotateZ:0, filter:'blur(0px)', duration:0.55, ease:'back.out(1.6)' });
 
-      // Порядок: s1(step2) → s3(step4) → s2(step3) → s4 → s5
-      const sels=['.s1','.s3','.s2','.s4','.s5'];
+      // Порядок кадров: s1(step2) → s2(step3) → s3(step4) → s4 → s5
+      const sels=['.s1','.s2','.s3','.s4','.s5'];
       sels.forEach((sel, i)=>{
         tl.to(sel,{ opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)' }, i===0?'-=0.15':'-=0.10')
           .to(sel,{ scale:1.01,duration:0.10 })
@@ -285,14 +289,17 @@
           .add(spinTo(tenthsReel, finalTenthsIdx, 0.55, 'power3.out'), '+=0.08')
           .fromTo('#digits', { scale:1 }, { scale:1.06, duration:0.12, ease:'power3.out' }, '-=0.10')
           .to('#digits', { scale:1.00, duration:0.18, ease:'power3.out' }, '>');
-        digitsBox.classList.add('celebrate');            // тёплый градиентный shine
+        digitsBox.classList.add('celebrate');
         setTimeout(()=> digitsBox.classList.remove('celebrate'), 1100);
       };
 
       if (!isFinite(video.duration) || video.duration === 0) { setTimeout(doFinal, 700); return; }
       const mid = video.duration * 0.5;
       const onTime = () => {
-        if (video.currentTime >= mid) { video.removeEventListener('timeupdate', onTime); doFinal(); }
+        if (video.currentTime >= mid) {
+          video.removeEventListener('timeupdate', onTime);
+          doFinal();
+        }
       };
       video.addEventListener('timeupdate', onTime);
     }
@@ -325,17 +332,15 @@
 
       const tl = buildTimeline();
 
-      // триггер финала в середине видео
       if (video.readyState >= 1) scheduleFinalDuringVideo();
       else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
 
-      // Повтор
       const restart = () => {
         try { video.pause(); video.currentTime = 0; } catch(e){}
         const startOnesIdx   = 0*10 + Math.floor(ctrPoints[0]);
         const startTenthsIdx = 0*10 + Math.round((ctrPoints[0]%1)*10);
-        gsap.set(onesReel,   { y: -startOnesIdx   * lineH });
-        gsap.set(tenthsReel, { y: -startTenthsIdx * lineH });
+        gsap.set(onesReel,   { y: snap(-startOnesIdx   * lineH) });
+        gsap.set(tenthsReel, { y: snap(-startTenthsIdx * lineH) });
         digitsBox.classList.remove('celebrate');
         tl.restart();
         if (video.readyState >= 1) scheduleFinalDuringVideo();
@@ -343,13 +348,13 @@
       };
       replayBtn.addEventListener('click', restart);
 
-      // Hover-replay видео (только когда ролик доиграл)
+      // Hover-replay видео: только когда ролик доиграл
       let ended=false;
       video.addEventListener('ended', ()=>{ ended=true; });
       stageEl.addEventListener('mouseenter', ()=>{
         if (!ended) return;
         try { video.currentTime = 0; } catch(e){}
-        const p=video.play?.(); if(p && p.catch) p.catch(()=>{});
+        const p=video.play?.(); if (p && p.catch) p.catch(()=>{});
         ended=false;
         if (video.readyState >= 1) scheduleFinalDuringVideo();
         else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
@@ -373,8 +378,8 @@
           if (!prevH || prevH === lineH) return;
           const idx1 = Math.round(-curY1 / prevH);
           const idx2 = Math.round(-curY2 / prevH);
-          gsap.set(onesReel,   { y: -idx1 * lineH });
-          gsap.set(tenthsReel, { y: -idx2 * lineH });
+          gsap.set(onesReel,   { y: snap(-idx1 * lineH) });
+          gsap.set(tenthsReel, { y: snap(-idx2 * lineH) });
         });
       });
     }
