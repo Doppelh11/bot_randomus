@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Hero-анимация — живой финал (WebM+MP4, белый фон)</title>
+  <title>Hero-анимация — живой финал (MP4, белый фон)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{ --bg:#0c0d10; --fg:#fff; --muted:#b5b6bf; --maxw:1200px; }
@@ -48,7 +48,7 @@
       will-change:transform,opacity,filter; opacity:0;
     }
 
-    /* Видео-слой: сначала пробуем маску PNG; если её нет — включим multiply */
+    /* Видео-слой: сперва пытаемся маску; если её нет — включим multiply (для белого фона) */
     .layer.veo{
       opacity:0; pointer-events:none;
       /* тонкая подгонка, если видео не 2048×1828 */
@@ -64,10 +64,9 @@
     }
     .layer.veo.nomask{ -webkit-mask:none; mask:none; }
 
-    /* Fallback для БЕЛОГО фона видео: делаем белое «прозрачным» */
+    /* Fallback для БЕЛОГО фона: белое «съедаем» через multiply */
     .layer.veo.multiply{ mix-blend-mode: multiply; opacity:.98; }
-
-    /* (на всякий случай оставлю для чёрного фона) */
+    /* (на случай чёрного — можно переключить на screen) */
     .layer.veo.screen{ mix-blend-mode: screen; opacity:.98; }
 
     .hint{ text-align:center; color:#a7aab8; margin-top:22px; font-size:13px; opacity:.75 }
@@ -88,23 +87,26 @@
         <img class="layer s5" src="assets/step6.png" alt="">
         <img class="layer s6" src="assets/step7.png" alt="">
 
-        <!-- Живой финал: два источника (WebM → MP4) -->
+        <!-- Живой финал: один источник (MP4) -->
         <video
           class="layer veo" id="veo"
           playsinline muted loop preload="auto"
           poster="assets/step7.png"
         >
-          <source src="https://doppelh11.github.io/sitewb/assets/veo3.webm" type="video/webm">
+          <!-- Если у тебя файл лежит на GitHub Pages, можно так: -->
           <source src="https://doppelh11.github.io/sitewb/assets/veo.mp4" type="video/mp4">
+          <!-- Или используй относительный путь:
+          <source src="assets/veo.mp4" type="video/mp4">
+          -->
         </video>
       </div>
 
       <div class="copy">
-        <h1>Анимация «сборки» + WebM/MP4</h1>
-        <p>Финал — крестфейд в ролик внутри экрана. Маска или multiply убирают белый фон.</p>
+        <h1>Анимация «сборки» + MP4</h1>
+        <p>Финал — крестфейд в ролик внутри экрана. Маска (или multiply) убирает белый фон.</p>
         <button class="btn" id="replay">Повторить анимацию</button>
         <div class="hint">
-          <b>Рекомендуется:</b> <code>assets/screen-mask.png</code> (2048×1828, экран белым/непрозрачным).<br>
+          <b>Лучше всего:</b> положи <code>assets/screen-mask.png</code> (2048×1828, экран белый/непрозрачный).<br>
           Если маски нет — автоматически включится <code>mix-blend-mode: multiply</code>.
         </div>
       </div>
@@ -125,7 +127,7 @@
       const im = new Image(); im.onload = im.onerror = () => res(); im.src = s;
     })));
 
-    // Проверяем маску: если 404 — выключаем mask и включаем multiply (для белого фона)
+    // Проверяем маску: если 404 — выключаем mask и включаем multiply (белый фон)
     function ensureMaskOrFallback(){
       return new Promise((res) => {
         const test = new Image();
