@@ -12,7 +12,7 @@
       --digits-offset:0.2em; --dot-top:-0.25em;
       --ctr-label-size: clamp(20px, 3.2vw, 32px);
       --ctr-digit-size: clamp(28px, 4.8vw, 58px);
-      --overscan: 1.0058; /* общий для steps и APNG */
+      --overscan: 1.006; /* общий для steps и APNG (только мобилка) */
     }
 
     *{box-sizing:border-box}
@@ -114,7 +114,7 @@
         <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
       </video>
       <!-- Мобильный APNG -->
-      <img class="layer veo apng" id="veo_apng" src="assets/veo.apng" alt="" aria-hidden="true">
+      <img class="layer veo apng" id="veo_apng" data-src="assets/veo.apng" src="assets/veo.apng" alt="" aria-hidden="true">
     </div>
   </div>
 
@@ -123,7 +123,6 @@
   <script>
   (() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const stageEl = document.getElementById('stage');
     const video   = document.getElementById('veo');
     const apng    = document.getElementById('veo_apng');
     const isMobile = window.matchMedia('(pointer: coarse), (max-width: 820px)').matches;
@@ -144,26 +143,42 @@
     function setIndex(el,index,immediate=false){const y=snap(-index*lineH); if(immediate) gsap.set(el,{y}); else gsap.to(el,{y,duration:0.5,ease:'power2.out'});}
     function spinTo(el,toIndex,dur=0.5,ease='power3.out'){const over=0.18*lineH; const y1=snap(-toIndex*lineH-over); const y2=snap(-toIndex*lineH); const tl=gsap.timeline(); tl.to(el,{y:y1,duration:dur*0.75,ease}).to(el,{y:y2,duration:dur*0.25,ease:'power2.out'}); return tl;}
 
+    function updateCtrTo(stepIdx){
+      const onesIdx   = stepIdx*10 + onesSeq[stepIdx];
+      const tenthsIdx = stepIdx*10 + tenthsSeq[stepIdx];
+      const tl=gsap.timeline();
+      tl.add(spinTo(onesReel,onesIdx,0.5,'power3.out'));
+      tl.add(spinTo(tenthsReel,tenthsIdx,0.5,'power3.out'), '+=0.06');
+      return tl;
+    }
+
     function buildTimeline(){
       const tl=gsap.timeline({defaults:{ease:'power3.out'}});
       gsap.set('.device',{opacity:0,yPercent:4,scale:0.985,rotateZ:-1,filter:'blur(6px)'});
       gsap.set(['.s1','.s2','.s3','.s4','.s5'],{opacity:0,yPercent:3,rotateX:4,rotateZ:-1,scale:0.99});
       gsap.set('.veo',{opacity:0});
+
       tl.to('.device',{opacity:1,yPercent:0,scale:1,rotateZ:0,filter:'blur(0px)',duration:0.55,ease:'back.out(1.6)'});
+
       const sels=['.s1','.s2','.s3','.s4','.s5'];
       sels.forEach((sel,i)=>{
-        tl.to(sel,{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)'},i===0?'-=0.15':'-=0.10')
+        // Показ шага
+        tl.to(sel,{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)'}, i===0?'-=0.15':'-=0.10')
           .to(sel,{scale:1.01,duration:0.10})
           .to(sel,{scale:1.00,duration:0.12},'-=0.05');
-        if (i < ctrPoints.length-2){
-          const stepIdx=i+1; const onesIdx=stepIdx*10+onesSeq[stepIdx]; const tenthsIdx=stepIdx*10+tenthsSeq[stepIdx]; const label=`ctr_${stepIdx}`;
-          tl.add(label,'>-0.02');
-          tl.add(spinTo(onesReel,onesIdx,0.5,'power3.out'),label);
-          tl.add(spinTo(tenthsReel,tenthsIdx,0.5,'power3.out'),`${label}+=0.06`);
-        }
+        // После каждого шага обновляем CTR на следующий таргет
+        const stepIdx=i+1; // 1..5, т.к. 0-й (1.9) ставим в init
+        tl.add(updateCtrTo(stepIdx), '>-0.02');
       });
+
+      // Немного усиливаем тень в конце появления шагов
       tl.fromTo('#stage',{filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))'},{filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))',duration:0.45},'-=0.2');
-      tl.add('switchToVideo');
+
+      // Короткая пауза на 4.7 перед стартом APNG/видео
+      tl.to({}, {duration:0.22}); // 220мс пауза
+
+      // Переключение на финальный медиа-слой
+      tl.add('switchMedia');
       tl.call(()=>{
         if(!useAPNG){
           try{video.currentTime=0;}catch(e){} const p=video.play?.(); if(p&&p.catch)p.catch(()=>{});
@@ -171,43 +186,30 @@
           gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.45});
           gsap.to(apng,{opacity:1,duration:0.45});
         }
-      },null,'switchToVideo');
+      }, null, 'switchMedia');
+
       if(!useAPNG){
-        tl.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.5},'switchToVideo');
-        tl.to(video,{opacity:1,duration:0.5},'switchToVideo');
+        tl.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.5}, 'switchMedia');
+        tl.to(video,{opacity:1,duration:0.5}, 'switchMedia');
       }
       return tl;
     }
 
-    function scheduleFinalWithReference(){
-      // Синхронизируем финал по длительности десктоп-видео (на мобиле используем таймер)
-      let refReady = false;
-      const doFinal = ()=>{
-        const finalOnesIdx=5*10+Math.floor(ctrPoints[5]);
-        const finalTenthsIdx=5*10+Math.round((ctrPoints[5]%1)*10);
-        const tl=gsap.timeline();
-        tl.add(spinTo(onesReel,finalOnesIdx,0.55,'power3.out'))
-          .add(spinTo(tenthsReel,finalTenthsIdx,0.55,'power3.out'),'+=0.08');
-        digitsBox.classList.add('celebrate');
-      };
+    function scheduleFinalCelebrate(){
+      // Финальный "праздничный" режим для цифр активируем когда финал уже показан
+      const finalOnesIdx=5*10+Math.floor(ctrPoints[5]);
+      const finalTenthsIdx=5*10+Math.round((ctrPoints[5]%1)*10);
+      const tl=gsap.timeline();
+      tl.add(spinTo(onesReel,finalOnesIdx,0.55,'power3.out'))
+        .add(spinTo(tenthsReel,finalTenthsIdx,0.55,'power3.out'), '+=0.08')
+        .call(()=>digitsBox.classList.add('celebrate'));
+    }
 
-      const useVideoDuration = ()=>{
-        if(Number.isFinite(video.duration) && video.duration>0){
-          const mid = video.duration * 0.5;
-          if(useAPNG){
-            setTimeout(doFinal, mid*1000);
-          } else {
-            const onTime=()=>{ if(video.currentTime>=mid){ video.removeEventListener('timeupdate',onTime); doFinal(); } };
-            video.addEventListener('timeupdate',onTime,{passive:true});
-          }
-          refReady = true;
-        }
-      };
-
-      if(video.readyState>=1) useVideoDuration();
-      else video.addEventListener('loadedmetadata', useVideoDuration, {once:true});
-
-      setTimeout(()=>{ if(!refReady) doFinal(); }, 2500);
+    function restartApngFromFirstFrame(){
+      // Гарантированный старт APNG с первого кадра при каждом заходе/перезагрузке
+      const base = apng.getAttribute('data-src') || apng.src;
+      const clean = base.split('?')[0];
+      apng.src = clean + '?v=' + Date.now();
     }
 
     async function preload(src){
@@ -220,6 +222,7 @@
 
     async function init(){
       buildReel(onesReel); buildReel(tenthsReel);
+      // Ставим стартовое значение 1.9 (ctrPoints[0]) до начала анимации
       requestAnimationFrame(()=>{
         measureAndFit();
         const startOnesIdx=0*10+Math.floor(ctrPoints[0]);
@@ -229,22 +232,32 @@
       });
 
       if(prefersReduced){
-        gsap.set(document.querySelectorAll('.layer'),{opacity:0,clearProps:'transform,filter'}); gsap.set('.veo',{opacity:1});
+        gsap.set(document.querySelectorAll('.layer'),{opacity:0,clearProps:'transform,filter'});
+        gsap.set('.veo',{opacity:1});
+        // Мгновенно ставим финал
         requestAnimationFrame(()=>{
           const finalOnesIdx=5*10+Math.floor(ctrPoints[5]);
           const finalTenthsIdx=5*10+Math.round((ctrPoints[5]%1)*10);
-          setIndex(onesReel,finalOnesIdx,true); setIndex(tenthsReel,finalTenthsIdx,true);
+          setIndex(onesReel,finalOnesIdx,true);
+          setIndex(tenthsReel,finalTenthsIdx,true);
           digitsBox.classList.add('celebrate');
         });
         return;
       }
 
+      // Предзагрузка PNG-слоёв
       const pngs = ['assets/step1.png','assets/step2.png','assets/step3.png','assets/step4.png','assets/step5.png','assets/step6.png'];
       await Promise.all(pngs.map(preload));
-      if(useAPNG){ await preload(apng.currentSrc || apng.src); }
+
+      // Для мобильного — перезапустить APNG с первого кадра и предзагрузить
+      if(useAPNG){
+        restartApngFromFirstFrame();
+        await preload(apng.currentSrc || apng.src);
+      }
 
       const tl=buildTimeline();
-      scheduleFinalWithReference();
+      // После построения последовательности дублируем постановку финала + celebrate (на случай, если пропустили кадр)
+      tl.add(scheduleFinalCelebrate, '+=0.05');
     }
     init();
   })();
