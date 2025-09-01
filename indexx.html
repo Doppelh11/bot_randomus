@@ -66,12 +66,9 @@
       position:relative; top:var(--dot-top); margin:0 0.08ch; opacity:.9;
     }
     .pct{
-  opacity: .95;
-  font-size: .85em;
-  margin-left: 0.18ch;
-  position: relative;
-  top: var(--pct-top, -0.17em); /* отрицательное — выше, положительное — ниже */
-}
+      opacity:.95; font-size:.85em; margin-left:0.18ch;
+      position:relative; top:var(--pct-top, -0.17em);
+    }
 
     /* === постоянный градиент + мягкий пульс для финальных 4.5% === */
     .digits.celebrate .reel span{
@@ -113,24 +110,20 @@
       pointer-events:none; width:100%; height:100%;
       object-fit:cover; object-position:50% 50%;
       opacity:0; will-change:opacity;
+      /* оставляем масштаб для борьбы с сабпиксельной линией — только мобайл включает display */
     }
+    /* APNG-слой по умолчанию скрыт, на мобайле покажем */
+    .veo.apng{ display:none; }
 
     /* --- MOBILE-ONLY FIXES (iOS/Android) --- */
     @media (pointer: coarse), (max-width: 820px){
-      /* светлая подложка за маской и срез сабпиксельных щелей */
       .stage{ background:#fff; overflow:hidden; }
+      /* выключаем видео на мобайле, включаем APNG */
+      video.veo{ display:none; }
+      .veo.apng{ display:block; }
 
-      /* лёгкий bleed внутрь, чтобы не было чёрного ореола по кромке */
-      .veo{
-        transform: translateZ(0) scale(1.018);
-        object-fit: cover;
-        object-position: 50% 50%;
-      }
-
-      /* PNG-слои чуть увеличим, чтобы шов сошёлся с видео */
+      .veo{ transform: translateZ(0) scale(1.018); object-fit:cover; object-position:50% 50%; }
       .s1,.s2,.s3,.s4,.s5{ transform: translateZ(0) scale(1.006); }
-
-      /* сглаживание и глитч-фиксы */
       .layer{ -webkit-transform: translateZ(0); transform: translateZ(0); }
     }
   </style>
@@ -161,11 +154,13 @@
       <img class="layer s3" src="assets/step4.png" alt="">
       <img class="layer s4" src="assets/step5.png" alt="">
       <img class="layer s5" src="assets/step6.png" alt="">
-      <!-- Финальное видео -->
+      <!-- Финальное видео (десктоп/андроид) -->
       <video class="layer veo" id="veo" muted playsinline preload="auto" poster="assets/step6.png">
         <source src="assets/veo.webm#t=0.001" type="video/webm">
         <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
       </video>
+      <!-- Финальная APNG (мобильные: iOS/тач) -->
+      <img class="layer veo apng" id="veo_apng" src="assets/veo.png" alt="" aria-hidden="true">
     </div>
   </div>
 
@@ -176,23 +171,11 @@
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const stageEl = document.getElementById('stage');
     const video   = document.getElementById('veo');
+    const apng    = document.getElementById('veo_apng');
 
-    /* --- MOBILE-ONLY BOOTSTRAP --- */
+    /* --- MOBILE-ONLY DETECT --- */
     const isMobile = window.matchMedia('(pointer: coarse), (max-width: 820px)').matches;
-    if (isMobile) {
-      try {
-        video.muted = true;
-        video.setAttribute('muted','');
-        video.setAttribute('playsinline','');
-        video.setAttribute('webkit-playsinline','');
-        video.setAttribute('autoplay','');
-      } catch(e){}
-      const tapReplay = () => {
-        try { video.currentTime = 0; } catch(e){}
-        const p = video.play?.(); if (p && p.catch) p.catch(()=>{});
-      };
-      stageEl.addEventListener('touchstart', tapReplay, { passive:true });
-    }
+    const useAPNG = isMobile; // только мобильные — APNG, десктоп/андроид-видео остаётся
 
     /* ===== CTR: слот ===== */
     const onesReel   = document.getElementById('ones');
@@ -287,11 +270,19 @@
         { filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))', duration:0.45 }, '-=0.2'
       );
 
-      // переключение на видео
+      // переключение на видео/APNG
       tl.add('switchToVideo');
       tl.call(() => {
-        try { video.currentTime = 0; } catch(e) {}
-        const p = video.play?.(); if (p && p.catch) p.catch(()=>{});
+        if (!useAPNG) {
+          try { video.currentTime = 0; } catch(e) {}
+          const p = video.play?.(); if (p && p.catch) p.catch(()=>{});
+        } else {
+          // Перезапускаем APNG, чтобы быть на первом кадре к моменту появления
+          try {
+            const src = apng.getAttribute('src').split('?')[0];
+            apng.setAttribute('src', src + '?t=' + Date.now());
+          } catch(e){}
+        }
       }, null, 'switchToVideo');
       tl.to('.veo', { opacity:1, duration:0.5 }, 'switchToVideo');
       tl.to(['.device','.s1','.s2','.s3','.s4','.s5'], { opacity:0, duration:0.5 }, 'switchToVideo');
@@ -299,29 +290,34 @@
       return tl;
     }
 
-    /* ---------- финальная 4.5% в середине видео + перманентный градиент-пульс ---------- */
-    function scheduleFinalDuringVideo(){
+    /* ---------- финальная 4.5% на середине ролика ---------- */
+    function scheduleFinalDuringPlayback(){
       let fired=false;
-      const doFinal=()=> {
+      const doFinal=()=>{
         if (fired) return; fired=true;
-        const finalOnesIdx   = 5*10 + Math.floor(ctrPoints[5]);          // 4
-        const finalTenthsIdx = 5*10 + Math.round((ctrPoints[5]%1)*10);   // 5
+        const finalOnesIdx   = 5*10 + Math.floor(ctrPoints[5]);        // 4
+        const finalTenthsIdx = 5*10 + Math.round((ctrPoints[5]%1)*10); // 5
         const tl = gsap.timeline();
         tl.add(spinTo(onesReel,   finalOnesIdx,   0.55, 'power3.out'))
           .add(spinTo(tenthsReel, finalTenthsIdx, 0.55, 'power3.out'), '+=0.08');
-        // включаем постоянный градиент и пульс — без отключения
         digitsBox.classList.add('celebrate');
       };
 
-      if (!isFinite(video.duration) || video.duration === 0) { setTimeout(doFinal, 700); return; }
-      const mid = video.duration * 0.5;
-      const onTime = () => {
-        if (video.currentTime >= mid) {
-          video.removeEventListener('timeupdate', onTime);
-          doFinal();
-        }
-      };
-      video.addEventListener('timeupdate', onTime);
+      if (!useAPNG){
+        if (!isFinite(video.duration) || video.duration === 0) { setTimeout(doFinal, 700); return; }
+        const mid = video.duration * 0.5;
+        const onTime = () => {
+          if (video.currentTime >= mid) {
+            video.removeEventListener('timeupdate', onTime);
+            doFinal();
+          }
+        };
+        video.addEventListener('timeupdate', onTime, { passive:true });
+      } else {
+        // APNG: 5 секунд, берём середину
+        const MOBILE_APNG_DURATION = 5.0; // сек (под твоё veo.webm)
+        setTimeout(doFinal, MOBILE_APNG_DURATION * 500); // середина = 2.5s
+      }
     }
 
     async function init(){
@@ -338,7 +334,6 @@
       });
 
       if (prefersReduced){
-        // без анимаций — сразу финал
         gsap.set(document.querySelectorAll('.layer'), { opacity:0, clearProps:'transform,filter' });
         gsap.set('.veo', { opacity:1 });
         requestAnimationFrame(()=>{
@@ -352,26 +347,40 @@
       }
 
       await preloadImages(['assets/step1.png','assets/step2.png','assets/step3.png','assets/step4.png','assets/step5.png','assets/step6.png']);
-      await preloadVideo(video);
+      if (!useAPNG) await preloadVideo(video);
 
       const tl = buildTimeline();
 
-      if (video.readyState >= 1) scheduleFinalDuringVideo();
-      else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
+      if (!useAPNG){
+        if (video.readyState >= 1) scheduleFinalDuringPlayback();
+        else video.addEventListener('loadedmetadata', scheduleFinalDuringPlayback, { once:true });
+      } else {
+        scheduleFinalDuringPlayback();
+      }
 
-      // hover-replay видео: когда ролик доиграл
+      // hover-replay видео (десктоп), tap-restart APNG (мобайл)
       let ended=false;
-      video.addEventListener('ended', ()=>{ ended=true; });
-      stageEl.addEventListener('mouseenter', ()=>{
-        if (!ended) return;
-        try { video.currentTime = 0; } catch(e){}
-        const p=video.play?.(); if (p && p.catch) p.catch(()=>{});
-        ended=false;
-        if (video.readyState >= 1) scheduleFinalDuringVideo();
-        else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
-      });
+      if (!useAPNG){
+        video.addEventListener('ended', ()=>{ ended=true; }, { passive:true });
+        stageEl.addEventListener('mouseenter', ()=>{
+          if (!ended) return;
+          try { video.currentTime = 0; } catch(e){}
+          const p=video.play?.(); if (p && p.catch) p.catch(()=>{});
+          ended=false;
+          if (video.readyState >= 1) scheduleFinalDuringPlayback();
+          else video.addEventListener('loadedmetadata', scheduleFinalDuringPlayback, { once:true });
+        });
+      } else {
+        // На мобайле по тапу перезапускаем APNG (перезадаём src)
+        const restartAPNG = () => {
+          const src = apng.getAttribute('src').split('?')[0];
+          apng.setAttribute('src', src + '?t=' + Date.now());
+          scheduleFinalDuringPlayback();
+        };
+        stageEl.addEventListener('touchstart', restartAPNG, { passive:true });
+      }
 
-      // автозапуск при входе в вьюпорт
+      // автозапуск при входе в вьюпорт (общий)
       const io = new IntersectionObserver((entries) => {
         entries.forEach(e => e.isIntersecting && tl.restart());
       }, { threshold:0.4 });
