@@ -169,7 +169,6 @@
     const video   = document.getElementById('veo');
     const apng    = document.getElementById('veo_apng');
 
-    // простая детекция мобайла (тач/узкий экран)
     const isMobile = window.matchMedia('(pointer: coarse), (max-width: 820px)').matches;
     const useAPNG = isMobile;
 
@@ -185,6 +184,7 @@
     let lineH = 0;
 
     const snap = v => Math.round(v);
+    const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
 
     function buildReel(el){
       const frag = document.createDocumentFragment();
@@ -230,9 +230,20 @@
       try { v.load(); } catch(e) {}
     });
 
-    // Прелоад APNG, чтобы при показе не мигал первый кадр
-    const preloadAPNG = () => { const i = new Image(); i.src = apng.src; };
-    preloadAPNG();
+    // Прелоад APNG: создаём offscreen <img> и ждём decode()
+    async function ensureAPNGReady(){
+      if (!useAPNG) return;
+      try{
+        const probe = new Image();
+        const base = apng.getAttribute('src').split('?')[0];
+        probe.src = base + '?preload=' + Date.now();
+        if (probe.decode) await probe.decode();
+        // обновим src у видимого элемента, чтобы он начал проигрывать с нуля
+        apng.src = base + '?t=' + Date.now();
+        // дадим чуть времени декодеру APNG (чтобы уйти от чёрного первого кадра)
+        await sleep(160);
+      }catch(e){ /* молча */ }
+    }
 
     /* ---------- таймлайн сцены + CTR до 3.6% ---------- */
     function buildTimeline(){
@@ -272,28 +283,23 @@
 
       // переключение на финал
       tl.add('switchToVideo');
-      tl.call(() => {
+      tl.call(async () => {
         if (!useAPNG) {
           try { video.currentTime = 0; } catch(e) {}
           const p = video.play?.(); if (p && p.catch) p.catch(()=>{});
         } else {
-          // перезапуск APNG чуть заранее, чтобы к моменту показа он был на первом кадре
-          try {
-            const src = apng.getAttribute('src').split('?')[0];
-            apng.setAttribute('src', src + '?t=' + Date.now());
-          } catch(e){}
+          // ждём decode APNG и только потом показываем слой
+          await ensureAPNGReady();
+          // параллельный кроссфейд: скрываем шаги, показываем APNG
+          gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'], { opacity:0, duration:0.45 });
+          gsap.to(apng, { opacity:1, duration:0.45 });
         }
       }, null, 'switchToVideo');
 
-      // 1) сперва аккуратно скрываем step слои
-      tl.to(['.device','.s1','.s2','.s3','.s4','.s5'], { opacity:0, duration:0.5 }, 'switchToVideo');
-
-      // 2) потом показываем финальный слой
-      if (!useAPNG) {
+      // Для видео (десктоп) показываем сразу без задержек
+      if (!useAPNG){
+        tl.to(['.device','.s1','.s2','.s3','.s4','.s5'], { opacity:0, duration:0.5 }, 'switchToVideo');
         tl.to(video, { opacity:1, duration:0.5 }, 'switchToVideo');
-      } else {
-        // небольшая задержка, чтобы не увидеть стартовый кадр APNG
-        tl.to(apng,  { opacity:1, duration:0.5 }, 'switchToVideo+=0.15');
       }
 
       return tl;
