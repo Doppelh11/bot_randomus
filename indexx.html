@@ -131,44 +131,36 @@
     const isMobile = window.matchMedia('(pointer: coarse), (max-width: 820px)').matches;
     const useAPNG = isMobile;
 
+    // Маппинг значений по этапам показа
+    const CTR_MAP = {
+      step2: 1.3,
+      step3: 2.3,
+      step4: 2.6,
+      step5: 3.3,
+      step6: 3.6,
+      apngAfter: 4.7 // будет установлено через 1.5s после старта APNG
+    };
+
     const onesReel   = document.getElementById('ones');
     const tenthsReel = document.getElementById('tenths');
     const digitsBox  = document.getElementById('digits');
     const DIGITS_LOOP = 8;
-    const ctrPoints = [1.9, 2.3, 2.6, 3.3, 3.6, 4.7];
-    const onesSeq     = ctrPoints.map(v => Math.floor(v));
-    const tenthsSeq   = ctrPoints.map(v => Math.round((v%1)*10));
     let lineH = 0;
     const snap = v => Math.round(v);
 
     function buildReel(el){const frag=document.createDocumentFragment();for (let k=0;k<DIGITS_LOOP;k++){for (let d=0; d<=9; d++){const s=document.createElement('span'); s.textContent=d; frag.appendChild(s);}}el.innerHTML=''; el.appendChild(frag);}
     function measureAndFit(){const probe=onesReel.querySelector('span')||tenthsReel.querySelector('span'); lineH=probe?probe.getBoundingClientRect().height:0; const slotH=Math.round(lineH*1.25); document.querySelectorAll('.col').forEach(c=>{c.style.height=slotH+'px';}); const topPad=Math.round((slotH-lineH)/2); document.querySelectorAll('.reel').forEach(r=>{r.style.top=topPad+'px';});}
-
-    function ensureMeasured(callback){
-      let tries = 0;
-      const maxTries = 8;
-      const tick = () => {
-        measureAndFit();
-        if (lineH > 0 || tries >= maxTries){
-          callback();
-        } else {
-          tries++;
-          requestAnimationFrame(tick);
-        }
-      };
-      requestAnimationFrame(tick);
-    }
-
-    function setIndex(el,index,immediate=false){const y=snap(-index*lineH); if(immediate) gsap.set(el,{y}); else gsap.to(el,{y,duration:0.5,ease:'power2.out'});}
+    function ensureMeasured(callback){let tries=0; const tick=()=>{measureAndFit(); if(lineH>0||tries>=8) callback(); else{tries++; requestAnimationFrame(tick);}}; requestAnimationFrame(tick);}
+    function idxFor(value){ const ones=Math.floor(value); const tenths=Math.round((value%1)*10); return {onesIdx:ones, tenthsIdx:tenths}; }
+    function setIndex(el,index,immediate=false){const y=snap(-index*lineH); if(immediate) gsap.set(el,{y}); else gsap.to(el,{y,duration:0.42,ease:'power2.out'});}
     function spinTo(el,toIndex,dur=0.5,ease='power3.out'){const over=0.18*lineH; const y1=snap(-toIndex*lineH-over); const y2=snap(-toIndex*lineH); const tl=gsap.timeline(); tl.to(el,{y:y1,duration:dur*0.75,ease}).to(el,{y:y2,duration:dur*0.25,ease:'power2.out'}); return tl;}
 
-    function updateCtrTo(stepIdx){
-      const onesIdx   = stepIdx*10 + onesSeq[stepIdx];
-      const tenthsIdx = stepIdx*10 + tenthsSeq[stepIdx];
-      const tl=gsap.timeline();
-      tl.add(spinTo(onesReel,onesIdx,0.5,'power3.out'));
-      tl.add(spinTo(tenthsReel,tenthsIdx,0.5,'power3.out'), '+=0.06');
-      return tl;
+    function animateCTR(toValue){
+      const {onesIdx, tenthsIdx} = idxFor(toValue);
+      const t=gsap.timeline();
+      t.add(spinTo(onesReel, onesIdx, 0.48, 'power3.out'));
+      t.add(spinTo(tenthsReel, tenthsIdx, 0.48, 'power3.out'), '+=0.06');
+      return t;
     }
 
     function applyApngClip(img){
@@ -196,14 +188,13 @@
       }
     }
 
-    async function showApngFromZeroWithHero(){
+    async function showApngFromZeroNoBlur(){
       const dataSrc = apng.getAttribute('data-src');
       if(!dataSrc) return;
-      const url = dataSrc.split('?')[0] + '?v=' + Date.now();
+      const url = dataSrc.split('?')[0] + '?v=' + Date.now(); // cache-buster
 
-      const pre = new Image();
-      pre.decoding = 'sync';
-      pre.src = url;
+      // preload & decode off-DOM
+      const pre = new Image(); pre.decoding='sync'; pre.src=url;
       try{ await pre.decode(); }catch(e){}
 
       const fresh = document.createElement('img');
@@ -216,38 +207,57 @@
       const onReady = ()=> applyApngClip(fresh);
       if(fresh.complete) onReady(); else fresh.addEventListener('load', onReady, {once:true});
 
-      gsap.set(fresh,{opacity:0, filter:'blur(10px) brightness(1.05)', scale:1.014});
-
+      // simple fade only, no blur/scale
+      gsap.set(fresh,{opacity:0});
       apng.replaceWith(fresh);
       apng = fresh;
-
-      const tl = gsap.timeline();
-      tl.to(apng,{opacity:1, duration:0.28, ease:'power2.out'}, 0)
-        .to(apng,{filter:'blur(0px) brightness(1.0)', scale:1.000, duration:0.60, ease:'power3.out'}, 0)
-        .to('#stage',{filter:'drop-shadow(0 60px 160px rgba(0,0,0,.66))', duration:0.60, ease:'power3.out'}, 0);
+      gsap.to(apng,{opacity:1,duration:0.45});
     }
 
     function buildTimeline(){
       const tl=gsap.timeline({defaults:{ease:'power3.out'}});
+      // Стартовые состояния
       gsap.set('.device',{opacity:0,yPercent:4,scale:0.985,rotateZ:-1,filter:'blur(6px)'});
       gsap.set(['.s1','.s2','.s3','.s4','.s5'],{opacity:0,yPercent:3,rotateX:4,rotateZ:-1,scale:0.99});
       gsap.set('.veo',{opacity:0});
 
+      // Появление девайса
       tl.to('.device',{opacity:1,yPercent:0,scale:1,rotateZ:0,filter:'blur(0px)',duration:0.55,ease:'back.out(1.6)'});
 
-      const sels=['.s1','.s2','.s3','.s4','.s5'];
-      sels.forEach((sel,i)=>{
-        tl.to(sel,{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)'}, i===0?'-=0.15':'-=0.10')
-          .to(sel,{scale:1.01,duration:0.10})
-          .to(sel,{scale:1.00,duration:0.12},'-=0.05');
-        const stepIdx=i+1;
-        tl.add(updateCtrTo(stepIdx), '>-0.02');
-      });
+      // Слайды + жесткое обновление CTR по карте
+      // step2 -> 1.3
+      tl.to('.s1',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)'}, '-=0.15')
+        .to('.s1',{scale:1.01,duration:0.10})
+        .to('.s1',{scale:1.00,duration:0.12},'-=0.05');
 
+      tl.to('.s2',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)'}, '-=0.10')
+        .add(animateCTR(CTR_MAP.step2), '>-0.02')
+        .to('.s2',{scale:1.01,duration:0.10})
+        .to('.s2',{scale:1.00,duration:0.12},'-=0.05');
+
+      // step3 -> 2.3
+      tl.to('.s3',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)'}, '-=0.10')
+        .add(animateCTR(CTR_MAP.step3), '>-0.02')
+        .to('.s3',{scale:1.01,duration:0.10})
+        .to('.s3',{scale:1.00,duration:0.12},'-=0.05');
+
+      // step4 -> 2.6
+      tl.to('.s4',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)'}, '-=0.10')
+        .add(animateCTR(CTR_MAP.step4), '>-0.02')
+        .to('.s4',{scale:1.01,duration:0.10})
+        .to('.s4',{scale:1.00,duration:0.12},'-=0.05');
+
+      // step5 -> 3.3
+      tl.to('.s5',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)'}, '-=0.10')
+        .add(animateCTR(CTR_MAP.step5), '>-0.02')
+        .to('.s5',{scale:1.01,duration:0.10})
+        .to('.s5',{scale:1.00,duration:0.12},'-=0.05');
+
+      // step6 -> 3.6 (это последний слайд перед медиа)
       tl.fromTo('#stage',{filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))'},{filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))',duration:0.45},'-=0.2');
+      tl.add(animateCTR(CTR_MAP.step6), '>-0.02');
 
-      tl.to({}, {duration:0.38}); // пауза на 4.7 ДО APNG
-
+      // Переключение на медиа
       tl.add('switchMedia');
       tl.call(async ()=>{
         if(!useAPNG){
@@ -257,50 +267,36 @@
           gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.5});
         } else {
           gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.45});
-          await showApngFromZeroWithHero();
+          await showApngFromZeroNoBlur();
+
+          // 4.7 ровно через 1.5 секунды после старта APNG
+          setTimeout(()=>{
+            animateCTR(CTR_MAP.apngAfter);
+            digitsBox.classList.add('celebrate');
+          }, 1500);
         }
       }, null, 'switchMedia');
 
       return tl;
     }
 
-    function attachObservers(){
-      // Пересчитать высоты/позиции при изменении размеров шрифта/вьюпорта
-      const ro = new ResizeObserver(()=>{
-        const currentOnes = onesReel._idx ?? 0;
-        const currentTenths = tenthsReel._idx ?? 0;
-        ensureMeasured(()=>{
-          // восстановить текущую позицию (без анимации)
-          setIndex(onesReel,currentOnes,true);
-          setIndex(tenthsReel,currentTenths,true);
-        });
-      });
-      ro.observe(document.documentElement);
-    }
-
     async function init(){
       buildReel(onesReel); buildReel(tenthsReel);
 
-      // Гарантированно дожидаемся валидной line-height, прежде чем ставить стартовые индексы
+      // Стартовое состояние: чтобы не было нулей до step2, сразу ставим 1.3 без анимации
       ensureMeasured(()=>{
-        const startOnesIdx=0*10+Math.floor(1.9);
-        const startTenthsIdx=0*10+Math.round((1.9%1)*10);
-        onesReel._idx = startOnesIdx;
-        tenthsReel._idx = startTenthsIdx;
-        setIndex(onesReel,startOnesIdx,true);
-        setIndex(tenthsReel,startTenthsIdx,true);
+        const {onesIdx, tenthsIdx} = idxFor(1.3);
+        setIndex(onesReel, onesIdx, true);
+        setIndex(tenthsReel, tenthsIdx, true);
       });
-
-      attachObservers();
 
       if(prefersReduced){
         gsap.set(document.querySelectorAll('.layer'),{opacity:0,clearProps:'transform,filter'});
         gsap.set('.veo',{opacity:1});
         ensureMeasured(()=>{
-          const finalOnesIdx=5*10+Math.floor(4.7);
-          const finalTenthsIdx=5*10+Math.round((4.7%1)*10);
-          setIndex(onesReel,finalOnesIdx,true);
-          setIndex(tenthsReel,finalTenthsIdx,true);
+          const {onesIdx, tenthsIdx} = idxFor(4.7);
+          setIndex(onesReel,onesIdx,true);
+          setIndex(tenthsReel,tenthsIdx,true);
           digitsBox.classList.add('celebrate');
         });
         return;
@@ -311,30 +307,6 @@
       await Promise.all(pngs.map(src => new Promise(res => { const im=new Image(); im.onload=im.onerror=()=>res(); im.src=src; })));
 
       const tl=buildTimeline();
-
-      // Перехватываем обновления индексов, чтобы ResizeObserver мог их восстановить
-      const origSpinTo = spinTo;
-      function spinToTracked(el,toIndex,dur=0.5,ease='power3.out'){
-        el._idx = toIndex;
-        return origSpinTo(el,toIndex,dur,ease);
-      }
-      // Переопределим локально (для add(updateCtrTo)) — но проще обновлять _idx прямо в updateCtrTo:
-      const _updateCtrTo = (stepIdx)=>{
-        const onesIdx   = stepIdx*10 + onesSeq[stepIdx];
-        const tenthsIdx = stepIdx*10 + tenthsSeq[stepIdx];
-        onesReel._idx = onesIdx; tenthsReel._idx = tenthsIdx;
-        const t=gsap.timeline();
-        t.add(origSpinTo(onesReel,onesIdx,0.5,'power3.out'));
-        t.add(origSpinTo(tenthsReel,tenthsIdx,0.5,'power3.out'), '+=0.06');
-        return t;
-      };
-
-      // Заменим шаги CTR в уже созданном tl (проще — добавить параллельно в конец той же очереди)
-      // Для надёжности создадим второй таймлайн, синхронный с основным:
-      // (на практике текущей структуры достаточно; основная проблема была в lineH=0)
-
-      // Celebrate до APNG
-      tl.call(()=>{ digitsBox.classList.add('celebrate'); }, null, 'switchMedia-=0.30');
     }
     init();
   })();
