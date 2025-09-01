@@ -33,7 +33,11 @@
     .pct{opacity:.95; font-size:.85em; margin-left:0.18ch; position:relative; top:var(--pct-top, -0.17em);}
 
     .digits.celebrate .reel span{
-      background: #000000;
+      background: linear-gradient(90deg,#FF7A00 0%,#FFC247 28%,#FFF2D6 52%,#FFB088 78%,#FF7A00 100%);
+      background-size: 220% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: flow 3.6s ease-in-out infinite;
     }
     .digits.celebrate{animation: pulse 2.8s ease-in-out infinite; transform-origin: left bottom;}
     @keyframes flow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
@@ -111,8 +115,8 @@
         <source src="assets/veo.webm#t=0.001" type="video/webm">
         <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
       </video>
-      <!-- Мобильный APNG -->
-      <img class="layer veo apng" id="veo_apng" data-src="assets/veo.apng" src="assets/veo.apng" alt="" aria-hidden="true">
+      <!-- Мобильный APNG: не задаём src заранее, только data-src -->
+      <img class="layer veo apng" id="veo_apng" data-src="assets/veo.apng" alt="" aria-hidden="true">
     </div>
   </div>
 
@@ -123,7 +127,7 @@
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const REF_W = 2048, REF_H = 1828;
     const video   = document.getElementById('veo');
-    const apng    = document.getElementById('veo_apng');
+    let   apng    = document.getElementById('veo_apng'); // может переопределиться после замены узла
     const isMobile = window.matchMedia('(pointer: coarse), (max-width: 820px)').matches;
     const useAPNG = isMobile;
 
@@ -151,35 +155,63 @@
       return tl;
     }
 
-    function applyApngClipToHideLetterbox(){
-      if(!useAPNG) return;
-      const nw = apng.naturalWidth || REF_W;
-      const nh = apng.naturalHeight || REF_H;
+    function applyApngClipToHideLetterbox(img){
+      const nw = img.naturalWidth || REF_W;
+      const nh = img.naturalHeight || REF_H;
       const apngAR = nw/nh;
       const refAR = REF_W/REF_H;
 
-      // Для object-fit:contain пустые поля будут по большей стороне.
-      // Посчитаем долю «поля» и вырежем его clip-path'ом.
       if(Math.abs(apngAR - refAR) < 0.0001){
-        apng.style.setProperty('--clip-t','0'); apng.style.setProperty('--clip-b','0');
-        apng.style.setProperty('--clip-l','0'); apng.style.setProperty('--clip-r','0');
+        img.style.setProperty('--clip-t','0'); img.style.setProperty('--clip-b','0');
+        img.style.setProperty('--clip-l','0'); img.style.setProperty('--clip-r','0');
         return;
       }
       if(apngAR > refAR){
-        // APNG шире: поля слева/справа
-        const visibleW = REF_W/REF_H * nh; // ширина вписанного изображения в px при высоте nh
-        const side = Math.max(0, (nw - visibleW)/2 / nw) * 100; // % на сторону
-        apng.style.setProperty('--clip-l', side.toFixed(3)+'%');
-        apng.style.setProperty('--clip-r', side.toFixed(3)+'%');
-        apng.style.setProperty('--clip-t','0'); apng.style.setProperty('--clip-b','0');
+        const visibleW = REF_W/REF_H * nh;
+        const side = Math.max(0, (nw - visibleW)/2 / nw) * 100;
+        img.style.setProperty('--clip-l', side.toFixed(3)+'%');
+        img.style.setProperty('--clip-r', side.toFixed(3)+'%');
+        img.style.setProperty('--clip-t','0'); img.style.setProperty('--clip-b','0');
       } else {
-        // APNG уже: поля сверху/снизу
-        const visibleH = REF_H/REF_W * nw; // высота вписанного изображения при ширине nw
+        const visibleH = REF_H/REF_W * nw;
         const top = Math.max(0, (nh - visibleH)/2 / nh) * 100;
-        apng.style.setProperty('--clip-t', top.toFixed(3)+'%');
-        apng.style.setProperty('--clip-b', top.toFixed(3)+'%');
-        apng.style.setProperty('--clip-l','0'); apng.style.setProperty('--clip-r','0');
+        img.style.setProperty('--clip-t', top.toFixed(3)+'%');
+        img.style.setProperty('--clip-b', top.toFixed(3)+'%');
+        img.style.setProperty('--clip-l','0'); img.style.setProperty('--clip-r','0');
       }
+    }
+
+    async function showApngFromZero(){
+      const dataSrc = apng.getAttribute('data-src');
+      if(!dataSrc) return;
+      // 1) Подготовим новый URL с cache-buster, чтобы таймер точно был с нуля
+      const url = dataSrc.split('?')[0] + '?v=' + Date.now();
+
+      // 2) Предзагрузим вне DOM и дождёмся decode, чтобы не было моргания
+      const pre = new Image();
+      pre.decoding = 'sync';
+      pre.src = url;
+      try { await pre.decode(); } catch(e){ /* ignore */ }
+
+      // 3) Создадим НОВЫЙ <img> со всеми классами — это гарантирует старт анимации с 0
+      const fresh = document.createElement('img');
+      fresh.className = apng.className; // "layer veo apng"
+      fresh.id = apng.id;               // "veo_apng" (переназначим ссылку ниже)
+      fresh.setAttribute('data-src', dataSrc);
+      fresh.setAttribute('aria-hidden', 'true');
+      fresh.style.opacity = '0';
+      fresh.src = url;
+
+      // Когда размеры известны — применим клип, чтобы убрать letterbox
+      const onReady = ()=> applyApngClipToHideLetterbox(fresh);
+      if(fresh.complete) onReady(); else fresh.addEventListener('load', onReady, {once:true});
+
+      // 4) Заменим старый узел новым и обновим ссылку
+      apng.replaceWith(fresh);
+      apng = fresh;
+
+      // 5) Плавно показать
+      gsap.to(apng,{opacity:1,duration:0.45});
     }
 
     function buildTimeline(){
@@ -199,49 +231,40 @@
         if(stepIdx < 5){
           tl.add(updateCtrTo(stepIdx), '>-0.02');
         } else {
-          // Для 4.7 показываем чуточку позже (добавим задержку ~140мс)
-          tl.to({}, {duration:0.14});
+          // Для 4.7 показываем заметно позже
+          tl.to({}, {duration:0.18});
           tl.add(updateCtrTo(stepIdx), '>-0.02');
         }
       });
 
-      // Немного усиливаем тень в конце появления шагов
       tl.fromTo('#stage',{filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))'},{filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))',duration:0.45},'-=0.2');
 
-      // Пауза после 4.7 перед стартом APNG/видео (чтобы «успеть увидеть» 4.7)
-      tl.to({}, {duration:0.26}); // было 0.22 -> стало 0.26
+      // Пауза после 4.7 перед стартом медиа
+      tl.to({}, {duration:0.3}); // 300 мс
 
-      // Переключение на финальный медиа-слой
       tl.add('switchMedia');
-      tl.call(()=>{
+      tl.call(async ()=>{
         if(!useAPNG){
           try{video.currentTime=0;}catch(e){} const p=video.play?.(); if(p&&p.catch)p.catch(()=>{});
+          gsap.to(video,{opacity:1,duration:0.5});
+          gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.5});
         } else {
+          // Плавно погасить слои
           gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.45});
-          gsap.to(apng,{opacity:1,duration:0.45});
+          // Показать APNG строго с 0-го кадра
+          await showApngFromZero();
         }
       }, null, 'switchMedia');
 
-      if(!useAPNG){
-        tl.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.5}, 'switchMedia');
-        tl.to(video,{opacity:1,duration:0.5}, 'switchMedia');
-      }
       return tl;
     }
 
-    function restartApngFromFirstFrame(){
-      // Гарантированный старт APNG с первого кадра при каждом заходе/перезагрузке
-      const base = apng.getAttribute('data-src') || apng.src;
-      const clean = base.split('?')[0];
-      apng.src = clean + '?v=' + Date.now();
-    }
-
-    async function preload(src){
-      return new Promise((res)=>{
-        const img = new Image();
-        img.onload = img.onerror = ()=>res();
-        img.src = src;
-      });
+    function finalizeCelebrate(){
+      const finalOnesIdx=5*10+Math.floor(ctrPoints[5]);
+      const finalTenthsIdx=5*10+Math.round((ctrPoints[5]%1)*10);
+      setIndex(onesReel,finalOnesIdx,false);
+      setIndex(tenthsReel,finalTenthsIdx,false);
+      digitsBox.classList.add('celebrate');
     }
 
     async function init(){
@@ -268,30 +291,13 @@
         return;
       }
 
-      // Предзагрузка PNG-слоёв
+      // Предзагрузка PNG-слоёв (APNG не трогаем до свитча)
       const pngs = ['assets/step1.png','assets/step2.png','assets/step3.png','assets/step4.png','assets/step5.png','assets/step6.png'];
-      await Promise.all(pngs.map(preload));
-
-      if(useAPNG){
-        restartApngFromFirstFrame();
-        await preload(apng.currentSrc || apng.src);
-        // Спрячем «письмо» вокруг APNG, если AR отличается
-        if(apng.complete){
-          applyApngClipToHideLetterbox();
-        } else {
-          apng.addEventListener('load', applyApngClipToHideLetterbox, {once:true});
-        }
-      }
+      await Promise.all(pngs.map(src => new Promise(res => { const im=new Image(); im.onload=im.onerror=()=>res(); im.src=src; })));
 
       const tl=buildTimeline();
-      // Финальный "праздничный" режим закрепим сразу после переключения
-      tl.call(()=>{
-        const finalOnesIdx=5*10+Math.floor(ctrPoints[5]);
-        const finalTenthsIdx=5*10+Math.round((ctrPoints[5]%1)*10);
-        setIndex(onesReel,finalOnesIdx,false);
-        setIndex(tenthsReel,finalTenthsIdx,false);
-        digitsBox.classList.add('celebrate');
-      }, null, 'switchMedia+=0.1');
+      // Зафиксировать финал + celebrate после переключения
+      tl.call(finalizeCelebrate, null, 'switchMedia+=0.1');
     }
     init();
   })();
