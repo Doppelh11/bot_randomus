@@ -3,11 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Карточка + CTR — desktop WEBP, mobile APNG (matched proportions, reveal up)</title>
+  <title>Карточка + CTR — desktop WEBP, mobile APNG (mask reveal safe)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{
-      /* Подгонка пропорций */
       --scale-x: 1.139;
       --scale-y: 1.182;
       --clip-t: 0.00%;
@@ -26,7 +25,6 @@
     body{margin:0; color:var(--fg); font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif; background:var(--site-bg);}
     .wrap{max-width:var(--maxw); margin:auto; padding:clamp(20px,4vw,64px)}
 
-    /* ===== сцена ===== */
     .stage{
       position:relative; width:100%; max-width:760px;
       aspect-ratio: 2048 / 1828;
@@ -35,29 +33,18 @@
       perspective:1200px; contain:layout paint;
       cursor:default; background: transparent;
     }
-
     .layer{
       position:absolute; inset:0; width:100%; height:100%;
       object-fit:contain; object-position:50% 50%;
       transform-style:preserve-3d; backface-visibility:hidden;
       transform-origin:50% 50%;
-      /* для гладкой маски */
       will-change: clip-path, opacity;
       opacity:0;
     }
-
-    /* старт для входящих (закрыто снизу), используем в JS */
-    .reveal-in-start{ clip-path: inset(100% 0 0 0); }
-    /* старт для исходящих (открыто полностью), используем в JS */
-    .reveal-out-start{ clip-path: inset(0 0 0 0); }
-
-    /* Шаги — скейлим как медиа для честного совпадения */
     .device, .s1,.s2,.s3,.s4,.s5{
       transform: translateZ(0) scaleX(var(--scale-x)) scaleY(var(--scale-y));
       z-index:6;
     }
-
-    /* Медиа-слои (оба используют одинаковую подгонку и клип) */
     .veo{
       display:block;
       object-fit:contain;
@@ -68,8 +55,6 @@
       z-index:4;
       opacity:0;
     }
-
-    /* Десктоп — WEBP, мобайл — APNG */
     .veo.webp{ display:block; }
     .veo.apng{ display:none; }
     @media (pointer: coarse), (max-width: 820px){
@@ -77,7 +62,7 @@
       .veo.apng{ display:block !important; }
     }
 
-    /* ===== badges ===== */
+    /* badges */
     .badge-layer{
       position:absolute; inset:0; pointer-events:none; z-index:10;
       display:flex; justify-content:flex-start; align-items:center;
@@ -117,12 +102,14 @@
       color:#fff; padding:6px 10px; border-radius:12px; font-size:12px; font-weight:600;
       backdrop-filter: blur(4px); white-space:nowrap;
     }
+
+    /* Fallback класс, если clip-path недоступен: просто даём opacity */
+    .no-clip .layer{ will-change: opacity; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="stage" id="stage" aria-hidden="true">
-      <!-- badges -->
       <div class="badge-layer" aria-hidden="true">
         <div class="badge" id="badge"><span class="tag">CTR</span><span class="val">0.0</span><span class="pct">%</span></div>
         <div class="badge hero" id="badge_hero">
@@ -139,25 +126,24 @@
       <img class="layer s4" src="assets/step5.png" alt="">
       <img class="layer s5" src="assets/step6.png" alt="">
 
-      <!-- Desktop WEBP -->
+      <!-- media -->
       <img class="layer veo webp" id="veo_webp" src="assets/veo.webp" alt="" aria-hidden="true" loading="eager" fetchpriority="high">
-      <!-- Mobile APNG (src подставляем в JS для старта с 0 кадра) -->
       <img class="layer veo apng" id="veo_apng" data-src="assets/veo.apng" alt="" aria-hidden="true">
     </div>
   </div>
 
-  <!-- GSAP -->
   <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
   <script>
   (() => {
     const REF_W = 2048, REF_H = 1828;
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const isMobile = window.matchMedia('(pointer: coarse), (max-width: 820px)').matches;
+    const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isMobile = matchMedia('(pointer: coarse), (max-width: 820px)').matches;
+    const supportsClip = CSS && CSS.supports && CSS.supports('clip-path', 'inset(50% 0 0 0)');
+    if(!supportsClip){ document.documentElement.classList.add('no-clip'); }
 
     const webp = document.getElementById('veo_webp');
     let   apng = document.getElementById('veo_apng');
 
-    /* badges */
     const badge = document.getElementById('badge');
     const hero  = document.getElementById('badge_hero');
     const chip  = document.getElementById('confirm_chip');
@@ -179,33 +165,41 @@
         .to(chip,{opacity:0, y:-4, duration:0.32, ease:'power2.in'}, '+=1.2');
     }
 
-    /* ========= Directional reveal helpers (снизу-вверх) ========= */
-    function revealIn(sel, dur=0.34, ease='power2.out'){
-      gsap.set(sel, {opacity:1, className:'+=reveal-in-start'}); // скрыт снизу
-      return gsap.to(sel, {
-        clipPath: 'inset(0% 0 0 0)',
-        duration: dur, ease,
-        onComplete(){ gsap.set(sel, {clearProps:'clipPath', className:'-=reveal-in-start'}); }
-      });
-    }
-    function revealOut(sel, dur=0.30, ease='power2.in'){
-      gsap.set(sel, {opacity:1, className:'+=reveal-out-start'}); // открыт
-      return gsap.to(sel, {
-        clipPath: 'inset(100% 0 0 0)', // закрываем вниз (снизу-вверх)
-        duration: dur, ease,
-        onComplete(){ gsap.set(sel, {opacity:0, clearProps:'clipPath', className:'-=reveal-out-start'}); }
-      });
-    }
-
-    /* ===== APNG helpers ===== */
     function applyClip(img){
       const nw=img.naturalWidth||REF_W, nh=img.naturalHeight||REF_H;
       const ar= nw/nh, ref= REF_W/REF_H;
-      if(Math.abs(ar-ref)<0.0001){ img.style.setProperty('--clip-t','0'); img.style.setProperty('--clip-b','0'); img.style.setProperty('--clip-l','0'); img.style.setProperty('--clip-r','0'); return; }
-      if(ar>ref){ const visibleW=REF_W/REF_H*nh; const side=Math.max(0,(nw-visibleW)/2/nw)*100;
-        img.style.setProperty('--clip-l',side+'%'); img.style.setProperty('--clip-r',side+'%'); img.style.setProperty('--clip-t','0'); img.style.setProperty('--clip-b','0');
-      } else { const visibleH=REF_H/REF_W*nw; const top=Math.max(0,(nh-visibleH)/2/nh)*100;
-        img.style.setProperty('--clip-t',top+'%'); img.style.setProperty('--clip-b',top+'%'); img.style.setProperty('--clip-l','0'); img.style.setProperty('--clip-r','0'); }
+      if(Math.abs(ar-ref)<0.0001){
+        img.style.setProperty('--clip-t','0'); img.style.setProperty('--clip-b','0');
+        img.style.setProperty('--clip-l','0'); img.style.setProperty('--clip-r','0'); return;
+      }
+      if(ar>ref){
+        const visibleW=REF_W/REF_H*nh; const side=Math.max(0,(nw-visibleW)/2/nw)*100;
+        img.style.setProperty('--clip-l',side+'%'); img.style.setProperty('--clip-r',side+'%');
+        img.style.setProperty('--clip-t','0'); img.style.setProperty('--clip-b','0');
+      } else {
+        const visibleH=REF_H/REF_W*nw; const top=Math.max(0,(nh-visibleH)/2/nh)*100;
+        img.style.setProperty('--clip-t',top+'%'); img.style.setProperty('--clip-b',top+'%');
+        img.style.setProperty('--clip-l','0'); img.style.setProperty('--clip-r','0');
+      }
+    }
+
+    // Reveal helpers: если clip-path недоступен — тихий fade
+    function revealIn(sel, dur=0.34, ease='power2.out'){
+      if(!supportsClip){
+        gsap.set(sel,{opacity:0});
+        return gsap.to(sel,{opacity:1,duration:0.24,ease});
+      }
+      gsap.set(sel, {opacity:1, clipPath:'inset(100% 0 0 0)'});
+      return gsap.to(sel, {clipPath:'inset(0% 0 0 0)', duration:dur, ease,
+        onComplete(){ gsap.set(sel,{clearProps:'clipPath'}); }});
+    }
+    function revealOut(sel, dur=0.26, ease='power2.in'){
+      if(!supportsClip){
+        return gsap.to(sel,{opacity:0,duration:0.20,ease});
+      }
+      gsap.set(sel, {opacity:1, clipPath:'inset(0% 0 0 0)'});
+      return gsap.to(sel, {clipPath:'inset(100% 0 0 0)', duration:dur, ease,
+        onComplete(){ gsap.set(sel,{opacity:0, clearProps:'clipPath'}); }});
     }
 
     let apngPrefetched=false;
@@ -236,59 +230,34 @@
 
       if (apng.complete) applyClip(apng);
       else apng.addEventListener('load', ()=>applyClip(apng), {once:true});
+
+      revealIn(apng, 0.26, 'power2.out');
     }
 
-    /* ===== Timeline (без дёрга, шторки снизу-вверх) ===== */
     function buildTimeline(){
       const tl=gsap.timeline({defaults:{ease:'power2.out'}});
 
-      // device: reveal-in
-      tl.add(()=> { gsap.set('.device',{opacity:1}); }, 0);
-      tl.add(()=> revealIn('.device', 0.34), 0);
+      // device
+      tl.add( revealIn('.device', 0.34), 0 );
 
       // steps
-      tl.add(()=> { gsap.set('.s1',{opacity:1}); }, '>-0.06')
-        .add(()=> revealIn('.s1', 0.34), '>-0.06')
-        .add(()=>showBadge(1.3), '>-0.02');
+      tl.add( revealIn('.s1', 0.34), '>-0.06' ).add(()=>showBadge(1.3), '>-0.02');
+      tl.add( revealIn('.s2', 0.34), '>-0.06' ).add(()=>showBadge(2.3), '>-0.02');
+      tl.add( revealIn('.s3', 0.34), '>-0.06' ).add(()=>showBadge(2.6), '>-0.02');
+      tl.add( revealIn('.s4', 0.34), '>-0.06' ).add(()=>showBadge(3.3), '>-0.02').add(()=>prefetchAPNG(), '>-0.02');
+      tl.add( revealIn('.s5', 0.34), '>-0.06' ).add(()=>prefetchAPNG(), '>-0.02');
 
-      tl.add(()=> { gsap.set('.s2',{opacity:1}); }, '>-0.06')
-        .add(()=> revealIn('.s2', 0.34), '>-0.06')
-        .add(()=>showBadge(2.3), '>-0.02');
-
-      tl.add(()=> { gsap.set('.s3',{opacity:1}); }, '>-0.06')
-        .add(()=> revealIn('.s3', 0.34), '>-0.06')
-        .add(()=>showBadge(2.6), '>-0.02');
-
-      tl.add(()=> { gsap.set('.s4',{opacity:1}); }, '>-0.06')
-        .add(()=> revealIn('.s4', 0.34), '>-0.06')
-        .add(()=>showBadge(3.3), '>-0.02')
-        .add(()=>{ prefetchAPNG(); }, '>-0.02');
-
-      tl.add(()=> { gsap.set('.s5',{opacity:1}); }, '>-0.06')
-        .add(()=> revealIn('.s5', 0.34), '>-0.06')
-        .add(()=>{ prefetchAPNG(); }, '>-0.02');
-
-      // switch to media
+      // switch
       tl.add('switchMedia');
       tl.call(async ()=>{
-        // спрячем все steps вниз
-        revealOut(['.device','.s1','.s2','.s3','.s4','.s5'], 0.26, 'power2.in');
+        revealOut(['.device','.s1','.s2','.s3','.s4','.s5'], 0.24);
 
         if(!isMobile){
-          // desktop: WEBP, reveal-in
           if (webp.complete) applyClip(webp); else webp.addEventListener('load', ()=>applyClip(webp), {once:true});
-          gsap.set(webp, {opacity:1, className:'+=reveal-in-start'});
-          gsap.to(webp, {clipPath:'inset(0% 0 0 0)', duration:0.30, ease:'power2.out', delay:0.05,
-            onComplete(){ gsap.set(webp, {clearProps:'clipPath', className:'-=reveal-in-start'}); }
-          });
+          revealIn(webp, 0.30, 'power2.out');
           setTimeout(()=>{ showHeroBadge(); }, 1500);
         } else {
-          // mobile: APNG from frame 0, затем reveal-in
           await showApngFromZero();
-          gsap.set(apng, {opacity:1, className:'+=reveal-in-start'});
-          gsap.to(apng, {clipPath:'inset(0% 0 0 0)', duration:0.26, ease:'power2.out', delay:0.05,
-            onComplete(){ gsap.set(apng, {clearProps:'clipPath', className:'-=reveal-in-start'}); }
-          });
           setTimeout(()=>{ showHeroBadge(); }, 1500);
         }
       }, null, 'switchMedia');
@@ -297,17 +266,33 @@
     }
 
     async function init(){
+      // fail-safe: если что-то пошло не так — покажем WEBP/APNG напрямую
+      const failSafe = setTimeout(()=>{
+        try{
+          if(!isMobile){
+            webp.style.opacity = '1';
+          }else{
+            const dataSrc = apng.getAttribute('data-src');
+            if(dataSrc && !apng.getAttribute('src')) apng.src = dataSrc;
+            apng.style.opacity = '1';
+          }
+        }catch(e){}
+      }, 1800);
+
       if(prefersReduced){
-        // Без анимаций — просто показать media
         document.querySelectorAll('.layer').forEach(el=>{
-          el.style.opacity = el.classList.contains('veo') ? 1 : 0;
+          el.style.opacity = (el.classList.contains('veo')?1:0);
           el.style.transform='none'; el.style.filter='none';
         });
+        clearTimeout(failSafe);
         return;
       }
       const pngs = ['assets/step1.png','assets/step2.png','assets/step3.png','assets/step4.png','assets/step5.png','assets/step6.png'];
       await Promise.all(pngs.map(src => new Promise(res => { const im=new Image(); im.onload=im.onerror=()=>res(); im.src=src; })));
+
       buildTimeline();
+      // как только таймлайн стартовал — страховку можно снять
+      setTimeout(()=>clearTimeout(failSafe), 500);
     }
     init();
   })();
