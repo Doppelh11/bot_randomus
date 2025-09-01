@@ -3,12 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Hero-анимация — сборка карточки (7 слоёв + видео)</title>
+  <title>Hero — сборка + хвост Veo3 (без раннего появления)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
-    :root{
-      --bg:#0c0d10; --fg:#fff; --muted:#b5b6bf; --maxw:1200px;
-    }
+    :root{ --bg:#0c0d10; --fg:#fff; --muted:#b5b6bf; --maxw:1200px; }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
@@ -17,29 +15,18 @@
       background:radial-gradient(1200px 900px at 20% 20%, #171924 0, #0f1118 50%, #0c0d10 100%);
     }
     .wrap{max-width:var(--maxw); margin:auto; padding:clamp(20px,4vw,64px)}
-    .hero{
-      display:grid; grid-template-columns:1.1fr 0.9fr; align-items:center;
-      gap:clamp(20px,5vw,80px); min-height:90svh;
-    }
-    @media (max-width:960px){
-      .hero{grid-template-columns:1fr; min-height:auto}
-      .copy{text-align:center; order:-1}
-    }
+    .hero{display:grid; grid-template-columns:1.1fr 0.9fr; align-items:center; gap:clamp(20px,5vw,80px); min-height:90svh;}
+    @media (max-width:960px){ .hero{grid-template-columns:1fr; min-height:auto} .copy{text-align:center; order:-1;} }
     .copy h1{margin:0 0 .4em; line-height:1.05; font-weight:800; font-size:clamp(28px,6vw,62px); letter-spacing:-.02em}
     .copy p{margin:0 0 1.25rem; color:var(--muted); font-size:clamp(16px,2.3vw,20px)}
-    .btn{
-      appearance:none; border:none; background:#ffffff10; color:#fff;
-      padding:12px 18px; border-radius:16px; font-weight:600; cursor:pointer;
-      backdrop-filter:blur(6px); transition:transform .15s ease, background .2s ease;
-    }
+    .btn{appearance:none; border:none; background:#ffffff10; color:#fff; padding:12px 18px; border-radius:16px; font-weight:600; cursor:pointer; backdrop-filter:blur(6px); transition:transform .15s ease, background .2s ease;}
     .btn:hover{transform:translateY(-1px); background:#ffffff18}
     .btn:active{transform:translateY(0)}
 
     /* ===== Stage ===== */
     .stage{
       position:relative; width:100%; max-width:760px;
-      /* точное соотношение ваших файлов (2048x1828) */
-      aspect-ratio: 2048 / 1828;
+      aspect-ratio:2048/1828; /* точное соотношение ваших PNG */
       margin-inline:auto; isolation:isolate;
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
       perspective:1200px; contain:layout paint;
@@ -48,14 +35,24 @@
       position:absolute; inset:0; width:100%; height:100%;
       object-fit:contain; transform-style:preserve-3d; backface-visibility:hidden;
       will-change:transform,opacity,filter; opacity:0;
-      /* порядок по DOM = порядок наложения */
     }
-    /* NEW: видео-слой — поверх всех, без 3D-трансформаций */
-    .veo{
-      pointer-events:none;                 /* чтобы не перехватывать клики */
-      transform:none !important;           /* финальная геометрия без искажений */
-      will-change:opacity;                 /* только плавность появления */
+
+    /* Мокап с дыркой (поверх всего, режет край видео) */
+    .mock-top{
+      z-index: 10; opacity: 1 !important; /* всегда виден */
+      pointer-events:none;
     }
+
+    /* Класс для видео (добавляется динамически). Без clip-path — режет мокап */
+    .tail{
+      position:absolute; inset:0; width:100%; height:100%;
+      object-fit:cover; object-position:50% 50%;
+      opacity:0; visibility:hidden; pointer-events:none;
+      z-index:5; /* под мокапом, над слайдами */
+      transform: translateZ(0);
+    }
+    /* Fallback для mp4/без альфы (Safari и пр.) */
+    .tail.noalpha{ mix-blend-mode: screen; filter: brightness(0.95) contrast(1.05); }
 
     .hint{ text-align:center; color:#a7aab8; margin-top:22px; font-size:13px; opacity:.75 }
   </style>
@@ -64,10 +61,10 @@
   <div class="wrap">
     <section class="hero" id="hero">
       <div class="stage" id="stage" aria-hidden="true">
-        <!-- 1) планшет -->
+        <!-- Нижняя рамка/планшет (на время сборки) -->
         <img class="layer device" src="assets/step1.png" alt="tablet frame">
 
-        <!-- 2) 6 экранных слоёв -->
+        <!-- 6 экранных кадров -->
         <img class="layer s1" src="assets/step2.png" alt="">
         <img class="layer s2" src="assets/step3.png" alt="">
         <img class="layer s3" src="assets/step4.png" alt="">
@@ -75,122 +72,136 @@
         <img class="layer s5" src="assets/step6.png" alt="">
         <img class="layer s6" src="assets/step7.png" alt="">
 
-        <!-- 3) NEW: финишное видео поверх всего.
-               Важно: тот же «кадр 7» как poster для бесшовного совпадения. -->
-        <video
-          class="layer veo"
-          id="veo"
-          muted playsinline preload="auto"                <!-- для автоплея без звука -->
-          poster="assets/step7.png"                       <!-- точное совпадение старта -->
-        >
-          <source src="assets/veo.webm#t=0.001" type="video/webm">
-          <source src="assets/veo.mp4#t=0.001"  type="video/mp4"> <!-- фолбэк для Safari -->
-        </video>
+        <!-- ВЕРХНИЙ мокап с прозрачным окном (остаётся и во время видео) -->
+        <img class="mock-top" src="assets/mockup.png" alt="mockup frame (transparent screen cutout)">
       </div>
 
       <div class="copy">
-        <h1>Анимация «сборки» — 7 слайдов + видео</h1>
-        <p>Планшет + 6 шагов экрана. В финале поверх — видео <code>veo.webm</code>, пиксель-в-пиксель.</p>
-        <button class="btn" id="replay">Повторить анимацию</button>
-        <div class="hint">Файлы: <code>assets/step1.png…step7.png</code> и <code>assets/veo.webm</code> (+ opc. <code>veo.mp4</code>).</div>
+        <h1>Карточка «оживает»</h1>
+        <p>7 PNG → плавный переход на Veo3-видео. Видео добавляется только в финале, рамка остаётся.</p>
+        <button class="btn" id="replay">Повторить</button>
+        <div class="hint">Файлы в <code>assets/</code>: <code>step1.png…step7.png, mockup.png, veo-tail.webm/mp4</code>.</div>
       </div>
     </section>
   </div>
 
-  <!-- GSAP -->
   <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
   <script>
   (() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const replayBtn = document.getElementById('replay');
-    const stageEl   = document.getElementById('stage');
-    const layers    = [...document.querySelectorAll('.layer')];
-    const video     = document.getElementById('veo'); // NEW
 
-    const preloadImages = (srcs) => Promise.all(srcs.map(s => new Promise(res => {
+    const replayBtn = document.getElementById('replay');
+    const stage = document.getElementById('stage');
+
+    const SLIDES = ['.s1','.s2','.s3','.s4','.s5','.s6'];
+    const HIDE_DEVICE_ON_TAIL = true;   // прячем нижнюю рамку-«step1» на время видео (сверху остаётся mockup.png)
+
+    const preload = (srcs) => Promise.all(srcs.map(s => new Promise(res => {
       const im = new Image(); im.onload = im.onerror = () => res(); im.src = s;
     })));
 
-    // NEW: корректная предзагрузка видео, чтобы play() не фейлился
-    const preloadVideo = (v) => new Promise(res => {
-      if (!v) return res();
-      const ready = () => {
-        v.removeEventListener('canplaythrough', ready);
-        v.removeEventListener('loadeddata', ready);
-        res();
-      };
-      if (v.readyState >= 3) return res(); // HAVE_FUTURE_DATA
-      v.addEventListener('canplaythrough', ready, { once:true });
-      v.addEventListener('loadeddata', ready, { once:true });
-      try { v.load(); } catch(e) {}
-    });
+    // Создание видео-элемента только в момент показа
+    function createTailVideo(){
+      const v = document.createElement('video');
+      v.setAttribute('playsinline','');
+      v.setAttribute('muted','');
+      v.setAttribute('preload','auto');
+      v.className = 'tail';
+      // Источники
+      const sWebm = document.createElement('source');
+      sWebm.src = 'assets/veo-tail.webm'; sWebm.type = 'video/webm';
+      const sMp4 = document.createElement('source');
+      sMp4.src = 'assets/veo-tail.mp4'; sMp4.type = 'video/mp4';
+      v.appendChild(sWebm); v.appendChild(sMp4);
+      return v;
+    }
 
     function buildTimeline(){
       const tl = gsap.timeline({ defaults:{ ease:'power3.out' } });
 
-      // стартовые состояния (чтобы финальная позиция была ровной)
+      // стартовые состояния
       gsap.set('.device', { opacity:0, yPercent:4, scale:0.985, rotateZ:-1, filter:'blur(6px)' });
-      gsap.set(['.s1','.s2','.s3','.s4','.s5','.s6'], { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
-      gsap.set('.veo', { opacity:0 }); // NEW: видео скрыто до появления
+      gsap.set(SLIDES.join(','), { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
 
-      // 0) планшет «приземляется»
+      // планшет «приземляется»
       tl.to('.device', { opacity:1, yPercent:0, scale:1, rotateZ:0, filter:'blur(0px)', duration:0.55, ease:'back.out(1.6)' });
 
-      // 1–6) экранные слои (финиш — без трансформаций)
-      ['.s1','.s2','.s3','.s4','.s5','.s6'].forEach((sel, i) => {
-        tl.to(sel, { opacity:1, yPercent:0, rotateX:0, rotateZ:0, scale:1, duration:0.42, ease:'back.out(1.4)' }, i===0 ? '-=0.15' : '-=0.10')
+      // поочерёдно добавляем экраны
+      SLIDES.forEach((sel, i) => {
+        tl.to(sel, { opacity:1, yPercent:0, rotateX:0, rotateZ:0, scale:1, duration:0.42, ease:'back.out(1.4)' }, i===0?'-=0.15':'-=0.10')
           .to(sel, { scale:1.01, duration:0.10 })
           .to(sel, { scale:1.00, duration:0.12 }, '-=0.05');
       });
 
-      // финальный «подсвет» сцены
-      tl.fromTo('#stage',
-        { filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))' },
-        { filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))', duration:0.45 }, '-=0.2'
-      );
+      // Переход на хвост-видео
+      tl.add(() => {
+        // создаём видео прямо сейчас и вставляем под мокап
+        const tail = createTailVideo();
+        // вставить ПЕРЕД верхним мокапом, чтобы мокап был сверху
+        const mockTop = stage.querySelector('.mock-top');
+        stage.insertBefore(tail, mockTop);
 
-      // NEW: запуск и плавное появление видео поверх кадра s6
-      tl.add('videoIn');
-      tl.call(() => {
-        if (!video) return;
-        try { video.currentTime = 0; } catch(e) {}
-        const p = video.play?.();
-        // подавляем возможный промис-рефьюз (например, если браузер запретил автоплей)
-        if (p && typeof p.catch === 'function') p.catch(() => {});
-      }, null, 'videoIn');
-      tl.to('.veo', { opacity:1, duration:0.45 }, 'videoIn'); // кросс-фейд 450 мс
+        // fallback на Safari: нет VP9-alfa → включаем blend
+        if (!tail.canPlayType('video/webm; codecs="vp9"')) {
+          tail.classList.add('noalpha');
+        }
+        tail.currentTime = 0;
+        tail.play().catch(()=>{});
+
+        // плавно показать видео и спрятать PNG
+        gsap.to(tail, { opacity:1, visibility:'visible', duration:0.5, ease:'power2.out' });
+        gsap.to(SLIDES.join(','), { autoAlpha:0, duration:0.45, ease:'power2.out' });
+        if (HIDE_DEVICE_ON_TAIL) gsap.to('.device', { autoAlpha:0, duration:0.45, ease:'power2.out' });
+
+        // по окончании — остановить на последнем кадре
+        tail.addEventListener('ended', () => { tail.pause(); }, { once:true });
+
+        // сохраним ссылку, чтобы сбрасывать при «Повторить»
+        stage._tailVideo = tail;
+      });
 
       return tl;
     }
 
     async function init(){
       if (prefersReduced){
-        gsap.set(layers, { opacity:0, clearProps:'transform,filter' });
-        gsap.set('.device, .s6', { opacity:1 }); // показать финальный кадр + планшет
-        if (video) video.style.display = 'none'; // NEW: без движения — без видео
+        gsap.set('.device, .s6', { opacity:1 });
+        // видео не создаём
         replayBtn.style.display = 'none';
         return;
       }
 
-      // предзагрузка ассетов
-      await preloadImages(layers.filter(l => l.tagName === 'IMG').map(l => l.currentSrc || l.src));
-      await preloadVideo(video);
+      const toPreload = ['.device', ...SLIDES].map(sel => (document.querySelector(sel)||{}).src).filter(Boolean);
+      await preload(toPreload);
 
       const tl = buildTimeline();
 
-      const restart = () => {
-        // NEW: гарантированно сбрасываем видео перед рестартом
-        if (video){
-          try { video.pause(); } catch(e){}
-          try { video.currentTime = 0; } catch(e){}
+      // Повтор: удаляем видео-элемент, возвращаем PNG
+      replayBtn.addEventListener('click', () => {
+        if (stage._tailVideo){
+          stage._tailVideo.pause();
+          stage._tailVideo.remove();
+          stage._tailVideo = null;
         }
+        gsap.set(SLIDES.join(','), { autoAlpha:1 });
+        gsap.set('.device', { autoAlpha:1 });
         tl.restart();
-      };
+      });
 
-      replayBtn.addEventListener('click', restart);
-
+      // Авто-старт при появлении
       const io = new IntersectionObserver((entries) => {
-        entries.forEach(e => e.isIntersecting && restart());
+        entries.forEach(e => {
+          if (e.isIntersecting){
+            if (stage._tailVideo){
+              stage._tailVideo.pause();
+              stage._tailVideo.remove();
+              stage._tailVideo = null;
+            }
+            gsap.set(SLIDES.join(','), { autoAlpha:1 });
+            gsap.set('.device', { autoAlpha:1 });
+            tl.restart();
+          }
+        });
       }, { threshold:0.4 });
       io.observe(document.getElementById('hero'));
     }
