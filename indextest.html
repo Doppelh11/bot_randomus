@@ -3,24 +3,22 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Карточка + CTR — APNG only (Scale-X/Y + step1 opacity)</title>
+  <title>Карточка + CTR — desktop WEBP, mobile APNG (matched proportions)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{
-      --fg:#fff; --muted:#b5b6bf; --maxw:1200px;
-      --scale-x: 1.000;           /* НОВОЕ: независимые масштабы */
-      --scale-y: 1.000;
-      --clip-t: 0; --clip-r: 0; --clip-b: 0; --clip-l: 0;
-      --site-bg:#000;
+      /* Твои значения подгонки */
+      --scale-x: 1.139;
+      --scale-y: 1.182;
+      --clip-t: 0.00%;
+      --clip-r: 0.00%;
+      --clip-b: 0.00%;
+      --clip-l: 0.00%;
 
-      /* dev-подгон — прозрачность step1 (device) при открытом тюнере */
-      --device-op: 0;             /* 0..1; действует только когда панель тюнера открыта */
-
-      /* badge tokens */
+      --fg:#fff; --maxw:1200px; --site-bg:#000;
       --badge-bg: rgba(24,24,28,.86);
       --badge-fg: #fff;
       --badge-shadow: 0 8px 24px rgba(0,0,0,.35);
-      --badge-accent: #FF8A00;
     }
 
     *{box-sizing:border-box}
@@ -45,15 +43,14 @@
       will-change:transform,opacity,filter; opacity:0;
     }
 
-    /* Слои — скейлим одинаково для честного сравнения */
+    /* Шаги — скейлим как медиа для честного совпадения */
     .device, .s1,.s2,.s3,.s4,.s5{
       transform: translateZ(0) scaleX(var(--scale-x)) scaleY(var(--scale-y));
-      transform-origin:50% 50%;
       z-index:6;
     }
 
-    /* APNG всегда включён (desktop + mobile), под шагами */
-    .veo.apng{
+    /* Медиа-слои (оба используют одинаковую подгонку и клип) */
+    .veo{
       display:block;
       object-fit:contain;
       object-position:50% 50%;
@@ -61,10 +58,17 @@
       transform-origin:50% 50%;
       clip-path: inset(var(--clip-t) var(--clip-r) var(--clip-b) var(--clip-l));
       z-index:4;
+      opacity:0;
     }
 
-    /* При открытом тюнере даём вручную управлять прозрачностью step1 поверх APNG */
-    body.tuner-open .device{ opacity: var(--device-op) !important; z-index: 9; }
+    /* Десктоп — WEBP, мобайл — APNG */
+    .veo.webp{ display:block; }
+    .veo.apng{ display:none; }
+
+    @media (pointer: coarse), (max-width: 820px){
+      .veo.webp{ display:none !important; }
+      .veo.apng{ display:block !important; }
+    }
 
     /* ===== badges ===== */
     .badge-layer{
@@ -86,25 +90,15 @@
       opacity:0; transform: scale(.92) translateY(-6px);
       will-change:transform,opacity,filter;
     }
-    .badge .tag{
-      display:inline-flex; align-items:center; justify-content:center;
-      font-size: clamp(11px, 2.8vw, 12px);
-      padding: 2px 6px;
-      border-radius: 10px;
-      background: rgba(255,255,255,.12);
-      color:#fff; letter-spacing:.06em;
-    }
+    .badge .tag{ font-size: clamp(11px, 2.8vw, 12px); padding:2px 6px; border-radius:10px; background: rgba(255,255,255,.12); }
     .badge .val{ font-size: clamp(16px, 3.6vw, 22px); line-height:1; }
     .badge .pct{ font-size: clamp(13px, 3vw, 16px); opacity:.9; margin-left:2px; }
 
     .badge.hero{
       position:absolute; left: clamp(8px, 1.8vw, 16px); top: 50%; transform: translateY(-50%) scale(.88);
       background: linear-gradient(90deg,#FF7A00 0%, #FFC247 50%, #FF7A00 100%);
-      color:#1a1200;
-      box-shadow: 0 10px 26px rgba(255,138,0,.45), 0 0 0 0 rgba(255,138,0,0);
-      border-radius: 16px;
-      padding: 10px 14px;
-      opacity:0;
+      color:#1a1200; border-radius: 16px; padding: 10px 14px; opacity:0;
+      box-shadow: 0 10px 26px rgba(255,138,0,.45);
     }
     .badge.hero .tag{ background: rgba(0,0,0,.12); color: #1a1200; font-weight: 900; }
     .badge.hero .val{ font-size: clamp(20px, 4.8vw, 28px); }
@@ -116,34 +110,12 @@
       color:#fff; padding:6px 10px; border-radius:12px; font-size:12px; font-weight:600;
       backdrop-filter: blur(4px); white-space:nowrap;
     }
-
-    /* ===== TUNER UI ===== */
-    .tuner-toggle{
-      position:fixed; right:12px; bottom:12px; z-index:50;
-      background:#2b2e36; color:#fff; border:1px solid rgba(255,255,255,.12);
-      border-radius:999px; padding:8px 12px; font-weight:700; cursor:pointer;
-      box-shadow:0 10px 30px rgba(0,0,0,.35);
-    }
-    .tuner{ position:fixed; left:12px; right:12px; bottom:12px; z-index:49;
-      background: rgba(20,20,24,.92); border:1px solid rgba(255,255,255,.08);
-      padding:12px; border-radius:12px; backdrop-filter:blur(8px); display:none; }
-    .tuner.open{ display:block; }
-    .grid{ display:grid; grid-template-columns: repeat(6, minmax(140px, 1fr)); gap:12px; }
-    .row{ display:flex; flex-direction:column; gap:6px; }
-    .row label{ font-size:12px; color:#cfd0d6; display:flex; justify-content:space-between; gap:8px; }
-    .val{ font-variant-numeric: tabular-nums; color:#fff; }
-    input[type="range"]{ width:100%; }
-    .btns{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
-    .btn{ background:#2b2e36; color:#fff; border:1px solid rgba(255,255,255,.1);
-      border-radius:8px; padding:8px 10px; font-weight:600; cursor:pointer; }
-    .btn.primary{ background:#3a7afe; border-color:#3a7afe; }
-    @media (max-width: 980px){ .grid{ grid-template-columns: repeat(2, minmax(160px, 1fr)); } }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="stage" id="stage" aria-hidden="true">
-      <!-- badge overlay -->
+      <!-- badges -->
       <div class="badge-layer" aria-hidden="true">
         <div class="badge" id="badge"><span class="tag">CTR</span><span class="val">0.0</span><span class="pct">%</span></div>
         <div class="badge hero" id="badge_hero">
@@ -152,53 +124,18 @@
         </div>
       </div>
 
+      <!-- steps -->
       <img class="layer device" src="assets/step1.png" alt="frame">
       <img class="layer s1" src="assets/step2.png" alt="">
       <img class="layer s2" src="assets/step3.png" alt="">
       <img class="layer s3" src="assets/step4.png" alt="">
       <img class="layer s4" src="assets/step5.png" alt="">
       <img class="layer s5" src="assets/step6.png" alt="">
-      <!-- APNG (единственный медиа-слой) -->
-      <img class="layer veo apng" id="veo_apng" data-src="assets/veo.apng" alt="" aria-hidden="true" loading="eager" fetchpriority="high">
-    </div>
-  </div>
 
-  <!-- ===== TUNER (scale X/Y + step1 opacity + copy/reset) ===== -->
-  <button class="tuner-toggle" id="tunerToggle">Тюнинг</button>
-  <div class="tuner" id="tuner">
-    <div class="grid">
-      <div class="row">
-        <label>Scale-X <span class="val" id="v_sx">1.000</span></label>
-        <input type="range" id="scale_x" min="0.90" max="1.20" step="0.001" value="1.000">
-      </div>
-      <div class="row">
-        <label>Scale-Y <span class="val" id="v_sy">1.000</span></label>
-        <input type="range" id="scale_y" min="0.90" max="1.20" step="0.001" value="1.000">
-      </div>
-      <div class="row">
-        <label>Clip-Top (%) <span class="val" id="v_ct">0.00</span></label>
-        <input type="range" id="clip_t" min="0" max="10" step="0.05" value="0">
-      </div>
-      <div class="row">
-        <label>Clip-Right (%) <span class="val" id="v_cr">0.00</span></label>
-        <input type="range" id="clip_r" min="0" max="10" step="0.05" value="0">
-      </div>
-      <div class="row">
-        <label>Clip-Bottom (%) <span class="val" id="v_cb">0.00</span></label>
-        <input type="range" id="clip_b" min="0" max="10" step="0.05" value="0">
-      </div>
-      <div class="row">
-        <label>Clip-Left (%) <span class="val" id="v_cl">0.00</span></label>
-        <input type="range" id="clip_l" min="0" max="10" step="0.05" value="0">
-      </div>
-      <div class="row">
-        <label>Прозрачность step1 <span class="val" id="v_do">0.00</span></label>
-        <input type="range" id="dev_op" min="0" max="1" step="0.01" value="0">
-      </div>
-    </div>
-    <div class="btns">
-      <button class="btn" id="reset">Сбросить</button>
-      <button class="btn primary" id="copy">Скопировать CSS</button>
+      <!-- Desktop WEBP -->
+      <img class="layer veo webp" id="veo_webp" src="assets/veo.webp" alt="" aria-hidden="true" loading="eager" fetchpriority="high">
+      <!-- Mobile APNG (src подставляем в JS для старта с 0 кадра) -->
+      <img class="layer veo apng" id="veo_apng" data-src="assets/veo.apng" alt="" aria-hidden="true">
     </div>
   </div>
 
@@ -207,107 +144,86 @@
   <script>
   (() => {
     const REF_W = 2048, REF_H = 1828;
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isMobile = window.matchMedia('(pointer: coarse), (max-width: 820px)').matches;
 
-    let   apng    = document.getElementById('veo_apng');
+    const webp = document.getElementById('veo_webp');
+    let   apng = document.getElementById('veo_apng');
 
-    /* ===== badges ===== */
+    /* badges */
     const badge = document.getElementById('badge');
     const hero  = document.getElementById('badge_hero');
     const chip  = document.getElementById('confirm_chip');
-    gsap.set(hero,{opacity:0}); // hidden initially
+    gsap.set(hero,{opacity:0});
 
     function showBadge(val){
       badge.querySelector('.val').textContent = val.toFixed(1);
-      const tl = gsap.timeline();
-      tl.set(badge,{opacity:0, scale:.92, y:-6})
+      return gsap.timeline()
+        .set(badge,{opacity:0, scale:.92, y:-6})
         .to(badge,{opacity:1, scale:1, y:0, duration:0.22, ease:'back.out(2)'})
         .to(badge,{opacity:0, y:-8, scale:.96, duration:0.20, ease:'power2.in'}, '+=1.0');
-      return tl;
     }
     function showHeroBadge(){
-      const tl = gsap.timeline();
-      tl.set(hero,{opacity:0, scale:.88, y:-8, boxShadow:'0 10px 26px rgba(255,138,0,.0), 0 0 0 0 rgba(255,138,0,0)'})
+      return gsap.timeline()
+        .set(hero,{opacity:0, scale:.88, y:-8})
         .to(hero,{opacity:1, scale:1, y:0, duration:0.32, ease:'back.out(1.8)'})
-        .set(chip,{opacity:0, y:6}, '-=0.2')
+        .set(chip,{opacity:0, y:6},'-=0.2')
         .to(chip,{opacity:1, y:0, duration:0.24, ease:'power2.out'}, '-=0.05')
         .to(chip,{opacity:0, y:-4, duration:0.32, ease:'power2.in'}, '+=1.2');
-      return tl;
     }
 
-    /* ===== APNG helpers ===== */
-    function applyApngClip(img){
-      const nw = img.naturalWidth || REF_W;
-      const nh = img.naturalHeight || REF_H;
-      const apngAR = nw/nh;
-      const refAR = REF_W/REF_H;
-      if(Math.abs(apngAR - refAR) < 0.0001){
-        img.style.setProperty('--clip-t','0'); img.style.setProperty('--clip-b','0');
-        img.style.setProperty('--clip-l','0'); img.style.setProperty('--clip-r','0');
-        return;
-      }
-      if(apngAR > refAR){
-        const visibleW = REF_W/REF_H * nh;
-        const side = Math.max(0, (nw - visibleW)/2 / nw) * 100;
-        img.style.setProperty('--clip-l', side.toFixed(3)+'%');
-        img.style.setProperty('--clip-r', side.toFixed(3)+'%');
-        img.style.setProperty('--clip-t','0'); img.style.setProperty('--clip-b','0');
-      } else {
-        const visibleH = REF_H/REF_W * nw;
-        const top = Math.max(0, (nh - visibleH)/2 / nh) * 100;
-        img.style.setProperty('--clip-t', top.toFixed(3)+'%');
-        img.style.setProperty('--clip-b', top.toFixed(3)+'%');
-        img.style.setProperty('--clip-l','0'); img.style.setProperty('--clip-r','0');
-      }
+    function applyClip(img){
+      const nw=img.naturalWidth||REF_W, nh=img.naturalHeight||REF_H;
+      const ar= nw/nh, ref= REF_W/REF_H;
+      if(Math.abs(ar-ref)<0.0001){ img.style.setProperty('--clip-t','0'); img.style.setProperty('--clip-b','0'); img.style.setProperty('--clip-l','0'); img.style.setProperty('--clip-r','0'); return; }
+      if(ar>ref){ const visibleW=REF_W/REF_H*nh; const side=Math.max(0,(nw-visibleW)/2/nw)*100;
+        img.style.setProperty('--clip-l',side+'%'); img.style.setProperty('--clip-r',side+'%'); img.style.setProperty('--clip-t','0'); img.style.setProperty('--clip-b','0');
+      } else { const visibleH=REF_H/REF_W*nw; const top=Math.max(0,(nh-visibleH)/2/nh)*100;
+        img.style.setProperty('--clip-t',top+'%'); img.style.setProperty('--clip-b',top+'%'); img.style.setProperty('--clip-l','0'); img.style.setProperty('--clip-r','0'); }
     }
 
-    let apngPrefetched = false;
+    let apngPrefetched=false;
     function prefetchAPNG(){
       const url = apng.getAttribute('data-src');
       if(!url || apngPrefetched) return;
-      const ghost = new Image();
-      ghost.decoding = 'async';
-      ghost.src = url; // прогрев кеша
-      apngPrefetched = true;
+      const ghost=new Image(); ghost.decoding='async'; ghost.src=url;
+      apngPrefetched=true;
     }
-
-    async function prepareApngFresh(){
+    async function showApngFromZero(){
       const url = apng.getAttribute('data-src');
-      if(!url) return null;
-
+      if(!url) return;
       if(!apngPrefetched) prefetchAPNG();
 
       const fresh = apng.cloneNode(false);
       fresh.removeAttribute('src');
+      fresh.style.opacity='0';
       fresh.setAttribute('loading','eager');
       fresh.setAttribute('fetchpriority','high');
-      fresh.style.opacity = '0';
       fresh.src = url;
 
-      // ждём либо load, либо 600мс (чтобы не зависнуть)
-      const ready = new Promise(res => { if(fresh.complete) res(); else fresh.addEventListener('load', res, {once:true}); });
-      const timeout = new Promise(res => setTimeout(res, 600));
-      await Promise.race([ready, timeout]);
+      const ready=new Promise(res=>{ if(fresh.complete) res(); else fresh.addEventListener('load',res,{once:true}); });
+      const timeout=new Promise(res=>setTimeout(res,600));
+      await Promise.race([ready,timeout]);
 
       apng.replaceWith(fresh);
-      apng = fresh;
+      apng=fresh;
 
-      if (apng.complete) applyApngClip(apng);
-      else apng.addEventListener('load', ()=>applyApngClip(apng), {once:true});
+      if (apng.complete) applyClip(apng);
+      else apng.addEventListener('load', ()=>applyClip(apng), {once:true});
 
-      return apng;
+      gsap.to(apng,{opacity:1,duration:0.25,delay:0.05});
     }
 
-    /* ===== Timeline ===== */
     function buildTimeline(){
       const tl=gsap.timeline({defaults:{ease:'power3.out'}});
       gsap.set('.device',{opacity:0,yPercent:4,scale:0.985,rotateZ:-1,filter:'blur(6px)'});
       gsap.set(['.s1','.s2','.s3','.s4','.s5'],{opacity:0,yPercent:3,rotateX:4,rotateZ:-1,scale:0.99});
-      gsap.set('.veo.apng',{opacity:0});
+      gsap.set('.veo',{opacity:0});
 
       // device
       tl.to('.device',{opacity:1,yPercent:0,scale:1,rotateZ:0,filter:'blur(0px)',duration:0.55,ease:'back.out(1.6)'});
 
-      // steps (медленно как прежде)
+      // steps (замедленные как раньше)
       tl.to('.s1',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:1.68,ease:'back.out(1.4)'}, '-=0.15')
         .to('.s1',{scale:1.01,duration:0.20})
         .to('.s1',{scale:1.00,duration:0.24},'-=0.10')
@@ -327,99 +243,45 @@
         .to('.s4',{scale:1.01,duration:0.20})
         .to('.s4',{scale:1.00,duration:0.24},'-=0.10')
         .add(()=>showBadge(3.3), '>-0.02')
-        .add(()=>{ prefetchAPNG(); }, '>-0.02'); // ранний прогрев
+        .add(()=>{ prefetchAPNG(); }, '>-0.02');
 
       tl.to('.s5',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:1.68,ease:'back.out(1.4)'}, '-=0.10')
         .to('.s5',{scale:1.01,duration:0.20})
         .to('.s5',{scale:1.00,duration:0.24},'-=0.10')
-        .add(()=>{ prefetchAPNG(); }, '>-0.02'); // доп. прогрев
+        .add(()=>{ prefetchAPNG(); }, '>-0.02');
 
       tl.fromTo('#stage',{filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))'},{filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))',duration:0.45},'-=0.2');
 
-      // switch to APNG
+      // свитч на медиа
       tl.add('switchMedia');
       tl.call(async ()=>{
-        await prepareApngFresh();
-        gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.25});
-        gsap.to(apng,{opacity:1,duration:0.25, delay:0.05});
-        setTimeout(()=>{ showHeroBadge(); }, 1500);
+        if(!isMobile){
+          // desktop: WEBP
+          if (webp.complete) applyClip(webp); else webp.addEventListener('load', ()=>applyClip(webp), {once:true});
+          gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.25});
+          gsap.to(webp,{opacity:1,duration:0.25,delay:0.05});
+          setTimeout(()=>{ showHeroBadge(); }, 1500);
+        } else {
+          // mobile: APNG from frame 0
+          gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.1});
+          await showApngFromZero();
+          setTimeout(()=>{ showHeroBadge(); }, 1500);
+        }
       }, null, 'switchMedia');
 
       return tl;
     }
 
     async function init(){
+      if(prefersReduced){
+        document.querySelectorAll('.layer').forEach(el=>{ el.style.opacity = (el.classList.contains('veo')?1:0); el.style.transform='none'; el.style.filter='none'; });
+        return;
+      }
       const pngs = ['assets/step1.png','assets/step2.png','assets/step3.png','assets/step4.png','assets/step5.png','assets/step6.png'];
       await Promise.all(pngs.map(src => new Promise(res => { const im=new Image(); im.onload=im.onerror=()=>res(); im.src=src; })));
       buildTimeline();
     }
     init();
-
-    /* ===== TUNER logic ===== */
-    const root = document.documentElement;
-    const body = document.body;
-    const tBtn = document.getElementById('tunerToggle');
-    const tBox = document.getElementById('tuner');
-    const qs = id => document.getElementById(id);
-    const sx=qs('scale_x'), sy=qs('scale_y'), ct=qs('clip_t'), cr=qs('clip_r'), cb=qs('clip_b'), cl=qs('clip_l'), dop=qs('dev_op');
-    const vsx = qs('v_sx'), vsy=qs('v_sy'), vct=qs('v_ct'), vcr=qs('v_cr'), vcb=qs('v_cb'), vcl=qs('v_cl'), vdo=qs('v_do');
-    const resetBtn = qs('reset'), copyBtn = qs('copy');
-    const KEY='apngFitTunerV5_scaleXY_devop';
-    function save(){
-      const obj={sx:sx.value, sy:sy.value, ct:ct.value, cr:cr.value, cb:cb.value, cl:cl.value, dop:dop.value, open:tBox.classList.contains('open')};
-      localStorage.setItem(KEY, JSON.stringify(obj));
-    }
-    function load(){
-      try{
-        const obj=JSON.parse(localStorage.getItem(KEY)||'{}');
-        if(obj.sx) sx.value=obj.sx;
-        if(obj.sy) sy.value=obj.sy;
-        if(obj.ct) ct.value=obj.ct;
-        if(obj.cr) cr.value=obj.cr;
-        if(obj.cb) cb.value=obj.cb;
-        if(obj.cl) cl.value=obj.cl;
-        if(typeof obj.dop!=='undefined') dop.value=obj.dop;
-        if(obj.open){ tBox.classList.add('open'); body.classList.add('tuner-open'); }
-      }catch(e){}
-    }
-    function apply(){
-      root.style.setProperty('--scale-x', Number(sx.value).toFixed(3));
-      root.style.setProperty('--scale-y', Number(sy.value).toFixed(3));
-      root.style.setProperty('--clip-t', Number(ct.value).toFixed(2) + '%');
-      root.style.setProperty('--clip-r', Number(cr.value).toFixed(2) + '%');
-      root.style.setProperty('--clip-b', Number(cb.value).toFixed(2) + '%');
-      root.style.setProperty('--clip-l', Number(cl.value).toFixed(2) + '%');
-      root.style.setProperty('--device-op', Number(dop.value).toFixed(2));
-      vsx.textContent = Number(sx.value).toFixed(3);
-      vsy.textContent = Number(sy.value).toFixed(3);
-      vct.textContent = Number(ct.value).toFixed(2);
-      vcr.textContent = Number(cr.value).toFixed(2);
-      vcb.textContent = Number(cb.value).toFixed(2);
-      vcl.textContent = Number(cl.value).toFixed(2);
-      vdo.textContent = Number(dop.value).toFixed(2);
-      save();
-    }
-    function reset(){
-      sx.value=1.000; sy.value=1.000; ct.value=0; cr.value=0; cb.value=0; cl.value=0; dop.value=0; apply();
-    }
-    function copyCSS(){
-      const css = `:root{\n  --scale-x: ${Number(sx.value).toFixed(3)};\n  --scale-y: ${Number(sy.value).toFixed(3)};\n  --clip-t: ${Number(ct.value).toFixed(2)}%;\n  --clip-r: ${Number(cr.value).toFixed(2)}%;\n  --clip-b: ${Number(cb.value).toFixed(2)}%;\n  --clip-l: ${Number(cl.value).toFixed(2)}%;\n}`;
-      navigator.clipboard.writeText(css).then(()=>{
-        copyBtn.textContent='Скопировано!'; setTimeout(()=>copyBtn.textContent='Скопировать CSS',1200);
-      }).catch(()=>{ alert(css); });
-    }
-    tBtn.addEventListener('click', ()=>{
-      tBox.classList.toggle('open');
-      body.classList.toggle('tuner-open', tBox.classList.contains('open'));
-      if (tBox.classList.contains('open')) apply();
-      save();
-    });
-    ['input','change'].forEach(ev=>{
-      [sx,sy,ct,cr,cb,cl,dop].forEach(el=>el.addEventListener(ev,apply));
-    });
-    resetBtn.addEventListener('click', reset);
-    copyBtn.addEventListener('click', copyCSS);
-    load(); apply();
   })();
   </script>
 </body>
