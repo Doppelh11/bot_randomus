@@ -3,20 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Карточка + CTR — APNG only (Fit Tuner: Scale-X/Y)</title>
-  <meta name="color-scheme" content="light dark" />
+  <title>Карточка + CTR — APNG only (Scale-X/Y + Tuner)</title>
   <style>
     :root{
       --scale-x: 1.000;
       --scale-y: 1.000;
       --clip-t: 0; --clip-r: 0; --clip-b: 0; --clip-l: 0;
       --site-bg:#000;
-      --badge-bg: rgba(24,24,28,.86);
-      --badge-fg: #fff;
-      --badge-shadow: 0 8px 24px rgba(0,0,0,.35);
     }
-    *{box-sizing:border-box}
-    body{margin:0; font-family:sans-serif; background:var(--site-bg); color:#fff;}
+    body{margin:0; background:var(--site-bg); color:#fff; font-family:sans-serif;}
     .wrap{max-width:1200px; margin:auto; padding:20px}
 
     .stage{position:relative; max-width:760px; aspect-ratio:2048/1828; margin:auto;}
@@ -31,11 +26,7 @@
       transform:scaleX(var(--scale-x)) scaleY(var(--scale-y));
     }
 
-    .badge-layer{position:absolute; inset:0; display:flex; align-items:center; padding-left:12px;}
-    .badge{background:var(--badge-bg); border-radius:12px; padding:6px 10px; font-weight:800; opacity:0;}
-    .badge.hero{background:orange; color:#000; position:absolute; left:12px; top:50%; transform:translateY(-50%);}
-
-    /* tuner */
+    /* ====== TUNER ====== */
     .tuner-toggle{position:fixed; right:12px; bottom:12px; z-index:100;
       background:#2b2e36; color:#fff; border:none; padding:8px 12px; border-radius:20px; cursor:pointer;}
     .tuner{position:fixed; left:12px; right:12px; bottom:50px; z-index:99;
@@ -44,16 +35,15 @@
     .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px;}
     .row{display:flex; flex-direction:column; font-size:12px;}
     .row label{display:flex; justify-content:space-between;}
+    .btns{margin-top:10px; display:flex; gap:8px;}
+    button{padding:6px 10px; border-radius:6px; cursor:pointer;}
+    .primary{background:#3a7afe; color:#fff; border:none;}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="stage" id="stage">
-      <div class="badge-layer">
-        <div class="badge" id="badge"><span class="val">0.0</span>%</div>
-        <div class="badge hero" id="badge_hero">4.7%</div>
-      </div>
-      <img class="layer device" src="assets/step1.png">
+    <div class="stage">
+      <img class="layer device" src="assets/step1.png" style="opacity:1">
       <img class="layer s1" src="assets/step2.png">
       <img class="layer s2" src="assets/step3.png">
       <img class="layer s3" src="assets/step4.png">
@@ -74,6 +64,10 @@
       <div class="row"><label>Clip-Bottom <span id="vb">0</span>%</label><input type="range" id="clip_b" min="0" max="10" step="0.1" value="0"></div>
       <div class="row"><label>Clip-Left <span id="vl">0</span>%</label><input type="range" id="clip_l" min="0" max="10" step="0.1" value="0"></div>
     </div>
+    <div class="btns">
+      <button id="reset">Сбросить</button>
+      <button class="primary" id="copy">Скопировать CSS</button>
+    </div>
   </div>
 
   <script>
@@ -81,6 +75,7 @@
     const qs=id=>document.getElementById(id);
     const sx=qs('scale_x'), sy=qs('scale_y'), ct=qs('clip_t'), cr=qs('clip_r'), cb=qs('clip_b'), cl=qs('clip_l');
     const vx=qs('vx'), vy=qs('vy'), vt=qs('vt'), vr=qs('vr'), vb=qs('vb'), vl=qs('vl');
+    const resetBtn=qs('reset'), copyBtn=qs('copy');
     function apply(){
       root.style.setProperty('--scale-x',sx.value);
       root.style.setProperty('--scale-y',sy.value);
@@ -94,6 +89,11 @@
     }
     [sx,sy,ct,cr,cb,cl].forEach(el=>el.addEventListener('input',apply));
     qs('tunerToggle').addEventListener('click',()=>qs('tuner').classList.toggle('open'));
+    resetBtn.addEventListener('click',()=>{sx.value=1; sy.value=1; ct.value=0; cr.value=0; cb.value=0; cl.value=0; apply();});
+    copyBtn.addEventListener('click',()=>{
+      const css=`:root{\\n  --scale-x: ${sx.value};\\n  --scale-y: ${sy.value};\\n  --clip-t: ${ct.value}%;\\n  --clip-r: ${cr.value}%;\\n  --clip-b: ${cb.value}%;\\n  --clip-l: ${cl.value}%;\\n}`;
+      navigator.clipboard.writeText(css).then(()=>{copyBtn.textContent='Скопировано!'; setTimeout(()=>copyBtn.textContent='Скопировать CSS',1200);});
+    });
     apply();
   </script>
 </body>
