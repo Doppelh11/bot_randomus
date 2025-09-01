@@ -3,46 +3,26 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Карточка + CTR</title>
+  <title>Карточка + CTR — Badge Pop</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{
       --fg:#fff; --muted:#b5b6bf; --maxw:1200px;
-      --w-ones:1.05ch; --w-tenth:0.95ch;
-      --digits-offset:0.2em; --dot-top:-0.25em;
-      --ctr-label-size: clamp(20px, 3.2vw, 32px);
-      --ctr-digit-size: clamp(28px, 4.8vw, 58px);
       --overscan: 1.006; /* общий для steps и APNG (только мобилка) */
       --site-bg:#000;
+
+      /* badge tokens */
+      --badge-bg: rgba(24,24,28,.86);
+      --badge-fg: #fff;
+      --badge-shadow: 0 8px 24px rgba(0,0,0,.35);
+      --badge-accent: #FF8A00;
+      --badge-hero-glow: 0 0 0 0 rgba(255,138,0,.0);
     }
 
     *{box-sizing:border-box}
     html,body{height:100%}
     body{margin:0; color:var(--fg); font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif; background:var(--site-bg);}
     .wrap{max-width:var(--maxw); margin:auto; padding:clamp(20px,4vw,64px)}
-
-    .ctr-bar{display:flex; justify-content:center; margin-bottom:14px;}
-    .ctr-row{display:flex; align-items:flex-end; gap:12px;}
-    .ctr-label{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight:800; letter-spacing:.14em; text-transform:uppercase; font-size: var(--ctr-label-size); line-height:1;}
-    .slots{display:inline-flex; align-items:flex-end; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight:800; font-variant-numeric: tabular-nums; font-size: var(--ctr-digit-size); line-height:1; color:var(--fg);}
-    .digits{display:inline-flex; align-items:flex-end; gap:0.12ch; transform: translateY(var(--digits-offset));}
-    .col{height:auto; overflow:hidden; position:relative; vertical-align:baseline;}
-    .col-ones{width:var(--w-ones);} .col-tenth{width:var(--w-tenth);}
-    .reel{position:absolute; left:0; top:0; will-change:transform; display:flex; flex-direction:column;}
-    .reel span{display:block; height:1em; width:1ch; line-height:1; text-align:center;}
-    .dot{display:inline-block; font-size:.62em; line-height:1; position:relative; top:var(--dot-top); margin:0 0.08ch; opacity:.9;}
-    .pct{opacity:.95; font-size:.85em; margin-left:0.18ch; position:relative; top:var(--pct-top, -0.17em);}
-
-    .digits.celebrate .reel span{
-      background: linear-gradient(90deg,#FF7A00 0%,#FFC247 28%,#FFF2D6 52%,#FFB088 78%,#FF7A00 100%);
-      background-size: 220% 100%;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: flow 3.6s ease-in-out infinite;
-    }
-    .digits.celebrate{animation: pulse 2.8s ease-in-out infinite; transform-origin: left bottom;}
-    @keyframes flow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-    @keyframes pulse{0%,100%{ transform: translateY(var(--digits-offset)) scale(1) }50%{ transform: translateY(calc(var(--digits-offset) - 0.01em)) scale(1.04) }}
 
     /* ===== сцена ===== */
     .stage{
@@ -60,8 +40,7 @@
       transform-origin:50% 50%;
       will-change:transform,opacity,filter; opacity:0;
     }
-
-    /* Десктоп-видео — cover как было */
+    /* Десктоп-видео — cover */
     .veo{
       pointer-events:none; width:100%; height:100%;
       object-fit:cover; object-position:50% 50%;
@@ -85,25 +64,65 @@
         transform-origin:50% 50%;
       }
     }
+
+    /* ===== badges ===== */
+    .badge-layer{
+      position:absolute; inset:0; pointer-events:none; z-index:10;
+      display:flex; justify-content:flex-end; align-items:flex-start;
+      padding:clamp(8px, 1.8vw, 14px);
+    }
+    .badge{
+      display:inline-flex; align-items:center; gap:6px;
+      background: var(--badge-bg);
+      color: var(--badge-fg);
+      border-radius: 14px;
+      padding: 8px 12px;
+      font-weight: 800;
+      letter-spacing:.02em;
+      font-variant-numeric: tabular-nums;
+      box-shadow: var(--badge-shadow);
+      opacity:0; transform: scale(.92) translateY(-6px);
+      will-change:transform,opacity,filter;
+    }
+    .badge .val{ font-size: clamp(16px, 3.6vw, 22px); line-height:1; }
+    .badge .pct{ font-size: clamp(13px, 3vw, 16px); opacity:.9; margin-left:2px; }
+
+    /* HERO 4.7 */
+    .badge.hero{
+      background: linear-gradient(90deg,#FF7A00 0%, #FFC247 50%, #FF7A00 100%);
+      color:#1a1200;
+      box-shadow: 0 10px 26px rgba(255,138,0,.45), 0 0 0 0 rgba(255,138,0,0);
+      border-radius: 16px;
+      padding: 10px 14px;
+      transform: scale(.88);
+    }
+    .badge.hero .val{ font-size: clamp(20px, 4.8vw, 28px); }
+    .badge.hero .pct{ font-size: clamp(14px, 3.6vw, 18px); }
+
+    /* small confirmation chip below hero */
+    .confirm-chip{
+      position:absolute; right: clamp(8px, 1.8vw, 14px); top: calc(100% + 6px);
+      transform: translateY(6px); opacity:0;
+      background: rgba(255,255,255,.12);
+      color:#fff; padding:6px 10px; border-radius:12px; font-size:12px; font-weight:600;
+      backdrop-filter: blur(4px);
+      white-space:nowrap;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="ctr-bar">
-      <div class="ctr-row">
-        <div class="ctr-label">CTR</div>
-        <div class="slots" aria-label="CTR">
-          <div class="digits" id="digits">
-            <div class="col col-ones"><div class="reel" id="ones"></div></div>
-            <span class="dot">.</span>
-            <div class="col col-tenth"><div class="reel" id="tenths"></div></div>
-            <span class="pct">%</span>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <div class="stage" id="stage" aria-hidden="true">
+      <!-- badge overlay -->
+      <div class="badge-layer" aria-hidden="true">
+        <div class="badge" id="badge"><span class="val">0.0</span><span class="pct">%</span></div>
+        <div class="badge hero" id="badge_hero" style="position:absolute; right: clamp(8px, 1.8vw, 14px); top: clamp(8px, 1.8vw, 14px);">
+          <span class="val">4.7</span><span class="pct">%</span>
+          <div class="confirm-chip" id="confirm_chip">Лучший кадр</div>
+        </div>
+      </div>
+
       <img class="layer device" src="assets/step1.png" alt="tablet frame">
       <img class="layer s1" src="assets/step2.png" alt="">
       <img class="layer s2" src="assets/step3.png" alt="">
@@ -131,38 +150,33 @@
     const isMobile = window.matchMedia('(pointer: coarse), (max-width: 820px)').matches;
     const useAPNG = isMobile;
 
-    // Маппинг значений по этапам показа
-    const CTR_MAP = {
-      step2: 1.3,
-      step3: 2.3,
-      step4: 2.6,
-      step5: 3.3,
-      step6: 3.6,
-      apngAfter: 4.7 // будет установлено через 1.5s после старта APNG
-    };
+    /* ===== badges ===== */
+    const badge = document.getElementById('badge');
+    const hero  = document.getElementById('badge_hero');
+    const chip  = document.getElementById('confirm_chip');
+    gsap.set(hero,{opacity:0}); // скрыт до своего момента
 
-    const onesReel   = document.getElementById('ones');
-    const tenthsReel = document.getElementById('tenths');
-    const digitsBox  = document.getElementById('digits');
-    const DIGITS_LOOP = 8;
-    let lineH = 0;
-    const snap = v => Math.round(v);
-
-    function buildReel(el){const frag=document.createDocumentFragment();for (let k=0;k<DIGITS_LOOP;k++){for (let d=0; d<=9; d++){const s=document.createElement('span'); s.textContent=d; frag.appendChild(s);}}el.innerHTML=''; el.appendChild(frag);}
-    function measureAndFit(){const probe=onesReel.querySelector('span')||tenthsReel.querySelector('span'); lineH=probe?probe.getBoundingClientRect().height:0; const slotH=Math.round(lineH*1.25); document.querySelectorAll('.col').forEach(c=>{c.style.height=slotH+'px';}); const topPad=Math.round((slotH-lineH)/2); document.querySelectorAll('.reel').forEach(r=>{r.style.top=topPad+'px';});}
-    function ensureMeasured(callback){let tries=0; const tick=()=>{measureAndFit(); if(lineH>0||tries>=8) callback(); else{tries++; requestAnimationFrame(tick);}}; requestAnimationFrame(tick);}
-    function idxFor(value){ const ones=Math.floor(value); const tenths=Math.round((value%1)*10); return {onesIdx:ones, tenthsIdx:tenths}; }
-    function setIndex(el,index,immediate=false){const y=snap(-index*lineH); if(immediate) gsap.set(el,{y}); else gsap.to(el,{y,duration:0.42,ease:'power2.out'});}
-    function spinTo(el,toIndex,dur=0.5,ease='power3.out'){const over=0.18*lineH; const y1=snap(-toIndex*lineH-over); const y2=snap(-toIndex*lineH); const tl=gsap.timeline(); tl.to(el,{y:y1,duration:dur*0.75,ease}).to(el,{y:y2,duration:dur*0.25,ease:'power2.out'}); return tl;}
-
-    function animateCTR(toValue){
-      const {onesIdx, tenthsIdx} = idxFor(toValue);
-      const t=gsap.timeline();
-      t.add(spinTo(onesReel, onesIdx, 0.48, 'power3.out'));
-      t.add(spinTo(tenthsReel, tenthsIdx, 0.48, 'power3.out'), '+=0.06');
-      return t;
+    function showBadge(val){
+      badge.querySelector('.val').textContent = val.toFixed(1);
+      const tl = gsap.timeline();
+      tl.set(badge,{opacity:0, scale:.92, y:-6})
+        .to(badge,{opacity:1, scale:1, y:0, duration:0.22, ease:'back.out(2)'})
+        .to(badge,{opacity:0, y:-8, scale:.96, duration:0.20, ease:'power2.in'}, '+=0.70'); // видим ~0.7s
+      return tl;
+    }
+    function showHeroBadge(){
+      const tl = gsap.timeline();
+      tl.set(hero,{opacity:0, scale:.88, y:-8, boxShadow:'0 10px 26px rgba(255,138,0,.0), 0 0 0 0 rgba(255,138,0,0)'})
+        .to(hero,{opacity:1, scale:1, y:0, duration:0.28, ease:'back.out(1.8)'})
+        .to(hero,{boxShadow:'0 10px 26px rgba(255,138,0,.45), 0 0 0 20px rgba(255,138,0,.0)', duration:0.8, ease:'power2.out'}, 0)
+        .to(hero,{boxShadow:'0 10px 26px rgba(255,138,0,.45), 0 0 0 0 rgba(255,138,0,0)', duration:0.8, ease:'power4.inOut'}, 0.8)
+        .set(chip,{opacity:0, y:6}, '-=0.2')
+        .to(chip,{opacity:1, y:0, duration:0.22, ease:'power2.out'}, '-=0.05')
+        .to(chip,{opacity:0, y:-4, duration:0.30, ease:'power2.in'}, '+=1.2');
+      return tl;
     }
 
+    /* ===== APNG helpers ===== */
     function applyApngClip(img){
       const nw = img.naturalWidth || REF_W;
       const nh = img.naturalHeight || REF_H;
@@ -187,13 +201,11 @@
         img.style.setProperty('--clip-l','0'); img.style.setProperty('--clip-r','0');
       }
     }
-
     async function showApngFromZeroNoBlur(){
       const dataSrc = apng.getAttribute('data-src');
       if(!dataSrc) return;
-      const url = dataSrc.split('?')[0] + '?v=' + Date.now(); // cache-buster
+      const url = dataSrc.split('?')[0] + '?v=' + Date.now();
 
-      // preload & decode off-DOM
       const pre = new Image(); pre.decoding='sync'; pre.src=url;
       try{ await pre.decode(); }catch(e){}
 
@@ -203,61 +215,60 @@
       fresh.setAttribute('data-src', dataSrc);
       fresh.setAttribute('aria-hidden','true');
       fresh.src = url;
-
       const onReady = ()=> applyApngClip(fresh);
       if(fresh.complete) onReady(); else fresh.addEventListener('load', onReady, {once:true});
 
-      // simple fade only, no blur/scale
       gsap.set(fresh,{opacity:0});
       apng.replaceWith(fresh);
       apng = fresh;
       gsap.to(apng,{opacity:1,duration:0.45});
+      return true;
     }
 
+    /* ===== Timeline ===== */
     function buildTimeline(){
       const tl=gsap.timeline({defaults:{ease:'power3.out'}});
-      // Стартовые состояния
       gsap.set('.device',{opacity:0,yPercent:4,scale:0.985,rotateZ:-1,filter:'blur(6px)'});
       gsap.set(['.s1','.s2','.s3','.s4','.s5'],{opacity:0,yPercent:3,rotateX:4,rotateZ:-1,scale:0.99});
       gsap.set('.veo',{opacity:0});
 
-      // Появление девайса
+      // device
       tl.to('.device',{opacity:1,yPercent:0,scale:1,rotateZ:0,filter:'blur(0px)',duration:0.55,ease:'back.out(1.6)'});
 
-      // Слайды + жесткое обновление CTR по карте
-      // step2 -> 1.3
+      // step2 + badge 1.3
       tl.to('.s1',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)'}, '-=0.15')
         .to('.s1',{scale:1.01,duration:0.10})
-        .to('.s1',{scale:1.00,duration:0.12},'-=0.05');
+        .to('.s1',{scale:1.00,duration:0.12},'-=0.05')
+        .add(()=>showBadge(1.3), '>-0.02');
 
+      // step3 + 2.3
       tl.to('.s2',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)'}, '-=0.10')
-        .add(animateCTR(CTR_MAP.step2), '>-0.02')
         .to('.s2',{scale:1.01,duration:0.10})
-        .to('.s2',{scale:1.00,duration:0.12},'-=0.05');
+        .to('.s2',{scale:1.00,duration:0.12},'-=0.05')
+        .add(()=>showBadge(2.3), '>-0.02');
 
-      // step3 -> 2.3
+      // step4 + 2.6
       tl.to('.s3',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)'}, '-=0.10')
-        .add(animateCTR(CTR_MAP.step3), '>-0.02')
         .to('.s3',{scale:1.01,duration:0.10})
-        .to('.s3',{scale:1.00,duration:0.12},'-=0.05');
+        .to('.s3',{scale:1.00,duration:0.12},'-=0.05')
+        .add(()=>showBadge(2.6), '>-0.02');
 
-      // step4 -> 2.6
+      // step5 + 3.3
       tl.to('.s4',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)'}, '-=0.10')
-        .add(animateCTR(CTR_MAP.step4), '>-0.02')
         .to('.s4',{scale:1.01,duration:0.10})
-        .to('.s4',{scale:1.00,duration:0.12},'-=0.05');
+        .to('.s4',{scale:1.00,duration:0.12},'-=0.05')
+        .add(()=>showBadge(3.3), '>-0.02');
 
-      // step5 -> 3.3
+      // step6 + 3.6
       tl.to('.s5',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)'}, '-=0.10')
-        .add(animateCTR(CTR_MAP.step5), '>-0.02')
         .to('.s5',{scale:1.01,duration:0.10})
-        .to('.s5',{scale:1.00,duration:0.12},'-=0.05');
+        .to('.s5',{scale:1.00,duration:0.12},'-=0.05')
+        .add(()=>showBadge(3.6), '>-0.02');
 
-      // step6 -> 3.6 (это последний слайд перед медиа)
+      // тень сцены
       tl.fromTo('#stage',{filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))'},{filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))',duration:0.45},'-=0.2');
-      tl.add(animateCTR(CTR_MAP.step6), '>-0.02');
 
-      // Переключение на медиа
+      // Медиа
       tl.add('switchMedia');
       tl.call(async ()=>{
         if(!useAPNG){
@@ -265,15 +276,14 @@
           const p=video.play?.(); if(p&&p.catch)p.catch(()=>{});
           gsap.to(video,{opacity:1,duration:0.5});
           gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.5});
+
+          // На десктопе — 4.7 как подтверждение через 1.5с от старта видео
+          setTimeout(()=>{ showHeroBadge(); }, 1500);
         } else {
           gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.45});
           await showApngFromZeroNoBlur();
-
-          // 4.7 ровно через 1.5 секунды после старта APNG
-          setTimeout(()=>{
-            animateCTR(CTR_MAP.apngAfter);
-            digitsBox.classList.add('celebrate');
-          }, 1500);
+          // На мобиле — 4.7 через 1.5с после старта APNG
+          setTimeout(()=>{ showHeroBadge(); }, 1500);
         }
       }, null, 'switchMedia');
 
@@ -281,24 +291,10 @@
     }
 
     async function init(){
-      buildReel(onesReel); buildReel(tenthsReel);
-
-      // Стартовое состояние: чтобы не было нулей до step2, сразу ставим 1.3 без анимации
-      ensureMeasured(()=>{
-        const {onesIdx, tenthsIdx} = idxFor(1.3);
-        setIndex(onesReel, onesIdx, true);
-        setIndex(tenthsReel, tenthsIdx, true);
-      });
-
       if(prefersReduced){
+        // Просто показываем последнюю картинку
         gsap.set(document.querySelectorAll('.layer'),{opacity:0,clearProps:'transform,filter'});
         gsap.set('.veo',{opacity:1});
-        ensureMeasured(()=>{
-          const {onesIdx, tenthsIdx} = idxFor(4.7);
-          setIndex(onesReel,onesIdx,true);
-          setIndex(tenthsReel,tenthsIdx,true);
-          digitsBox.classList.add('celebrate');
-        });
         return;
       }
 
@@ -306,7 +302,7 @@
       const pngs = ['assets/step1.png','assets/step2.png','assets/step3.png','assets/step4.png','assets/step5.png','assets/step6.png'];
       await Promise.all(pngs.map(src => new Promise(res => { const im=new Image(); im.onload=im.onerror=()=>res(); im.src=src; })));
 
-      const tl=buildTimeline();
+      buildTimeline();
     }
     init();
   })();
