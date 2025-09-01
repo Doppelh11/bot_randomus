@@ -8,17 +8,14 @@
   <style>
     :root{
       --fg:#fff; --muted:#b5b6bf; --maxw:1200px;
-
-      --w-ones:1.05ch;
-      --w-tenth:0.95ch;
-      --digits-offset:0.2em;
-      --dot-top:-0.25em;
-
+      --w-ones:1.05ch; --w-tenth:0.95ch;
+      --digits-offset:0.2em; --dot-top:-0.25em;
       --ctr-label-size: clamp(20px, 3.2vw, 32px);
       --ctr-digit-size: clamp(28px, 4.8vw, 58px);
-
-      /* Тонкая общая калибровка масштабов для мобильных (совпадает и для s1..s5, и для APNG) */
+      /* Базовый одинаковый оверскан на мобильном */
       --overscan: 1.0058;
+      /* Будет выставлен скриптом в зависимости от фактического канваса APNG */
+      --apng-corr: 1;
     }
 
     *{box-sizing:border-box}
@@ -32,8 +29,7 @@
     .slots{display:inline-flex; align-items:flex-end; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight:800; font-variant-numeric: tabular-nums; font-size: var(--ctr-digit-size); line-height:1; color:var(--fg);}
     .digits{display:inline-flex; align-items:flex-end; gap:0.12ch; transform: translateY(var(--digits-offset));}
     .col{height:auto; overflow:hidden; position:relative; vertical-align:baseline;}
-    .col-ones{width:var(--w-ones);}
-    .col-tenth{width:var(--w-tenth);}
+    .col-ones{width:var(--w-ones);} .col-tenth{width:var(--w-tenth);}
     .reel{position:absolute; left:0; top:0; will-change:transform; display:flex; flex-direction:column;}
     .reel span{display:block; height:1em; width:1ch; line-height:1; text-align:center;}
     .dot{display:inline-block; font-size:.62em; line-height:1; position:relative; top:var(--dot-top); margin:0 0.08ch; opacity:.9;}
@@ -61,47 +57,34 @@
     }
     .layer{
       position:absolute; inset:0; width:100%; height:100%;
-      object-fit:contain; /* базовый режим для PNG-слоёв */
-      object-position:50% 50%;
+      object-fit:contain; object-position:50% 50%;
       transform-style:preserve-3d; backface-visibility:hidden;
       transform-origin:50% 50%;
       will-change:transform,opacity,filter; opacity:0;
     }
 
-    /* Десктоп-видео: вернуть прежний кроп */
+    /* Десктоп-видео — cover как было */
     .veo{
       pointer-events:none; width:100%; height:100%;
-      object-fit:cover;   /* как было на десктопе */
-      object-position:50% 50%;
+      object-fit:cover; object-position:50% 50%;
       transform-origin:50% 50%;
       opacity:0; will-change:opacity;
     }
-    .veo.apng{ display:none; } /* по умолчанию скрыт */
+    .veo.apng{ display:none; }
 
-    /* --- МОБИЛЬНЫЙ: APNG вместо видео и геометрическое совпадение --- */
+    /* --- МОБИЛЬНЫЙ --- */
     @media (pointer: coarse), (max-width: 820px){
-      /* Видео полностью скрываем */
       video.veo{ display:none !important; }
-
-      /* Показываем APNG и подгоняем к слоям */
       .veo.apng{
         display:block !important;
-        object-fit:contain;        /* точное совпадение кадра */
-        object-position:50% 50%;
-        transform: translateZ(0) scale(var(--overscan));
+        object-fit:contain; object-position:50% 50%;
+        transform: translateZ(0) scale(calc(var(--overscan) * var(--apng-corr)));
         transform-origin:50% 50%;
       }
-
-      /* Такой же overscan для слайдов, чтобы кромка не мигала и масштабы совпали */
       .s1,.s2,.s3,.s4,.s5{
         transform: translateZ(0) scale(var(--overscan));
         transform-origin:50% 50%;
       }
-    }
-
-    /* Небольшая подстройка под высокие DPR: иногда требуется немного иной overscan */
-    @media (pointer: coarse), (max-width: 820px) and (min-resolution: 2dppx){
-      :root{ --overscan: 1.0056; }
     }
   </style>
 </head>
@@ -143,6 +126,7 @@
   <script>
   (() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const REF_W = 2048, REF_H = 1828; // эталон канваса шагов
     const stageEl = document.getElementById('stage');
     const video   = document.getElementById('veo');
     const apng    = document.getElementById('veo_apng');
@@ -163,6 +147,22 @@
     function measureAndFit(){const probe=onesReel.querySelector('span')||tenthsReel.querySelector('span'); lineH=probe?probe.getBoundingClientRect().height:0; const slotH=Math.round(lineH*1.25); document.querySelectorAll('.col').forEach(c=>{c.style.height=slotH+'px';}); const topPad=Math.round((slotH-lineH)/2); document.querySelectorAll('.reel').forEach(r=>{r.style.top=topPad+'px';});}
     function setIndex(el,index,immediate=false){const y=snap(-index*lineH); if(immediate) gsap.set(el,{y}); else gsap.to(el,{y,duration:0.5,ease:'power2.out'});}
     function spinTo(el,toIndex,dur=0.5,ease='power3.out'){const over=0.18*lineH; const y1=snap(-toIndex*lineH-over); const y2=snap(-toIndex*lineH); const tl=gsap.timeline(); tl.to(el,{y:y1,duration:dur*0.75,ease}).to(el,{y:y2,duration:dur*0.25,ease:'power2.out'}); return tl;}
+
+    function setApngCorrection(){
+      if(!useAPNG) return;
+      const nw = apng.naturalWidth || REF_W;
+      const nh = apng.naturalHeight || REF_H;
+      // Контейнер имеет aspect REF_W/REF_H. Содержимое шагов "contain" в этот контейнер.
+      // Чтобы APNG совпал со "шагами", домножаем его масштаб на коэффициент:
+      // если APNG "шире" эталона => лимит по высоте => corr = nh / REF_H
+      // если "уже" => лимит по ширине => corr = nw / REF_W
+      const apngAR = nw / nh;
+      const refAR  = REF_W / REF_H;
+      const corr = apngAR > refAR ? (nh / REF_H) : (nw / REF_W);
+      // Немного нормализуем, чтобы не раздувать при идеальном совпадении из‑за округления
+      const precise = Math.abs(corr - 1) < 0.002 ? 1 : corr;
+      document.documentElement.style.setProperty('--apng-corr', precise.toString());
+    }
 
     function buildTimeline(){
       const tl=gsap.timeline({defaults:{ease:'power3.out'}});
@@ -188,7 +188,6 @@
         if(!useAPNG){
           try{video.currentTime=0;}catch(e){} const p=video.play?.(); if(p&&p.catch)p.catch(()=>{});
         } else {
-          /* Включаем APNG строго после последнего шага */
           gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.45});
           gsap.to(apng,{opacity:1,duration:0.45});
         }
@@ -227,30 +226,21 @@
       requestAnimationFrame(()=>{measureAndFit(); const startOnesIdx=0*10+Math.floor(ctrPoints[0]); const startTenthsIdx=0*10+Math.round((ctrPoints[0]%1)*10); setIndex(onesReel,startOnesIdx,true); setIndex(tenthsReel,startTenthsIdx,true);});
 
       if(prefersReduced){
-        gsap.set(document.querySelectorAll('.layer'),{opacity:0,clearProps:'transform,filter'});
-        gsap.set('.veo',{opacity:1});
-        requestAnimationFrame(()=>{
-          const finalOnesIdx=5*10+Math.floor(ctrPoints[5]);
-          const finalTenthsIdx=5*10+Math.round((ctrPoints[5]%1)*10);
-          setIndex(onesReel,finalOnesIdx,true);
-          setIndex(tenthsReel,finalTenthsIdx,true);
-          digitsBox.classList.add('celebrate');
-        });
+        gsap.set(document.querySelectorAll('.layer'),{opacity:0,clearProps:'transform,filter'}); gsap.set('.veo',{opacity:1});
+        requestAnimationFrame(()=>{const finalOnesIdx=5*10+Math.floor(ctrPoints[5]); const finalTenthsIdx=5*10+Math.round((ctrPoints[5]%1)*10); setIndex(onesReel,finalOnesIdx,true); setIndex(tenthsReel,finalTenthsIdx,true); digitsBox.classList.add('celebrate');});
         return;
       }
 
-      /* Предзагрузка всех слоёв PNG и, если мобильный, APNG — до старта таймлайна */
       const pngs = ['assets/step1.png','assets/step2.png','assets/step3.png','assets/step4.png','assets/step5.png','assets/step6.png'];
       await Promise.all(pngs.map(preload));
       if(useAPNG){ await preload(apng.currentSrc || apng.src); }
 
+      // Устанавливаем коррекцию масштаба APNG по его реальному канвасу
+      setApngCorrection();
+
       const tl=buildTimeline();
-      if(!useAPNG){
-        if(video.readyState>=1) scheduleFinalDuringPlayback();
-        else video.addEventListener('loadedmetadata',scheduleFinalDuringPlayback,{once:true});
-      } else {
-        scheduleFinalDuringPlayback();
-      }
+      if(!useAPNG){ if(video.readyState>=1) scheduleFinalDuringPlayback(); else video.addEventListener('loadedmetadata',scheduleFinalDuringPlayback,{once:true}); }
+      else { scheduleFinalDuringPlayback(); }
     }
     init();
   })();
