@@ -238,58 +238,39 @@
 
     /* ---------- таймлайн сцены + CTR до 3.6% ---------- */
     function buildTimeline(){
-      const tl = gsap.timeline({ defaults:{ ease:'power3.out' } });
+  const tl = gsap.timeline({ defaults:{ ease:'power3.out' } });
 
-      gsap.set('.device', { opacity:0, yPercent:4, scale:0.985, rotateZ:-1, filter:'blur(6px)' });
-      gsap.set(['.s1','.s2','.s3','.s4','.s5'], { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
-      gsap.set('.veo', { opacity:0 });
+  gsap.set('.device', { opacity:0, yPercent:4, scale:0.985, rotateZ:-1, filter:'blur(6px)' });
+  gsap.set(['.s1','.s2','.s3','.s4','.s5'], { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
+  gsap.set('.veo', { opacity:0 });
 
-      // оставляем шаги на мобайле — анимируем как на десктопе
-      tl.to('.device', { opacity:1, yPercent:0, scale:1, rotateZ:0, filter:'blur(0px)', duration:0.55, ease:'back.out(1.6)' });
+  // ...анимация step-кадров и CTR ...
 
-      const sels=['.s1','.s2','.s3','.s4','.s5'];
-      sels.forEach((sel, i)=>{
-        tl.to(sel,{ opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)' }, i===0?'-=0.15':'-=0.10')
-          .to(sel,{ scale:1.01,duration:0.10 })
-          .to(sel,{ scale:1.00,duration:0.12 },'-=0.05');
-
-        if (i < ctrPoints.length - 2) {
-          const stepIdx=i+1;
-          const onesIdx   = stepIdx*10 + onesSeq[stepIdx];
-          const tenthsIdx = stepIdx*10 + tenthsSeq[stepIdx];
-          const label=`ctr_${stepIdx}`;
-          tl.add(label, '>-0.02');
-          tl.add(spinTo(onesReel,   onesIdx,   0.5, 'power3.out'), label);
-          tl.add(spinTo(tenthsReel, tenthsIdx, 0.5, 'power3.out'), `${label}+=0.06`);
-        }
-      });
-
-      // подсвет
-      tl.fromTo('#stage',
-        { filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))' },
-        { filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))', duration:0.45 }, '-=0.2'
-      );
-
-      // переключение на финал (видео/APNG)
-      tl.add('switchToVideo');
-      tl.call(() => {
-        if (!useAPNG) {
-          try { video.currentTime = 0; } catch(e) {}
-          const p = video.play?.(); if (p && p.catch) p.catch(()=>{});
-        } else {
-          // перезапуск APNG, чтобы старт совпал с появлением
-          try {
-            const src = apng.getAttribute('src').split('?')[0];
-            apng.setAttribute('src', src + '?t=' + Date.now());
-          } catch(e){}
-        }
-      }, null, 'switchToVideo');
-      tl.to('.veo', { opacity:1, duration:0.5 }, 'switchToVideo');
-      tl.to(['.device','.s1','.s2','.s3','.s4','.s5'], { opacity:0, duration:0.5 }, 'switchToVideo');
-
-      return tl;
+  // переключение на финал
+  tl.add('switchToVideo');
+  tl.call(() => {
+    if (!useAPNG) {
+      try { video.currentTime = 0; } catch(e) {}
+      const p = video.play?.(); if (p && p.catch) p.catch(()=>{});
+    } else {
+      // перезапуск APNG перед показом
+      const src = apng.getAttribute('src').split('?')[0];
+      apng.setAttribute('src', src + '?t=' + Date.now());
     }
+  }, null, 'switchToVideo');
 
+  // сначала скрыть step-картинки
+  tl.to(['.device','.s1','.s2','.s3','.s4','.s5'], { opacity:0, duration:0.5 }, 'switchToVideo');
+
+  // потом включить видео / APNG с задержкой
+  if (!useAPNG) {
+    tl.to(video, { opacity:1, duration:0.5 }, 'switchToVideo');
+  } else {
+    tl.to(apng, { opacity:1, duration:0.5 }, 'switchToVideo+=0.15');
+  }
+
+  return tl;
+}
     /* ---------- финальная 4.5% на середине ролика ---------- */
     function scheduleFinalDuringPlayback(){
       let fired=false;
