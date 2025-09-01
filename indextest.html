@@ -3,150 +3,140 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Карточка + CTR</title>
+  <title>Карточка + CTR — APNG only (desktop + mobile)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{
       --fg:#fff; --muted:#b5b6bf; --maxw:1200px;
+      --overscan: 1.006; /* общий лёгкий overscan для steps и APNG */
+      --site-bg:#000;
 
-      /* === фиксируем твои значения === */
-      --w-ones:1.05ch;
-      --w-tenth:0.95ch;
-      --digits-offset:0.2em;
-      --dot-top:-0.25em;
-
-      --ctr-label-size: clamp(20px, 3.2vw, 32px);
-      --ctr-digit-size: clamp(28px, 4.8vw, 58px);
+      /* badge tokens */
+      --badge-bg: rgba(24,24,28,.86);
+      --badge-fg: #fff;
+      --badge-shadow: 0 8px 24px rgba(0,0,0,.35);
+      --badge-accent: #FF8A00;
     }
 
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{
-      margin:0; color:var(--fg);
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
-      background:radial-gradient(1200px 900px at 20% 20%, #171924 0, #0f1118 50%, #0c0d10 100%);
-    }
+    body{margin:0; color:var(--fg); font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif; background:var(--site-bg);}
     .wrap{max-width:var(--maxw); margin:auto; padding:clamp(20px,4vw,64px)}
-
-    /* ===== верхняя панель CTR ===== */
-    .ctr-bar{
-      display:flex; justify-content:center; margin-bottom:14px;
-    }
-    .ctr-row{ display:flex; align-items:flex-end; gap:12px; }
-    .ctr-label{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-weight:800; letter-spacing:.14em; text-transform:uppercase;
-      font-size: var(--ctr-label-size);
-      line-height:1;
-    }
-    .slots{
-      display:inline-flex; align-items:flex-end;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-weight:800; font-variant-numeric: tabular-nums;
-      font-size: var(--ctr-digit-size);
-      line-height:1; color:var(--fg);
-    }
-    .digits{
-      display:inline-flex; align-items:flex-end; gap:0.12ch;
-      transform: translateY(var(--digits-offset)); /* опустить цифры к точке */
-    }
-    .col{ height:auto; overflow:hidden; position:relative; vertical-align:baseline; }
-    .col-ones{  width:var(--w-ones); }
-    .col-tenth{ width:var(--w-tenth); }
-    .reel{
-      position:absolute; left:0; top:0; will-change:transform;
-      display:flex; flex-direction:column; background:transparent!important;
-    }
-    .reel span{
-      display:block; height:1em; width:1ch; line-height:1; text-align:center;
-      background:transparent; -webkit-text-fill-color: currentColor;
-    }
-    .dot{
-      display:inline-block; font-size:.62em; line-height:1;
-      position:relative; top:var(--dot-top); margin:0 0.08ch; opacity:.9;
-    }
-    .pct{
-  opacity: .95;
-  font-size: .85em;
-  margin-left: 0.18ch;
-  position: relative;
-  top: var(--pct-top, -0.17em); /* отрицательное — выше, положительное — ниже */
-}
-
-    /* === постоянный градиент + мягкий пульс для финальных 4.5% === */
-    .digits.celebrate .reel span{
-      background: linear-gradient(90deg,#FF7A00 0%,#FFC247 28%,#FFF2D6 52%,#FFB088 78%,#FF7A00 100%);
-      background-size: 220% 100%;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: flow 3.6s ease-in-out infinite;
-    }
-    .digits.celebrate{
-      animation: pulse 2.8s ease-in-out infinite;
-      transform-origin: left bottom;
-    }
-    @keyframes flow{
-      0%{background-position:0% 50%}
-      50%{background-position:100% 50%}
-      100%{background-position:0% 50%}
-    }
-    @keyframes pulse{
-      0%,100%{ transform: translateY(var(--digits-offset)) scale(1) }
-      50%{    transform: translateY(calc(var(--digits-offset) - 0.01em)) scale(1.04) }
-    }
 
     /* ===== сцена ===== */
     .stage{
       position:relative; width:100%; max-width:760px;
-      aspect-ratio: 2048 / 1828; /* точное соотношение PNG */
+      aspect-ratio: 2048 / 1828;
       margin-inline:auto; isolation:isolate;
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
       perspective:1200px; contain:layout paint;
-      cursor:default;
+      cursor:default; background: transparent;
     }
     .layer{
       position:absolute; inset:0; width:100%; height:100%;
-      object-fit:contain; transform-style:preserve-3d; backface-visibility:hidden;
+      object-fit:contain; object-position:50% 50%;
+      transform-style:preserve-3d; backface-visibility:hidden;
+      transform-origin:50% 50%;
       will-change:transform,opacity,filter; opacity:0;
     }
-    .veo{
-      pointer-events:none; width:100%; height:100%;
-      object-fit:cover; object-position:50% 50%;
-      opacity:0; will-change:opacity;
+
+    /* ===== APNG always visible (desktop + mobile) ===== */
+    .veo.apng{
+      display:block;
+      object-fit:contain;
+      object-position:50% 50%;
+      transform: translateZ(0) scale(var(--overscan));
+      transform-origin:50% 50%;
+      clip-path: inset(var(--clip-t,0) var(--clip-r,0) var(--clip-b,0) var(--clip-l,0));
+    }
+
+    /* Apply the same overscan to step layers for pixel-perfect match */
+    .s1,.s2,.s3,.s4,.s5{
+      transform: translateZ(0) scale(var(--overscan));
+      transform-origin:50% 50%;
+    }
+
+    /* ===== badges ===== */
+    .badge-layer{
+      position:absolute; inset:0; pointer-events:none; z-index:10;
+      display:flex; justify-content:flex-start; align-items:center; /* left & vertically centered */
+      padding-left: clamp(8px, 1.8vw, 16px);
+      padding-right: clamp(8px, 1.8vw, 16px);
+    }
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      background: var(--badge-bg);
+      color: var(--badge-fg);
+      border-radius: 14px;
+      padding: 8px 12px;
+      font-weight: 800;
+      letter-spacing:.02em;
+      font-variant-numeric: tabular-nums;
+      box-shadow: var(--badge-shadow);
+      opacity:0; transform: scale(.92) translateY(-6px);
+      will-change:transform,opacity,filter;
+    }
+    .badge .tag{
+      display:inline-flex; align-items:center; justify-content:center;
+      font-size: clamp(11px, 2.8vw, 12px);
+      padding: 2px 6px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.12);
+      color:#fff; letter-spacing:.06em;
+    }
+    .badge .val{ font-size: clamp(16px, 3.6vw, 22px); line-height:1; }
+    .badge .pct{ font-size: clamp(13px, 3vw, 16px); opacity:.9; margin-left:2px; }
+
+    /* HERO 4.7 (ярко) — слева по центру, поверх обычной */
+    .badge.hero{
+      position:absolute; left: clamp(8px, 1.8vw, 16px); top: 50%; transform: translateY(-50%) scale(.88);
+      background: linear-gradient(90deg,#FF7A00 0%, #FFC247 50%, #FF7A00 100%);
+      color:#1a1200;
+      box-shadow: 0 10px 26px rgba(255,138,0,.45), 0 0 0 0 rgba(255,138,0,0);
+      border-radius: 16px;
+      padding: 10px 14px;
+      opacity:0;
+    }
+    .badge.hero .tag{
+      background: rgba(0,0,0,.12);
+      color: #1a1200;
+      font-weight: 900;
+    }
+    .badge.hero .val{ font-size: clamp(20px, 4.8vw, 28px); }
+    .badge.hero .pct{ font-size: clamp(14px, 3.6vw, 18px); }
+
+    .confirm-chip{
+      position:absolute; left:0; top: calc(100% + 6px);
+      transform: translateY(6px); opacity:0;
+      background: rgba(255,255,255,.12);
+      color:#fff; padding:6px 10px; border-radius:12px; font-size:12px; font-weight:600;
+      backdrop-filter: blur(4px);
+      white-space:nowrap;
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <!-- CTR над сценой -->
-    <div class="ctr-bar">
-      <div class="ctr-row">
-        <div class="ctr-label">CTR</div>
-        <div class="slots" aria-label="CTR">
-          <div class="digits" id="digits">
-            <div class="col col-ones"><div class="reel" id="ones"></div></div>
-            <span class="dot">.</span>
-            <div class="col col-tenth"><div class="reel" id="tenths"></div></div>
-            <span class="pct">%</span>
-          </div>
+
+    <div class="stage" id="stage" aria-hidden="true">
+      <!-- badge overlay -->
+      <div class="badge-layer" aria-hidden="true">
+        <div class="badge" id="badge"><span class="tag">CTR</span><span class="val">0.0</span><span class="pct">%</span></div>
+
+        <div class="badge hero" id="badge_hero">
+          <span class="tag">CTR</span><span class="val">4.7</span><span class="pct">%</span>
+          <div class="confirm-chip" id="confirm_chip">Качаем CTR!</div>
         </div>
       </div>
-    </div>
 
-    <!-- Сцена -->
-    <div class="stage" id="stage" aria-hidden="true">
       <img class="layer device" src="assets/step1.png" alt="tablet frame">
-      <!-- порядок: step2 → step3 → step4 → step5 → step6 -->
       <img class="layer s1" src="assets/step2.png" alt="">
       <img class="layer s2" src="assets/step3.png" alt="">
       <img class="layer s3" src="assets/step4.png" alt="">
       <img class="layer s4" src="assets/step5.png" alt="">
       <img class="layer s5" src="assets/step6.png" alt="">
-      <!-- Финальное видео -->
-      <video class="layer veo" id="veo" muted playsinline preload="auto" poster="assets/step6.png">
-        <source src="assets/veo.webm#t=0.001" type="video/webm">
-        <source src="assets/veo.mp4#t=0.001"  type="video/mp4">
-      </video>
+      <!-- APNG is the only media -->
+      <img class="layer veo apng" id="veo_apng" data-src="assets/veo.apng" alt="" aria-hidden="true" loading="eager" fetchpriority="high">
     </div>
   </div>
 
@@ -154,211 +144,157 @@
   <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
   <script>
   (() => {
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const stageEl = document.getElementById('stage');
-    const video   = document.getElementById('veo');
+    const REF_W = 2048, REF_H = 1828;
 
-    /* ===== CTR: слот ===== */
-    const onesReel   = document.getElementById('ones');
-    const tenthsReel = document.getElementById('tenths');
-    const digitsBox  = document.getElementById('digits');
+    let   apng    = document.getElementById('veo_apng');
 
-    const DIGITS_LOOP = 8;
-    const ctrPoints = [1.9, 2.3, 2.6, 3.3, 3.6, 4.7];
-    const onesSeq     = ctrPoints.map(v => Math.floor(v));
-    const tenthsSeq   = ctrPoints.map(v => Math.round((v%1)*10));
-    let lineH = 0;
+    /* ===== badges ===== */
+    const badge = document.getElementById('badge');
+    const hero  = document.getElementById('badge_hero');
+    const chip  = document.getElementById('confirm_chip');
+    gsap.set(hero,{opacity:0}); // hidden initially
 
-    const snap = v => Math.round(v);
-
-    function buildReel(el){
-      const frag = document.createDocumentFragment();
-      for (let k=0;k<DIGITS_LOOP;k++){
-        for (let d=0; d<=9; d++){
-          const s=document.createElement('span'); s.textContent=d; frag.appendChild(s);
-        }
-      }
-      el.innerHTML=''; el.appendChild(frag);
-    }
-    function measureAndFit(){
-      const probe = onesReel.querySelector('span') || tenthsReel.querySelector('span');
-      lineH = probe ? probe.getBoundingClientRect().height : 0;
-      const slotH = Math.round(lineH * 1.25);
-      document.querySelectorAll('.col').forEach(c => { c.style.height = slotH + 'px'; });
-      const topPad = Math.round((slotH - lineH)/2);
-      document.querySelectorAll('.reel').forEach(r => { r.style.top = topPad + 'px'; });
-    }
-    function setIndex(el, index, immediate=false){
-      const y = snap(-index * lineH);
-      if (immediate) gsap.set(el, { y }); else gsap.to(el, { y, duration:0.5, ease:'power2.out' });
-    }
-    function spinTo(el, toIndex, dur=0.5, ease='power3.out'){
-      const over = 0.18 * lineH;
-      const y1 = snap(-toIndex * lineH - over);
-      const y2 = snap(-toIndex * lineH);
+    function showBadge(val){
+      badge.querySelector('.val').textContent = val.toFixed(1);
       const tl = gsap.timeline();
-      tl.to(el, { y:y1, duration:dur*0.75, ease })
-        .to(el, { y:y2, duration:dur*0.25, ease:'power2.out' });
+      tl.set(badge,{opacity:0, scale:.92, y:-6})
+        .to(badge,{opacity:1, scale:1, y:0, duration:0.22, ease:'back.out(2)'})
+        .to(badge,{opacity:0, y:-8, scale:.96, duration:0.20, ease:'power2.in'}, '+=1.0'); // visible ~1s
+      return tl;
+    }
+    function showHeroBadge(){
+      const tl = gsap.timeline();
+      tl.set(hero,{opacity:0, scale:.88, y:-8, boxShadow:'0 10px 26px rgba(255,138,0,.0), 0 0 0 0 rgba(255,138,0,0)'})
+        .to(hero,{opacity:1, scale:1, y:0, duration:0.32, ease:'back.out(1.8)'})
+        .to(hero,{boxShadow:'0 10px 26px rgba(255,138,0,.55), 0 0 0 24px rgba(255,138,0,.0)', duration:0.9, ease:'power2.out'}, 0)
+        .to(hero,{boxShadow:'0 10px 26px rgba(255,138,0,.55), 0 0 0 0 rgba(255,138,0,0)', duration:0.9, ease:'power4.inOut'}, 0.9)
+        .set(chip,{opacity:0, y:6}, '-=0.2')
+        .to(chip,{opacity:1, y:0, duration:0.24, ease:'power2.out'}, '-=0.05')
+        .to(chip,{opacity:0, y:-4, duration:0.32, ease:'power2.in'}, '+=1.2');
       return tl;
     }
 
-    /* ---------- ассеты ---------- */
-    const preloadImages = (srcs) => Promise.all(srcs.map(s => new Promise(res => {
-      const im=new Image(); im.onload=im.onerror=()=>res(); im.src=s;
-    })));
-    const preloadVideo = (v) => new Promise(res => {
-      if (!v) return res();
-      const ready = () => { v.removeEventListener('canplaythrough', ready); v.removeEventListener('loadeddata', ready); res(); };
-      if (v.readyState >= 3) return res();
-      v.addEventListener('canplaythrough', ready, { once:true });
-      v.addEventListener('loadeddata', ready, { once:true });
-      try { v.load(); } catch(e) {}
-    });
+    /* ===== APNG helpers (robust) ===== */
+    function applyApngClip(img){
+      const nw = img.naturalWidth || REF_W;
+      const nh = img.naturalHeight || REF_H;
+      const apngAR = nw/nh;
+      const refAR = REF_W/REF_H;
+      if(Math.abs(apngAR - refAR) < 0.0001){
+        img.style.setProperty('--clip-t','0'); img.style.setProperty('--clip-b','0');
+        img.style.setProperty('--clip-l','0'); img.style.setProperty('--clip-r','0');
+        return;
+      }
+      if(apngAR > refAR){
+        const visibleW = REF_W/REF_H * nh;
+        const side = Math.max(0, (nw - visibleW)/2 / nw) * 100;
+        img.style.setProperty('--clip-l', side.toFixed(3)+'%');
+        img.style.setProperty('--clip-r', side.toFixed(3)+'%');
+        img.style.setProperty('--clip-t','0'); img.style.setProperty('--clip-b','0');
+      } else {
+        const visibleH = REF_H/REF_W * nw;
+        const top = Math.max(0, (nh - visibleH)/2 / nh) * 100;
+        img.style.setProperty('--clip-t', top.toFixed(3)+'%');
+        img.style.setProperty('--clip-b', top.toFixed(3)+'%');
+        img.style.setProperty('--clip-l','0'); img.style.setProperty('--clip-r','0');
+      }
+    }
 
-    /* ---------- таймлайн сцены + CTR до 3.6% ---------- */
+    let apngPrefetched = false;
+    function prefetchAPNG(){
+      const url = apng.getAttribute('data-src');
+      if(!url || apngPrefetched) return;
+      const ghost = new Image();
+      ghost.decoding = 'async';
+      ghost.src = url; // без cache-buster — прогреваем кеш
+      apngPrefetched = true;
+    }
+
+    async function prepareApngFresh(){
+      const url = apng.getAttribute('data-src');
+      if(!url) return null;
+
+      if(!apngPrefetched) prefetchAPNG();
+
+      const fresh = apng.cloneNode(false);
+      fresh.removeAttribute('src');
+      fresh.setAttribute('loading','eager');
+      fresh.setAttribute('fetchpriority','high');
+      fresh.style.opacity = '0';
+      fresh.src = url; // тот же URL → возьмётся из кеша, старт с 0 на новом узле
+
+      // ждём готовности, но не вечно — либо load, либо 600мс
+      const ready = new Promise(res => { if(fresh.complete) res(); else fresh.addEventListener('load', res, {once:true}); });
+      const timeout = new Promise(res => setTimeout(res, 600));
+      await Promise.race([ready, timeout]);
+
+      apng.replaceWith(fresh);
+      apng = fresh;
+
+      if (apng.complete) applyApngClip(apng);
+      else apng.addEventListener('load', ()=>applyApngClip(apng), {once:true});
+
+      return apng;
+    }
+
+    /* ===== Timeline ===== */
     function buildTimeline(){
-      const tl = gsap.timeline({ defaults:{ ease:'power3.out' } });
+      const tl=gsap.timeline({defaults:{ease:'power3.out'}});
+      gsap.set('.device',{opacity:0,yPercent:4,scale:0.985,rotateZ:-1,filter:'blur(6px)'});
+      gsap.set(['.s1','.s2','.s3','.s4','.s5'],{opacity:0,yPercent:3,rotateX:4,rotateZ:-1,scale:0.99});
+      gsap.set('.veo.apng',{opacity:0});
 
-      gsap.set('.device', { opacity:0, yPercent:4, scale:0.985, rotateZ:-1, filter:'blur(6px)' });
-      gsap.set(['.s1','.s2','.s3','.s4','.s5'], { opacity:0, yPercent:3, rotateX:4, rotateZ:-1, scale:0.99 });
-      gsap.set('.veo', { opacity:0 });
+      // device
+      tl.to('.device',{opacity:1,yPercent:0,scale:1,rotateZ:0,filter:'blur(0px)',duration:0.55,ease:'back.out(1.6)'});
 
-      // 0) планшет
-      tl.to('.device', { opacity:1, yPercent:0, scale:1, rotateZ:0, filter:'blur(0px)', duration:0.55, ease:'back.out(1.6)' });
+      // steps (slow as in your last version)
+      tl.to('.s1',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:1.68,ease:'back.out(1.4)'}, '-=0.15')
+        .to('.s1',{scale:1.01,duration:0.20})
+        .to('.s1',{scale:1.00,duration:0.24},'-=0.10')
+        .add(()=>showBadge(1.3), '>-0.02');
 
-      // step2 → step3 → step4 → step5 → step6
-      const sels=['.s1','.s2','.s3','.s4','.s5'];
-      sels.forEach((sel, i)=>{
-        tl.to(sel,{ opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.42,ease:'back.out(1.4)' }, i===0?'-=0.15':'-=0.10')
-          .to(sel,{ scale:1.01,duration:0.10 })
-          .to(sel,{ scale:1.00,duration:0.12 },'-=0.05');
+      tl.to('.s2',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:1.68,ease:'back.out(1.4)'}, '-=0.10')
+        .to('.s2',{scale:1.01,duration:0.20})
+        .to('.s2',{scale:1.00,duration:0.24},'-=0.10')
+        .add(()=>showBadge(2.3), '>-0.02');
 
-        // CTR шаги до 3.6% (первые 4 шага)
-        if (i < ctrPoints.length - 2) {
-          const stepIdx=i+1;
-          const onesIdx   = stepIdx*10 + onesSeq[stepIdx];
-          const tenthsIdx = stepIdx*10 + tenthsSeq[stepIdx];
-          const label=`ctr_${stepIdx}`;
-          tl.add(label, '>-0.02');
-          tl.add(spinTo(onesReel,   onesIdx,   0.5, 'power3.out'), label);
-          tl.add(spinTo(tenthsReel, tenthsIdx, 0.5, 'power3.out'), `${label}+=0.06`);
-        }
-      });
+      tl.to('.s3',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:1.68,ease:'back.out(1.4)'}, '-=0.10')
+        .to('.s3',{scale:1.01,duration:0.20})
+        .to('.s3',{scale:1.00,duration:0.24},'-=0.10')
+        .add(()=>showBadge(2.6), '>-0.02');
 
-      // подсвет
-      tl.fromTo('#stage',
-        { filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))' },
-        { filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))', duration:0.45 }, '-=0.2'
-      );
+      tl.to('.s4',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:1.68,ease:'back.out(1.4)'}, '-=0.10')
+        .to('.s4',{scale:1.01,duration:0.20})
+        .to('.s4',{scale:1.00,duration:0.24},'-=0.10')
+        .add(()=>showBadge(3.3), '>-0.02')
+        .add(()=>{ prefetchAPNG(); }, '>-0.02'); // ранний прогрев
 
-      // переключение на видео
-      tl.add('switchToVideo');
-      tl.call(() => {
-        try { video.currentTime = 0; } catch(e) {}
-        const p = video.play?.(); if (p && p.catch) p.catch(()=>{});
-      }, null, 'switchToVideo');
-      tl.to('.veo', { opacity:1, duration:0.5 }, 'switchToVideo');
-      tl.to(['.device','.s1','.s2','.s3','.s4','.s5'], { opacity:0, duration:0.5 }, 'switchToVideo');
+      tl.to('.s5',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:1.68,ease:'back.out(1.4)'}, '-=0.10')
+        .to('.s5',{scale:1.01,duration:0.20})
+        .to('.s5',{scale:1.00,duration:0.24},'-=0.10')
+        .add(()=>{ prefetchAPNG(); }, '>-0.02'); // доп. прогрев
+
+      tl.fromTo('#stage',{filter:'drop-shadow(0 20px 60px rgba(0,0,0,.45))'},{filter:'drop-shadow(0 40px 120px rgba(0,0,0,.55))',duration:0.45},'-=0.2');
+
+      // switch to APNG (only media)
+      tl.add('switchMedia');
+      tl.call(async ()=>{
+        await prepareApngFresh();
+        // crossfade: hide steps, fade APNG
+        gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.25});
+        gsap.to(apng,{opacity:1,duration:0.25, delay:0.05});
+        // hero after 1.5s
+        setTimeout(()=>{ showHeroBadge(); }, 1500);
+      }, null, 'switchMedia');
 
       return tl;
-    }
-
-    /* ---------- финальная 4.5% в середине видео + перманентный градиент-пульс ---------- */
-    function scheduleFinalDuringVideo(){
-      let fired=false;
-      const doFinal=()=> {
-        if (fired) return; fired=true;
-        const finalOnesIdx   = 5*10 + Math.floor(ctrPoints[5]);          // 4
-        const finalTenthsIdx = 5*10 + Math.round((ctrPoints[5]%1)*10);   // 5
-        const tl = gsap.timeline();
-        tl.add(spinTo(onesReel,   finalOnesIdx,   0.55, 'power3.out'))
-          .add(spinTo(tenthsReel, finalTenthsIdx, 0.55, 'power3.out'), '+=0.08');
-        // включаем постоянный градиент и пульс — без отключения
-        digitsBox.classList.add('celebrate');
-      };
-
-      if (!isFinite(video.duration) || video.duration === 0) { setTimeout(doFinal, 700); return; }
-      const mid = video.duration * 0.5;
-      const onTime = () => {
-        if (video.currentTime >= mid) {
-          video.removeEventListener('timeupdate', onTime);
-          doFinal();
-        }
-      };
-      video.addEventListener('timeupdate', onTime);
     }
 
     async function init(){
-      // собрать барабаны
-      buildReel(onesReel); buildReel(tenthsReel);
-
-      requestAnimationFrame(()=>{
-        measureAndFit();
-        // старт 1.9
-        const startOnesIdx   = 0*10 + Math.floor(ctrPoints[0]);
-        const startTenthsIdx = 0*10 + Math.round((ctrPoints[0]%1)*10);
-        setIndex(onesReel,   startOnesIdx,   true);
-        setIndex(tenthsReel, startTenthsIdx, true);
-      });
-
-      if (prefersReduced){
-        // без анимаций — сразу финал
-        gsap.set(document.querySelectorAll('.layer'), { opacity:0, clearProps:'transform,filter' });
-        gsap.set('.veo', { opacity:1 });
-        requestAnimationFrame(()=>{
-          const finalOnesIdx   = 5*10 + Math.floor(ctrPoints[5]);
-          const finalTenthsIdx = 5*10 + Math.round((ctrPoints[5]%1)*10);
-          setIndex(onesReel, finalOnesIdx, true);
-          setIndex(tenthsReel, finalTenthsIdx, true);
-          digitsBox.classList.add('celebrate');
-        });
-        return;
-      }
-
-      await preloadImages(['assets/step1.png','assets/step2.png','assets/step3.png','assets/step4.png','assets/step5.png','assets/step6.png']);
-      await preloadVideo(video);
-
-      const tl = buildTimeline();
-
-      if (video.readyState >= 1) scheduleFinalDuringVideo();
-      else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
-
-      // hover-replay видео: когда ролик доиграл
-      let ended=false;
-      video.addEventListener('ended', ()=>{ ended=true; });
-      stageEl.addEventListener('mouseenter', ()=>{
-        if (!ended) return;
-        try { video.currentTime = 0; } catch(e){}
-        const p=video.play?.(); if (p && p.catch) p.catch(()=>{});
-        ended=false;
-        if (video.readyState >= 1) scheduleFinalDuringVideo();
-        else video.addEventListener('loadedmetadata', scheduleFinalDuringVideo, { once:true });
-      });
-
-      // автозапуск при входе в вьюпорт
-      const io = new IntersectionObserver((entries) => {
-        entries.forEach(e => e.isIntersecting && tl.restart());
-      }, { threshold:0.4 });
-      io.observe(stageEl);
-
-      // ресайз — пересчёт высоты слотов без сдвига текущих индексов
-      let rid;
-      window.addEventListener('resize', () => {
-        cancelAnimationFrame(rid);
-        rid = requestAnimationFrame(() => {
-          const prevH = lineH;
-          const curY1 = gsap.getProperty(onesReel, 'y');
-          const curY2 = gsap.getProperty(tenthsReel, 'y');
-          measureAndFit();
-          if (!prevH || prevH === lineH) return;
-          const idx1 = Math.round(-curY1 / prevH);
-          const idx2 = Math.round(-curY2 / prevH);
-          gsap.set(onesReel,   { y: snap(-idx1 * lineH) });
-          gsap.set(tenthsReel, { y: snap(-idx2 * lineH) });
-        });
-      });
+      const pngs = ['assets/step1.png','assets/step2.png','assets/step3.png','assets/step4.png','assets/step5.png','assets/step6.png'];
+      await Promise.all(pngs.map(src => new Promise(res => { const im=new Image(); im.onload=im.onerror=()=>res(); im.src=src; })));
+      buildTimeline();
     }
-
     init();
   })();
   </script>
