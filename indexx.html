@@ -57,6 +57,43 @@
       .veo.apng{display:block !important;}
       .veo{transform: translateZ(0) scale(1.012);}
     }
+
+/* ===== сцена ===== */
+.stage{
+  position:relative; width:100%; max-width:760px;
+  aspect-ratio: 2048 / 1828;
+  margin-inline:auto; isolation:isolate;
+  filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
+  perspective:1200px; contain:layout paint;
+  cursor:default;
+  background: transparent;
+}
+.layer{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:contain; /* <= базовый режим для всех слоёв */
+  transform-style:preserve-3d; backface-visibility:hidden;
+  will-change:transform,opacity,filter; opacity:0;
+}
+.veo{
+  pointer-events:none; width:100%; height:100%;
+  object-fit:contain;  /* <= было cover — из-за этого «шире» */
+  object-position:50% 50%;
+  opacity:0; will-change:opacity;
+}
+.veo.apng{ display:none; }
+
+/* --- MOBILE-ONLY: APNG вместо видео и точное совпадение кадра --- */
+@media (pointer: coarse), (max-width: 820px){
+  video.veo{ display:none !important; }
+  .veo.apng{ display:block !important; }
+
+  /* одинаковый лёгкий overscan для слайдов и APNG,
+     чтобы скрыть сабпиксельную кромку, но не «раздувать» объект */
+  .s1,.s2,.s3,.s4,.s5,
+  .veo.apng{
+    transform: translateZ(0) scale(1.006);
+  }
+}
   </style>
 </head>
 <body>
