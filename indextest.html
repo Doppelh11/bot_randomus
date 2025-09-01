@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Карточка + CTR — APNG only (desktop + mobile)</title>
+  <title>Карточка + CTR — APNG only (with Fit Tuner)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{
       --fg:#fff; --muted:#b5b6bf; --maxw:1200px;
       --overscan: 1.006; /* общий лёгкий overscan для steps и APNG */
+      --clip-t: 0; --clip-r: 0; --clip-b: 0; --clip-l: 0; /* clip-path APNG */
       --site-bg:#000;
 
       /* badge tokens */
@@ -47,11 +48,11 @@
       object-position:50% 50%;
       transform: translateZ(0) scale(var(--overscan));
       transform-origin:50% 50%;
-      clip-path: inset(var(--clip-t,0) var(--clip-r,0) var(--clip-b,0) var(--clip-l,0));
+      clip-path: inset(var(--clip-t) var(--clip-r) var(--clip-b) var(--clip-l));
     }
 
     /* Apply the same overscan to step layers for pixel-perfect match */
-    .s1,.s2,.s3,.s4,.s5{
+    .s1,.s2,.s3,.s4,.s5, .device{
       transform: translateZ(0) scale(var(--overscan));
       transform-origin:50% 50%;
     }
@@ -113,6 +114,28 @@
       backdrop-filter: blur(4px);
       white-space:nowrap;
     }
+
+    /* ====== TUNER (dev panel) ====== */
+    .tuner-toggle{
+      position:fixed; right:12px; bottom:12px; z-index:50;
+      background:#2b2e36; color:#fff; border:1px solid rgba(255,255,255,.12);
+      border-radius:999px; padding:8px 12px; font-weight:700; cursor:pointer;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    .tuner{ position:fixed; left:12px; right:12px; bottom:12px; z-index:49;
+      background: rgba(20,20,24,.92); border:1px solid rgba(255,255,255,.08);
+      padding:12px; border-radius:12px; backdrop-filter:blur(8px); display:none; }
+    .tuner.open{ display:block; }
+    .grid{ display:grid; grid-template-columns: repeat(6, minmax(120px, 1fr)); gap:12px; }
+    .row{ display:flex; flex-direction:column; gap:6px; }
+    .row label{ font-size:12px; color:#cfd0d6; display:flex; justify-content:space-between; gap:8px; }
+    .val{ font-variant-numeric: tabular-nums; color:#fff; }
+    input[type="range"]{ width:100%; }
+    .btns{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    .btn{ background:#2b2e36; color:#fff; border:1px solid rgba(255,255,255,.1);
+      border-radius:8px; padding:8px 10px; font-weight:600; cursor:pointer; }
+    .btn.primary{ background:#3a7afe; border-color:#3a7afe; }
+    @media (max-width: 980px){ .grid{ grid-template-columns: repeat(2, minmax(160px, 1fr)); } }
   </style>
 </head>
 <body>
@@ -137,6 +160,41 @@
       <img class="layer s5" src="assets/step6.png" alt="">
       <!-- APNG is the only media -->
       <img class="layer veo apng" id="veo_apng" data-src="assets/veo.apng" alt="" aria-hidden="true" loading="eager" fetchpriority="high">
+    </div>
+  </div>
+
+  <!-- ====== TUNER UI (dev) ====== -->
+  <button class="tuner-toggle" id="tunerToggle">Тюнинг</button>
+  <div class="tuner" id="tuner">
+    <div class="grid">
+      <div class="row">
+        <label>Scale (overscan) <span class="val" id="v_scale">1.006</span></label>
+        <input type="range" id="scale" min="0.980" max="1.050" step="0.001" value="1.006">
+      </div>
+      <div class="row">
+        <label>Clip-Top (%) <span class="val" id="v_ct">0.00</span></label>
+        <input type="range" id="clip_t" min="0" max="10" step="0.05" value="0">
+      </div>
+      <div class="row">
+        <label>Clip-Right (%) <span class="val" id="v_cr">0.00</span></label>
+        <input type="range" id="clip_r" min="0" max="10" step="0.05" value="0">
+      </div>
+      <div class="row">
+        <label>Clip-Bottom (%) <span class="val" id="v_cb">0.00</span></label>
+        <input type="range" id="clip_b" min="0" max="10" step="0.05" value="0">
+      </div>
+      <div class="row">
+        <label>Clip-Left (%) <span class="val" id="v_cl">0.00</span></label>
+        <input type="range" id="clip_l" min="0" max="10" step="0.05" value="0">
+      </div>
+      <div class="row">
+        <label>Слой для сравнения <span class="val" id="v_step">s1</span></label>
+        <input type="range" id="step" min="0" max="5" step="1" value="1" title="0=device, 1..5=steps">
+      </div>
+    </div>
+    <div class="btns">
+      <button class="btn" id="reset">Сбросить</button>
+      <button class="btn primary" id="copy">Скопировать CSS</button>
     </div>
   </div>
 
@@ -181,6 +239,7 @@
       const apngAR = nw/nh;
       const refAR = REF_W/REF_H;
       if(Math.abs(apngAR - refAR) < 0.0001){
+        // обнуляем клип
         img.style.setProperty('--clip-t','0'); img.style.setProperty('--clip-b','0');
         img.style.setProperty('--clip-l','0'); img.style.setProperty('--clip-r','0');
         return;
@@ -296,6 +355,72 @@
       buildTimeline();
     }
     init();
+
+    /* ====== TUNER logic (dev) ====== */
+    const root = document.documentElement;
+    const tBtn = document.getElementById('tunerToggle');
+    const tBox = document.getElementById('tuner');
+    const qs = id => document.getElementById(id);
+    const scale = qs('scale'), ct=qs('clip_t'), cr=qs('clip_r'), cb=qs('clip_b'), cl=qs('clip_l'), step=qs('step');
+    const vs = qs('v_scale'), vct=qs('v_ct'), vcr=qs('v_cr'), vcb=qs('v_cb'), vcl=qs('v_cl'), vst=qs('v_step');
+    const resetBtn = qs('reset'), copyBtn = qs('copy');
+    const steps = [
+      document.querySelector('.device'),
+      document.querySelector('.s1'),
+      document.querySelector('.s2'),
+      document.querySelector('.s3'),
+      document.querySelector('.s4'),
+      document.querySelector('.s5'),
+    ];
+    const KEY='apngFitTunerV2';
+    function save(){
+      const obj={scale:scale.value, ct:ct.value, cr:cr.value, cb:cb.value, cl:cl.value, step:step.value, open:tBox.classList.contains('open')};
+      localStorage.setItem(KEY, JSON.stringify(obj));
+    }
+    function load(){
+      try{
+        const obj=JSON.parse(localStorage.getItem(KEY)||'{}');
+        if(obj.scale) scale.value=obj.scale;
+        if(obj.ct) ct.value=obj.ct;
+        if(obj.cr) cr.value=obj.cr;
+        if(obj.cb) cb.value=obj.cb;
+        if(obj.cl) cl.value=obj.cl;
+        if(obj.step) step.value=obj.step;
+        if(obj.open) tBox.classList.add('open');
+      }catch(e){}
+    }
+    function apply(){
+      root.style.setProperty('--overscan', Number(scale.value).toFixed(3));
+      root.style.setProperty('--clip-t', Number(ct.value).toFixed(2) + '%');
+      root.style.setProperty('--clip-r', Number(cr.value).toFixed(2) + '%');
+      root.style.setProperty('--clip-b', Number(cb.value).toFixed(2) + '%');
+      root.style.setProperty('--clip-l', Number(cl.value).toFixed(2) + '%');
+      vs.textContent = Number(scale.value).toFixed(3);
+      vct.textContent = Number(ct.value).toFixed(2);
+      vcr.textContent = Number(cr.value).toFixed(2);
+      vcb.textContent = Number(cb.value).toFixed(2);
+      vcl.textContent = Number(cl.value).toFixed(2);
+
+      steps.forEach((el,i)=>{ el.style.opacity = (i===Number(step.value)?1:0); });
+      vst.textContent = ['device','s1','s2','s3','s4','s5'][Number(step.value)];
+      save();
+    }
+    function reset(){
+      scale.value=1.006; ct.value=0; cr.value=0; cb.value=0; cl.value=0; step.value=1; apply();
+    }
+    function copyCSS(){
+      const css = `:root{\n  --overscan: ${Number(scale.value).toFixed(3)};\n  --clip-t: ${Number(ct.value).toFixed(2)}%;\n  --clip-r: ${Number(cr.value).toFixed(2)}%;\n  --clip-b: ${Number(cb.value).toFixed(2)}%;\n  --clip-l: ${Number(cl.value).toFixed(2)}%;\n}`;
+      navigator.clipboard.writeText(css).then(()=>{
+        copyBtn.textContent='Скопировано!'; setTimeout(()=>copyBtn.textContent='Скопировать CSS',1200);
+      }).catch(()=>{ alert(css); });
+    }
+    tBtn.addEventListener('click', ()=>{ tBox.classList.toggle('open'); save(); });
+    ['input','change'].forEach(ev=>{
+      [scale,ct,cr,cb,cl,step].forEach(el=>el.addEventListener(ev,apply));
+    });
+    resetBtn.addEventListener('click', reset);
+    copyBtn.addEventListener('click', copyCSS);
+    load(); apply();
   })();
   </script>
 </body>
