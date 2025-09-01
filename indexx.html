@@ -12,10 +12,7 @@
       --digits-offset:0.2em; --dot-top:-0.25em;
       --ctr-label-size: clamp(20px, 3.2vw, 32px);
       --ctr-digit-size: clamp(28px, 4.8vw, 58px);
-      /* Базовый одинаковый оверскан на мобильном */
-      --overscan: 1.0058;
-      /* Будет выставлен скриптом в зависимости от фактического канваса APNG */
-      --apng-corr: 1;
+      --overscan: 1.0058; /* общий для steps и APNG */
     }
 
     *{box-sizing:border-box}
@@ -49,7 +46,7 @@
     /* ===== сцена ===== */
     .stage{
       position:relative; width:100%; max-width:760px;
-      aspect-ratio: 2048 / 1828;
+      aspect-ratio: 2048 / 1828; /* эталонная пропорция шагов */
       margin-inline:auto; isolation:isolate;
       filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
       perspective:1200px; contain:layout paint;
@@ -78,7 +75,7 @@
       .veo.apng{
         display:block !important;
         object-fit:contain; object-position:50% 50%;
-        transform: translateZ(0) scale(calc(var(--overscan) * var(--apng-corr)));
+        transform: translateZ(0) scale(var(--overscan));
         transform-origin:50% 50%;
       }
       .s1,.s2,.s3,.s4,.s5{
@@ -126,7 +123,6 @@
   <script>
   (() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const REF_W = 2048, REF_H = 1828; // эталон канваса шагов
     const stageEl = document.getElementById('stage');
     const video   = document.getElementById('veo');
     const apng    = document.getElementById('veo_apng');
@@ -147,22 +143,6 @@
     function measureAndFit(){const probe=onesReel.querySelector('span')||tenthsReel.querySelector('span'); lineH=probe?probe.getBoundingClientRect().height:0; const slotH=Math.round(lineH*1.25); document.querySelectorAll('.col').forEach(c=>{c.style.height=slotH+'px';}); const topPad=Math.round((slotH-lineH)/2); document.querySelectorAll('.reel').forEach(r=>{r.style.top=topPad+'px';});}
     function setIndex(el,index,immediate=false){const y=snap(-index*lineH); if(immediate) gsap.set(el,{y}); else gsap.to(el,{y,duration:0.5,ease:'power2.out'});}
     function spinTo(el,toIndex,dur=0.5,ease='power3.out'){const over=0.18*lineH; const y1=snap(-toIndex*lineH-over); const y2=snap(-toIndex*lineH); const tl=gsap.timeline(); tl.to(el,{y:y1,duration:dur*0.75,ease}).to(el,{y:y2,duration:dur*0.25,ease:'power2.out'}); return tl;}
-
-    function setApngCorrection(){
-      if(!useAPNG) return;
-      const nw = apng.naturalWidth || REF_W;
-      const nh = apng.naturalHeight || REF_H;
-      // Контейнер имеет aspect REF_W/REF_H. Содержимое шагов "contain" в этот контейнер.
-      // Чтобы APNG совпал со "шагами", домножаем его масштаб на коэффициент:
-      // если APNG "шире" эталона => лимит по высоте => corr = nh / REF_H
-      // если "уже" => лимит по ширине => corr = nw / REF_W
-      const apngAR = nw / nh;
-      const refAR  = REF_W / REF_H;
-      const corr = apngAR > refAR ? (nh / REF_H) : (nw / REF_W);
-      // Немного нормализуем, чтобы не раздувать при идеальном совпадении из‑за округления
-      const precise = Math.abs(corr - 1) < 0.002 ? 1 : corr;
-      document.documentElement.style.setProperty('--apng-corr', precise.toString());
-    }
 
     function buildTimeline(){
       const tl=gsap.timeline({defaults:{ease:'power3.out'}});
@@ -199,18 +179,35 @@
       return tl;
     }
 
-    function scheduleFinalDuringPlayback(){
-      let fired=false;
-      const doFinal=()=>{if(fired)return; fired=true; const finalOnesIdx=5*10+Math.floor(ctrPoints[5]); const finalTenthsIdx=5*10+Math.round((ctrPoints[5]%1)*10); const tl=gsap.timeline(); tl.add(spinTo(onesReel,finalOnesIdx,0.55,'power3.out')).add(spinTo(tenthsReel,finalTenthsIdx,0.55,'power3.out'),'+=0.08'); digitsBox.classList.add('celebrate');};
-      if(!useAPNG){
-        if(!isFinite(video.duration)||video.duration===0){setTimeout(doFinal,700); return;}
-        const mid=video.duration*0.5;
-        const onTime=()=>{if(video.currentTime>=mid){video.removeEventListener('timeupdate',onTime); doFinal();}};
-        video.addEventListener('timeupdate',onTime,{passive:true});
-      } else {
-        const MOBILE_APNG_DURATION=5.0;
-        setTimeout(doFinal,MOBILE_APNG_DURATION*500);
-      }
+    function scheduleFinalWithReference(){
+      // Синхронизируем финал по длительности десктоп-видео (на мобиле используем таймер)
+      let refReady = false;
+      const doFinal = ()=>{
+        const finalOnesIdx=5*10+Math.floor(ctrPoints[5]);
+        const finalTenthsIdx=5*10+Math.round((ctrPoints[5]%1)*10);
+        const tl=gsap.timeline();
+        tl.add(spinTo(onesReel,finalOnesIdx,0.55,'power3.out'))
+          .add(spinTo(tenthsReel,finalTenthsIdx,0.55,'power3.out'),'+=0.08');
+        digitsBox.classList.add('celebrate');
+      };
+
+      const useVideoDuration = ()=>{
+        if(Number.isFinite(video.duration) && video.duration>0){
+          const mid = video.duration * 0.5;
+          if(useAPNG){
+            setTimeout(doFinal, mid*1000);
+          } else {
+            const onTime=()=>{ if(video.currentTime>=mid){ video.removeEventListener('timeupdate',onTime); doFinal(); } };
+            video.addEventListener('timeupdate',onTime,{passive:true});
+          }
+          refReady = true;
+        }
+      };
+
+      if(video.readyState>=1) useVideoDuration();
+      else video.addEventListener('loadedmetadata', useVideoDuration, {once:true});
+
+      setTimeout(()=>{ if(!refReady) doFinal(); }, 2500);
     }
 
     async function preload(src){
@@ -223,11 +220,22 @@
 
     async function init(){
       buildReel(onesReel); buildReel(tenthsReel);
-      requestAnimationFrame(()=>{measureAndFit(); const startOnesIdx=0*10+Math.floor(ctrPoints[0]); const startTenthsIdx=0*10+Math.round((ctrPoints[0]%1)*10); setIndex(onesReel,startOnesIdx,true); setIndex(tenthsReel,startTenthsIdx,true);});
+      requestAnimationFrame(()=>{
+        measureAndFit();
+        const startOnesIdx=0*10+Math.floor(ctrPoints[0]);
+        const startTenthsIdx=0*10+Math.round((ctrPoints[0]%1)*10);
+        setIndex(onesReel,startOnesIdx,true);
+        setIndex(tenthsReel,startTenthsIdx,true);
+      });
 
       if(prefersReduced){
         gsap.set(document.querySelectorAll('.layer'),{opacity:0,clearProps:'transform,filter'}); gsap.set('.veo',{opacity:1});
-        requestAnimationFrame(()=>{const finalOnesIdx=5*10+Math.floor(ctrPoints[5]); const finalTenthsIdx=5*10+Math.round((ctrPoints[5]%1)*10); setIndex(onesReel,finalOnesIdx,true); setIndex(tenthsReel,finalTenthsIdx,true); digitsBox.classList.add('celebrate');});
+        requestAnimationFrame(()=>{
+          const finalOnesIdx=5*10+Math.floor(ctrPoints[5]);
+          const finalTenthsIdx=5*10+Math.round((ctrPoints[5]%1)*10);
+          setIndex(onesReel,finalOnesIdx,true); setIndex(tenthsReel,finalTenthsIdx,true);
+          digitsBox.classList.add('celebrate');
+        });
         return;
       }
 
@@ -235,12 +243,8 @@
       await Promise.all(pngs.map(preload));
       if(useAPNG){ await preload(apng.currentSrc || apng.src); }
 
-      // Устанавливаем коррекцию масштаба APNG по его реальному канвасу
-      setApngCorrection();
-
       const tl=buildTimeline();
-      if(!useAPNG){ if(video.readyState>=1) scheduleFinalDuringPlayback(); else video.addEventListener('loadedmetadata',scheduleFinalDuringPlayback,{once:true}); }
-      else { scheduleFinalDuringPlayback(); }
+      scheduleFinalWithReference();
     }
     init();
   })();
