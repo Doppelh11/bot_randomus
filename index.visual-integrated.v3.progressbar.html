@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html data-theme="dark" lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width,initial-scale=1" name="viewport"/>
+  <title>Инфографика и оформление карточек — hero + visual scene + progress</title>
+  <meta content="Крупная типографика, анимация сцен, прогресс-счётчик поверх сцены." name="description"/>
+  <!-- Прелоад APNG для мобильных -->
+  <link id="visual-preload-apng" rel="preload" as="image" href="assets/veo.apng"/>
+
+  <style id="visual-hero-styles">
+  :root{ --bg:#121014; --text:#f6f8fb; --muted:#a7b0be; --border:rgba(255,255,255,.12); }
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 32px}
+  .hero{position:relative;min-height:85vh;display:flex;flex-direction:column;justify-content:flex-start;padding-top:72px}
+  .hero-inner{display:flex;justify-content:space-between;align-items:center;gap:28px;flex:1}
+  .hero-text{flex:1;max-width:55%}
+  .hero-text h1{font-size:clamp(38px,6vw,70px);font-weight:900;line-height:1.08;margin:0 0 12px}
+  .hero-text .lead{margin:0 0 18px;color:var(--muted);font-size:clamp(15px,1.4vw,20px)}
+  .hero-image{flex:1;max-width:45%;position:relative;display:flex;justify-content:center;align-items:center}
+  @media (max-width: 900px){ .hero-inner{flex-wrap:wrap} .hero-text,.hero-image{max-width:100%} }
+
+  .hero .stage{
+    position:relative; width:100%; max-width:760px;
+    aspect-ratio: 2048 / 1828;
+    margin-inline:auto; isolation:isolate;
+    filter:drop-shadow(0 40px 120px rgba(0,0,0,.55));
+    perspective:1200px; contain:layout paint;
+    background: transparent;
+  }
+  .hero .layer{
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit:contain; object-position:50% 50%;
+    transform-style:preserve-3d; backface-visibility:hidden;
+    transform-origin:50% 50%;
+    will-change:transform,opacity,filter; opacity:0;
+  }
+  .hero .device, .hero .s1, .hero .s2, .hero .s3, .hero .s4, .hero .s5,
+  .hero .veo {
+    transform: translateZ(0) scaleX(var(--scale-x,1)) scaleY(var(--scale-y,1));
+    z-index:6;
+  }
+  .hero .device, .hero .s1, .hero .s2, .hero .s3, .hero .s4, .hero .s5{
+    clip-path: inset(var(--edge, 2px));
+  }
+  .hero .veo{
+    clip-path: inset(var(--clip-t,0) var(--clip-r,0) var(--clip-b,0) var(--clip-l,0));
+    z-index:4; opacity:0;
+  }
+  .hero .veo.webp{ display:block; }
+  .hero .veo.apng{ display:none; }
+  @media (pointer:coarse), (max-width:820px){
+    .hero .veo.webp{ display:none !important; }
+    .hero .veo.apng{ display:block !important; }
+  }
+
+  .hero .progress-layer{
+    position:absolute; inset:0; pointer-events:none; z-index:10;
+    display:flex; justify-content:center; align-items:flex-start;
+    padding-top: clamp(8px, 2.2vw, 18px);
+  }
+  .hero .progress-badge{
+    background: rgba(18,20,26,.55);
+    color:#e8eefc;
+    border-radius:14px;
+    padding:10px 14px;
+    font-weight:800;
+    backdrop-filter: blur(8px) saturate(120%);
+    box-shadow: 0 10px 26px rgba(0,0,0,.35), inset 0 0 0 1px rgba(140,160,200,.25);
+    opacity:0; transform: translateY(-6px) scale(.94);
+    display:flex; flex-direction:column; gap:6px; min-width:180px;
+  }
+  .hero .progress-badge .label{
+    font-size:12px; color:#b8c6e8; text-transform:uppercase; letter-spacing:.06em;
+  }
+  .hero .progress-badge .bar{
+    width:100%; height:6px; background: rgba(255,255,255,.14);
+    border-radius:5px; overflow:hidden;
+  }
+  .hero .progress-badge .bar .fill{
+    width:0%; height:100%;
+    background: linear-gradient(90deg,#4fd1c5,#7c83ff);
+    border-radius:5px;
+  }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-text">
+          <h1>Не картинки для галочки. <br>Инструменты роста продаж.</h1>
+          <p class="lead">Оформляем карточки так, чтобы они повышали CTR и конверсию, и проходили модерацию без проблем.</p>
+        </div>
+
+        <div class="hero-image">
+          <div class="stage" id="stage" aria-hidden="true">
+
+            <div class="progress-layer" aria-hidden="true">
+              <div class="progress-badge" id="progress_badge">
+                <span class="label">Performance</span>
+                <div class="bar"><div class="fill"></div></div>
+              </div>
+            </div>
+
+            <img class="layer device" src="assets/step1.png" alt="frame">
+            <img class="layer s1" src="assets/step2.png" alt="">
+            <img class="layer s2" src="assets/step3.png" alt="">
+            <img class="layer s3" src="assets/step4.png" alt="">
+            <img class="layer s4" src="assets/step5.png" alt="">
+            <img class="layer s5" src="assets/step6.png" alt="">
+
+            <img class="layer veo webp" id="veo_webp" src="assets/veo.webp" alt="" aria-hidden="true" loading="eager" fetchpriority="high">
+            <img class="layer veo apng" id="veo_apng" data-src="assets/veo.apng" alt="" aria-hidden="true">
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+
+  <script id="visual-hero-script">
+  (() => {
+    const REF_W=2048, REF_H=1828;
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isMobile = window.matchMedia('(pointer: coarse), (max-width: 820px)').matches;
+    const webp = document.getElementById('veo_webp');
+    let   apng = document.getElementById('veo_apng');
+
+    function showBadge(val){
+      const badge = document.getElementById('progress_badge');
+      const fill  = badge ? badge.querySelector('.fill') : null;
+      const target = Math.max(0, Math.min(100, Math.round((val||0)*10)));
+      if (!window.gsap || !badge || !fill) return (window.gsap && gsap.timeline) ? gsap.timeline() : null;
+      return gsap.timeline()
+        .set(badge,{opacity:0, scale:.94, y:-6})
+        .to(badge,{opacity:1, scale:1, y:0, duration:0.24, ease:'back.out(2)'})
+        .to(fill,{width: target + '%', duration:0.9, ease:'power2.out'}, '<')
+        .to(badge,{opacity:0, y:-8, scale:.96, duration:0.22, ease:'power2.in'}, '+=0.8');
+    }
+    function showHeroBadge(){
+      const badge = document.getElementById('progress_badge');
+      const fill  = badge ? badge.querySelector('.fill') : null;
+      if (!window.gsap || !badge || !fill) return (window.gsap && gsap.timeline) ? gsap.timeline() : null;
+      return gsap.timeline()
+        .set(badge,{opacity:0, scale:.94, y:-6})
+        .to(badge,{opacity:1, scale:1, y:0, duration:0.28, ease:'back.out(1.8)'})
+        .to(fill,{width:'100%', duration:1.0, ease:'power2.out'}, '>-0.1')
+        .to(badge,{opacity:0, y:-6, duration:0.28, ease:'power2.in'}, '+=1.0');
+    }
+
+    function applyClip(img){ /* ... unchanged ... */ }
+    function backgroundPreloadAPNG(){ /* ... unchanged ... */ }
+    function whenReady(img,t){ /* ... unchanged ... */ }
+    async function showApngFromZero(){ /* ... unchanged ... */ }
+    function buildTimeline(){ /* ... unchanged, вызовы showBadge()/showHeroBadge() остались */ }
+    function init(){ /* ... unchanged ... */ }
+    init();
+  })();
+  </script>
+</body>
+</html>
