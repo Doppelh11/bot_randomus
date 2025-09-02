@@ -6,7 +6,7 @@
       :root{
         --scale-x: 1.139;
         --scale-y: 1.182;
-        --edge: 1px; /* сильнее съедаем края PNG */
+        --edge: 2px; /* сильнее съедаем края PNG */
       }
     </style>
   <link id="visual-preload-apng" rel="preload" as="image" href="assets/veo.apng">
@@ -1129,13 +1129,15 @@
   const webp = document.getElementById('veo_webp');
   let apng = document.getElementById('veo_apng');
 
-  )
+  const badge = document.getElementById('badge');
+  const hero = document.getElementById('badge_hero');
+  const chip = document.getElementById('confirm_chip');
+
+  function showBadge(){ return (window.gsap && gsap.timeline) ? gsap.timeline() : null; })
       .to(badge,{opacity:1, y:0, duration:0.22, ease:'back.out(2)'})
       .to(badge,{opacity:0, y:-8, duration:0.20, ease:'power2.in'}, '+=1.0');
   }
-  function {
-    return gsap.timeline()
-      .set(hero,{opacity:0, y:-8})
+  function showHeroBadge(){ return (window.gsap && gsap.timeline) ? gsap.timeline() : null; })
       .to(hero,{opacity:1, y:0, duration:0.32, ease:'power2.out'})
       .set(chip,{opacity:0, y:6},'-=0.2')
       .to(chip,{opacity:1, y:0, duration:0.24, ease:'power2.out'}, '-=0.05')
@@ -1211,11 +1213,11 @@
         if (webp.complete) applyClip(webp); else webp.addEventListener('load',()=>applyClip(webp),{once:true});
         gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.25});
         gsap.to(webp,{opacity:1,duration:0.25,delay:0.05});
-        setTimeout(()=>{  },1500);
+        setTimeout(()=>{ showHeroBadge(); },1500);
       } else {
         gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.1});
         await showApngFromZero();
-        setTimeout(()=>{  },1500);
+        setTimeout(()=>{ showHeroBadge(); },1500);
       }
     }, null, 'switchMedia');
 
@@ -1229,7 +1231,7 @@
         el.style.transform='none'; el.style.filter='none';
       });
       // Бейджи просто показываем статично
-      hero.style.opacity = 1;
+      if (hero) hero.style.opacity = 1;
       return;
     }
     backgroundPreloadAPNG();
