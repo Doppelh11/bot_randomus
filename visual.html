@@ -1,13 +1,14 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Карточка + CTR — desktop WEBP, mobile APNG (matched proportions)</title>
-  <meta name="color-scheme" content="light dark" />
-  <!-- Подсказка браузеру: заранее готовим APNG -->
-  <link rel="preload" as="image" href="assets/veo.apng" />
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title>Карточка + CTR — desktop WEBP, mobile APNG (matched proportions)</title>
+<meta content="light dark" name="color-scheme"/>
+<!-- Подсказка браузеру: заранее готовим APNG -->
+<link as="image" href="assets/veo.apng" rel="preload"/>
+<style>
     :root{
       /* Твои значения подгонки */
       --scale-x: 1.139;
@@ -113,37 +114,38 @@
       backdrop-filter: blur(4px); white-space:nowrap;
     }
   </style>
-</head>
+<style>
+/* injected: make visual background transparent to match site */
+html, body { background: transparent !important; }
+.stage { background: transparent !important; }
+</style></head>
 <body>
-  <div class="wrap">
-    <div class="stage" id="stage" aria-hidden="true">
-      <!-- badges -->
-      <div class="badge-layer" aria-hidden="true">
-        <div class="badge" id="badge"><span class="tag">CTR</span><span class="val">0.0</span><span class="pct">%</span></div>
-        <div class="badge hero" id="badge_hero">
-          <span class="tag">CTR</span><span class="val">4.7</span><span class="pct">%</span>
-          <div class="confirm-chip" id="confirm_chip">Качаем CTR!</div>
-        </div>
-      </div>
-
-      <!-- steps -->
-      <img class="layer device" src="assets/step1.png" alt="frame">
-      <img class="layer s1" src="assets/step2.png" alt="">
-      <img class="layer s2" src="assets/step3.png" alt="">
-      <img class="layer s3" src="assets/step4.png" alt="">
-      <img class="layer s4" src="assets/step5.png" alt="">
-      <img class="layer s5" src="assets/step6.png" alt="">
-
-      <!-- Desktop WEBP -->
-      <img class="layer veo webp" id="veo_webp" src="assets/veo.webp" alt="" aria-hidden="true" loading="eager" fetchpriority="high">
-      <!-- Mobile APNG (src подставляем в JS для старта с 0 кадра) -->
-      <img class="layer veo apng" id="veo_apng" data-src="assets/veo.apng" alt="" aria-hidden="true">
-    </div>
-  </div>
-
-  <!-- GSAP -->
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
-  <script>
+<div class="wrap">
+<div aria-hidden="true" class="stage" id="stage">
+<!-- badges -->
+<div aria-hidden="true" class="badge-layer">
+<div class="badge" id="badge"><span class="tag">CTR</span><span class="val">0.0</span><span class="pct">%</span></div>
+<div class="badge hero" id="badge_hero">
+<span class="tag">CTR</span><span class="val">4.7</span><span class="pct">%</span>
+<div class="confirm-chip" id="confirm_chip">Качаем CTR!</div>
+</div>
+</div>
+<!-- steps -->
+<img alt="frame" class="layer device" src="assets/step1.png"/>
+<img alt="" class="layer s1" src="assets/step2.png"/>
+<img alt="" class="layer s2" src="assets/step3.png"/>
+<img alt="" class="layer s3" src="assets/step4.png"/>
+<img alt="" class="layer s4" src="assets/step5.png"/>
+<img alt="" class="layer s5" src="assets/step6.png"/>
+<!-- Desktop WEBP -->
+<img alt="" aria-hidden="true" class="layer veo webp" fetchpriority="high" id="veo_webp" loading="eager" src="assets/veo.webp"/>
+<!-- Mobile APNG (src подставляем в JS для старта с 0 кадра) -->
+<img alt="" aria-hidden="true" class="layer veo apng" data-src="assets/veo.apng" id="veo_apng"/>
+</div>
+</div>
+<!-- GSAP -->
+<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+<script>
   (() => {
     const REF_W = 2048, REF_H = 1828;
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
