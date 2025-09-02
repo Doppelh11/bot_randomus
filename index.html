@@ -352,7 +352,9 @@
 
 <div class="hero-image">
   <div class="stage" id="stage" aria-hidden="true">
-    <div class="badge hero" id="badge_hero">
+    <div class="badge-layer" aria-hidden="true">
+      <div class="badge" id="badge"><span class="tag">CTR</span><span class="val">0.0</span><span class="pct">%</span></div>
+      <div class="badge hero" id="badge_hero">
         <span class="tag">CTR</span><span class="val">4.7</span><span class="pct">%</span>
         <div class="confirm-chip" id="confirm_chip">Качаем CTR!</div>
       </div>
@@ -1094,11 +1096,19 @@
   const chip  = document.getElementById('confirm_chip');
   if (hero && window.gsap) gsap.set(hero,{opacity:0});
 
-  )
+  function showBadge(val){
+    if(!badge || !window.gsap) return (gsap && gsap.timeline) ? gsap.timeline() : null;
+    const valNode = badge.querySelector('.val');
+    if (valNode) valNode.textContent = val.toFixed(1);
+    return gsap.timeline()
+      .set(badge,{opacity:0, scale:.92, y:-6})
       .to(badge,{opacity:1, scale:1, y:0, duration:0.22, ease:'back.out(2)'})
       .to(badge,{opacity:0, y:-8, scale:.96, duration:0.20, ease:'power2.in'}, '+=1.0');
   }
-  )
+  function showHeroBadge(){
+    if(!hero || !window.gsap) return (gsap && gsap.timeline) ? gsap.timeline() : null;
+    return gsap.timeline()
+      .set(hero,{opacity:0, scale:.88, y:-8})
       .to(hero,{opacity:1, scale:1, y:0, duration:0.32, ease:'back.out(1.8)'})
       .set(chip,{opacity:0, y:6},'-=0.2')
       .to(chip,{opacity:1, y:0, duration:0.24, ease:'power2.out'}, '-=0.05')
@@ -1195,10 +1205,10 @@
     gsap.set('.veo',{opacity:0});
 
     tl.to('.device',{opacity:1,yPercent:0,scale:1,rotateZ:0,filter:'blur(0px)',duration:0.55,ease:'back.out(1.6)'});
-    tl.to('.s1',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.9,ease:'back.out(1.4)'}, '-=0.15');
-    tl.to('.s2',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.9,ease:'back.out(1.4)'}, '-=0.10');
-    tl.to('.s3',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.9,ease:'back.out(1.4)'}, '-=0.10');
-    tl.to('.s4',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.9,ease:'back.out(1.4)'}, '-=0.10');
+    tl.to('.s1',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.9,ease:'back.out(1.4)'}, '-=0.15').add(()=>showBadge(1.3), '>-0.02');
+    tl.to('.s2',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.9,ease:'back.out(1.4)'}, '-=0.10').add(()=>showBadge(2.3), '>-0.02');
+    tl.to('.s3',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.9,ease:'back.out(1.4)'}, '-=0.10').add(()=>showBadge(2.6), '>-0.02');
+    tl.to('.s4',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.9,ease:'back.out(1.4)'}, '-=0.10').add(()=>showBadge(3.3), '>-0.02');
     tl.to('.s5',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.9,ease:'back.out(1.4)'}, '-=0.10');
 
     tl.add('switchMedia');
@@ -1208,11 +1218,11 @@
         else if (webp) webp.addEventListener('load', ()=>applyClip(webp), {once:true});
         gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.25});
         gsap.to(webp,{opacity:1,duration:0.25,delay:0.05});
-        setTimeout(()=>{  }, 1200);
+        setTimeout(()=>{ showHeroBadge(); }, 1200);
       } else {
         gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.1});
         await showApngFromZero();
-        setTimeout(()=>{  }, 1200);
+        setTimeout(()=>{ showHeroBadge(); }, 1200);
       }
     }, null, 'switchMedia');
 
