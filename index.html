@@ -357,6 +357,23 @@
   box-shadow:none !important;   /* убираем тень, если она похожа на рамку */
   border-radius:0;              /* при желании можно вернуть */
 }
+</style><style>
+/* === HERO align fix (scoped, non-destructive) === */
+.hero.fullwidth .hero-inner{
+  display:flex; justify-content:space-between; align-items:center; gap:28px; min-height:72vh;
+}
+.hero.fullwidth .hero-text{
+  flex:1 1 50%; display:flex; flex-direction:column; justify-content:center; gap:16px;
+}
+.hero.fullwidth .hero-image{
+  flex:0 1 45%; display:flex; align-items:center; justify-content:center;
+}
+.hero.fullwidth .hero-visual{ display:block; width:100%; aspect-ratio:2048/1828; border:0; background:transparent; }
+@media (max-width: 900px){
+  .hero.fullwidth .hero-inner{ flex-wrap:wrap; min-height:auto; }
+  .hero.fullwidth .hero-text, .hero.fullwidth .hero-image{ flex:1 1 100%; }
+  .hero.fullwidth .hero-visual{ aspect-ratio:auto; min-height:360px; }
+}
 </style></head>
 <body class="no-js">
 <div aria-hidden="true" class="cursor" id="cursor"></div>
@@ -377,26 +394,7 @@
 <main id="top">
 <!-- HERO -->
 <section class="hero fullwidth">
-<div class="hero-content"><div class="hero-left"></div><div class="hero-right"><iframe class="hero-visual" loading="lazy" src="visual.html" title="Visual scene"></iframe></div></div><div class="hero-left"><div aria-hidden="true" class="aurora-layer"></div><div class="wrap hero-inner">
-<div class="hero-text">
-<div>
-<h1>
-            Не картинки для галочки.<br/>
-<span class="accent">Инструменты роста продаж.</span>
-</h1>
-<p class="lead">
-            Оформляем карточки для Wildberries и Ozon так, чтобы они повышали CTR,
-            увеличивали конверсию и проходили модерацию без проблем.
-          </p>
-</div>
-<div class="cta">
-<a class="btn btn-prim magnet" href="#pricing">Выбрать пакет</a>
-<a class="btn btn-sec magnet" href="#portfolio">Смотреть кейсы</a>
-</div>
-</div>
-<div class="hero-image">
-</div>
-</div></div><div class="hero-right"></div></section>
+<div class="wrap hero-inner"><div class="hero-image"><iframe class="hero-visual" frameborder="0" loading="lazy" src="visual (5).html" title="Visual scene"></iframe></div></div></section>
 <!-- БЕГУЩАЯ СТРОКА -->
 <div class="hero-marquee">
 <div class="marquee-track">
