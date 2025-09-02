@@ -299,7 +299,18 @@
 }
 .hero-inner, .hero-text, .hero-image { position:relative; z-index: 2; }
 </style>
-</head>
+<style>
+/* injected hero layout (scoped to .hero only) */
+.hero .hero-flex-wrapper{display:flex;gap:24px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.hero .hero-left{flex:1 1 420px;min-width:300px}
+.hero .hero-right{flex:1 1 560px;min-width:300px}
+.hero .hero-visual-frame{width:100%;aspect-ratio:2048/1828;border:0;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.35);background:transparent}
+@media (max-width: 900px){
+  .hero .hero-flex-wrapper{flex-direction:column}
+  .hero .hero-right,.hero .hero-left{flex-basis:auto;min-width:0}
+  .hero .hero-visual-frame{aspect-ratio:auto;min-height:360px}
+}
+</style></head>
 <body class="no-js">
 <div aria-hidden="true" class="cursor" id="cursor"></div>
 <header>
@@ -318,8 +329,8 @@
 </header>
 <main id="top">
 <!-- HERO -->
-<section class="hero fullwidth"><div aria-hidden="true" class="aurora-layer"></div>
-<div class="wrap hero-inner">
+<section class="hero fullwidth">
+<div class="hero-flex-wrapper"><div class="hero-left"><div aria-hidden="true" class="aurora-layer"></div><div class="wrap hero-inner">
 <div class="hero-text">
 <div>
 <h1>
@@ -337,10 +348,8 @@
 </div>
 </div>
 <div class="hero-image">
-<img alt="Пример карточки" src="images/product.jpg"/>
 </div>
-</div>
-</section>
+</div></div><div class="hero-right"><iframe class="hero-visual-frame" frameborder="0" loading="lazy" referrerpolicy="no-referrer" src="visual.html" title="Visual scene"></iframe></div></div></section>
 <!-- БЕГУЩАЯ СТРОКА -->
 <div class="hero-marquee">
 <div class="marquee-track">
@@ -1047,6 +1056,5 @@
   }
   raf = requestAnimationFrame(loop);
 </script>
-</body>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script></body>
 </html>
-
