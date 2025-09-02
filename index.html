@@ -299,7 +299,65 @@
 }
 .hero-inner, .hero-text, .hero-image { position:relative; z-index: 2; }
 </style>
-</head>
+<style>
+/* injected hero layout (scoped to .hero only) */
+.hero .hero-flex-wrapper{display:flex;gap:24px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.hero .hero-left{flex:1 1 420px;min-width:300px}
+.hero .hero-right{flex:1 1 560px;min-width:300px}
+.hero .hero-visual-frame{width:100%;aspect-ratio:2048/1828;border:0;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.35);background:transparent}
+@media (max-width: 900px){
+  .hero .hero-flex-wrapper{flex-direction:column}
+  .hero .hero-right,.hero .hero-left{flex-basis:auto;min-width:0}
+  .hero .hero-visual-frame{aspect-ratio:auto;min-height:360px}
+}
+</style><style>
+/* injected: ensure visual is on top and backgrounds match */
+.hero .hero-flex-wrapper{display:flex;gap:24px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.hero .hero-left{flex:1 1 420px;min-width:300px}
+.hero .hero-right{flex:1 1 560px;min-width:300px;position:relative;z-index:6}
+.hero .hero-image{position:relative;z-index:5}
+.hero .hero-visual-frame{width:100%;aspect-ratio:2048/1828;border:0;border-radius:12px;background:transparent;position:relative;z-index:7;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+@media (max-width: 900px){
+  .hero .hero-flex-wrapper{flex-direction:column}
+  .hero .hero-right,.hero .hero-left{flex-basis:auto;min-width:0}
+  .hero .hero-visual-frame{aspect-ratio:auto;min-height:360px}
+}
+</style><style>
+/* === Scoped Hero layout for visual scene (safe) === */
+.hero{ position:relative; overflow:clip; }
+.hero-aurora{ position:absolute; inset:0; z-index:0; pointer-events:none; }
+.hero .hero-content{
+  position:relative; z-index:1;
+  display:flex; gap:24px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+}
+.hero .hero-left{ flex:1 1 420px; min-width:300px }
+.hero .hero-right{ flex:1 1 560px; min-width:300px; position:relative; z-index:2 }
+.hero .hero-visual{
+  width:100%;
+  aspect-ratio:2048/1828;
+  border:0; background:transparent;
+  border-radius:12px;
+  box-shadow:0 10px 40px rgba(0,0,0,.35);
+  contain:layout paint;
+  will-change:transform, opacity;
+}
+@media (max-width:900px){
+  .hero .hero-content{ flex-direction:column }
+  .hero .hero-visual{ aspect-ratio:auto; min-height:360px }
+}
+/* Hide product image inside Hero if it still exists */
+.hero img[id*="product"], .hero img[class*="product"], .hero img[alt*="product"]{ display:none !important; }
+</style><style>
+/* injected: remove any visual frame around the scene */
+.hero .hero-visual{
+  display:block;
+  border:0 !important;
+  outline:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;   /* убираем тень, если она похожа на рамку */
+  border-radius:0;              /* при желании можно вернуть */
+}
+</style></head>
 <body class="no-js">
 <div aria-hidden="true" class="cursor" id="cursor"></div>
 <header>
@@ -318,8 +376,8 @@
 </header>
 <main id="top">
 <!-- HERO -->
-<section class="hero fullwidth"><div aria-hidden="true" class="aurora-layer"></div>
-<div class="wrap hero-inner">
+<section class="hero fullwidth">
+<div class="hero-content"><div class="hero-left"></div><div class="hero-right"><iframe class="hero-visual" loading="lazy" src="visual.html" title="Visual scene"></iframe></div></div><div class="hero-left"><div aria-hidden="true" class="aurora-layer"></div><div class="wrap hero-inner">
 <div class="hero-text">
 <div>
 <h1>
@@ -337,10 +395,8 @@
 </div>
 </div>
 <div class="hero-image">
-<img alt="Пример карточки" src="images/product.jpg"/>
 </div>
-</div>
-</section>
+</div></div><div class="hero-right"></div></section>
 <!-- БЕГУЩАЯ СТРОКА -->
 <div class="hero-marquee">
 <div class="marquee-track">
@@ -1047,5 +1103,48 @@
   }
   raf = requestAnimationFrame(loop);
 </script>
-</body>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script><script>
+document.addEventListener('DOMContentLoaded', () => {
+  const isProductEl = el => {
+    const attrs = [
+      el.getAttribute('src') || '',
+      el.getAttribute('alt') || '',
+      el.id || '',
+      (el.className || '')
+    ].join(' ').toLowerCase();
+    return attrs.includes('product');
+  };
+  const kill = el => el && el.parentNode && el.parentNode.removeChild(el);
+
+  // Remove <img> with product anywhere (last resort; better to keep it scoped to hero)
+  document.querySelectorAll('img').forEach(img => {
+    if (isProductEl(img) || (img.currentSrc && img.currentSrc.toLowerCase().includes('product'))) {
+      // remove parent <a> if only wraps this image
+      const a = img.parentElement;
+      if (a && a.tagName === 'A' && a.querySelectorAll('img').length === 1) kill(a); else kill(img);
+    }
+  });
+
+  // Remove <picture> that references product in any <source> or its <img>
+  document.querySelectorAll('picture').forEach(pic => {
+    const hasProduct = [...pic.querySelectorAll('source,img')].some(s => {
+      const srcset = s.getAttribute('srcset') || '';
+      const src = s.getAttribute('src') || '';
+      const text = [srcset, src, s.id || '', s.className || ''].join(' ').toLowerCase();
+      return text.includes('product');
+    });
+    if (hasProduct) kill(pic);
+  });
+
+  // Ensure hero visual iframe stays visible, sized, and above background
+  const fr = document.querySelector('.hero .hero-right iframe.hero-visual');
+  if (fr) {
+    fr.style.display = 'block';
+    fr.style.width = '100%';
+    fr.style.minHeight = fr.style.minHeight || '360px';
+    fr.style.border = '0';
+    fr.style.background = 'transparent';
+  }
+});
+</script></body>
 </html>
