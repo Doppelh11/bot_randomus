@@ -10,6 +10,18 @@
 <meta content="telephone=no" name="format-detection"/>
 <style>
     :root{
+      /* ===== Переменные сцены (из visual.html) ===== */
+      --scale-x: 1.139;
+      --scale-y: 1.182;
+      --clip-t: 0.00%;
+      --clip-r: 0.00%;
+      --clip-b: 0.00%;
+      --clip-l: 0.00%;
+
+      --badge-bg: rgba(24,24,28,.86);
+      --badge-fg: #fff;
+      --badge-shadow: 0 8px 24px rgba(0,0,0,.35);
+
       --bg:#121014;
       --panel:#0f1012;
       --text:#f6f8fb;
@@ -299,82 +311,8 @@
 }
 .hero-inner, .hero-text, .hero-image { position:relative; z-index: 2; }
 </style>
-<style>
-/* injected hero layout (scoped to .hero only) */
-.hero .hero-flex-wrapper{display:flex;gap:24px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.hero .hero-left{flex:1 1 420px;min-width:300px}
-.hero .hero-right{flex:1 1 560px;min-width:300px}
-.hero .hero-visual-frame{width:100%;aspect-ratio:2048/1828;border:0;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.35);background:transparent}
-@media (max-width: 900px){
-  .hero .hero-flex-wrapper{flex-direction:column}
-  .hero .hero-right,.hero .hero-left{flex-basis:auto;min-width:0}
-  .hero .hero-visual-frame{aspect-ratio:auto;min-height:360px}
-}
-</style><style>
-/* injected: ensure visual is on top and backgrounds match */
-.hero .hero-flex-wrapper{display:flex;gap:24px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.hero .hero-left{flex:1 1 420px;min-width:300px}
-.hero .hero-right{flex:1 1 560px;min-width:300px;position:relative;z-index:6}
-.hero .hero-image{position:relative;z-index:5}
-.hero .hero-visual-frame{width:100%;aspect-ratio:2048/1828;border:0;border-radius:12px;background:transparent;position:relative;z-index:7;box-shadow:0 10px 40px rgba(0,0,0,.35)}
-@media (max-width: 900px){
-  .hero .hero-flex-wrapper{flex-direction:column}
-  .hero .hero-right,.hero .hero-left{flex-basis:auto;min-width:0}
-  .hero .hero-visual-frame{aspect-ratio:auto;min-height:360px}
-}
-</style><style>
-/* === Scoped Hero layout for visual scene (safe) === */
-.hero{ position:relative; overflow:clip; }
-.hero-aurora{ position:absolute; inset:0; z-index:0; pointer-events:none; }
-.hero .hero-content{
-  position:relative; z-index:1;
-  display:flex; gap:24px; align-items:center; justify-content:space-between; flex-wrap:wrap;
-}
-.hero .hero-left{ flex:1 1 420px; min-width:300px }
-.hero .hero-right{ flex:1 1 560px; min-width:300px; position:relative; z-index:2 }
-.hero .hero-visual{
-  width:100%;
-  aspect-ratio:2048/1828;
-  border:0; background:transparent;
-  border-radius:12px;
-  box-shadow:0 10px 40px rgba(0,0,0,.35);
-  contain:layout paint;
-  will-change:transform, opacity;
-}
-@media (max-width:900px){
-  .hero .hero-content{ flex-direction:column }
-  .hero .hero-visual{ aspect-ratio:auto; min-height:360px }
-}
-/* Hide product image inside Hero if it still exists */
-.hero img[id*="product"], .hero img[class*="product"], .hero img[alt*="product"]{ display:none !important; }
-</style><style>
-/* injected: remove any visual frame around the scene */
-.hero .hero-visual{
-  display:block;
-  border:0 !important;
-  outline:0 !important;
-  background:transparent !important;
-  box-shadow:none !important;   /* убираем тень, если она похожа на рамку */
-  border-radius:0;              /* при желании можно вернуть */
-}
-</style><style>
-/* === HERO align fix (scoped, non-destructive) === */
-.hero.fullwidth .hero-inner{
-  display:flex; justify-content:space-between; align-items:center; gap:28px; min-height:72vh;
-}
-.hero.fullwidth .hero-text{
-  flex:1 1 50%; display:flex; flex-direction:column; justify-content:center; gap:16px;
-}
-.hero.fullwidth .hero-image{
-  flex:0 1 45%; display:flex; align-items:center; justify-content:center;
-}
-.hero.fullwidth .hero-visual{ display:block; width:100%; aspect-ratio:2048/1828; border:0; background:transparent; }
-@media (max-width: 900px){
-  .hero.fullwidth .hero-inner{ flex-wrap:wrap; min-height:auto; }
-  .hero.fullwidth .hero-text, .hero.fullwidth .hero-image{ flex:1 1 100%; }
-  .hero.fullwidth .hero-visual{ aspect-ratio:auto; min-height:360px; }
-}
-</style></head>
+  <link rel="preload" as="image" href="assets/veo.apng" />
+</head>
 <body class="no-js">
 <div aria-hidden="true" class="cursor" id="cursor"></div>
 <header>
@@ -393,8 +331,47 @@
 </header>
 <main id="top">
 <!-- HERO -->
-<section class="hero fullwidth">
-<div class="wrap hero-inner"><div class="hero-image"><iframe class="hero-visual" frameborder="0" loading="lazy" src="visual (5).html" title="Visual scene"></iframe></div></div></section>
+<section class="hero fullwidth"><div aria-hidden="true" class="aurora-layer"></div>
+<div class="wrap hero-inner">
+<div class="hero-text">
+<div>
+<h1>
+            Не картинки для галочки.<br/>
+<span class="accent">Инструменты роста продаж.</span>
+</h1>
+<p class="lead">
+            Оформляем карточки для Wildberries и Ozon так, чтобы они повышали CTR,
+            увеличивали конверсию и проходили модерацию без проблем.
+          </p>
+</div>
+<div class="cta">
+<a class="btn btn-prim magnet" href="#pricing">Выбрать пакет</a>
+<a class="btn btn-sec magnet" href="#portfolio">Смотреть кейсы</a>
+</div>
+</div>
+
+<div class="hero-image">
+  <div class="stage" id="stage" aria-hidden="true">
+    <div class="badge hero" id="badge_hero">
+        <span class="tag">CTR</span><span class="val">4.7</span><span class="pct">%</span>
+        <div class="confirm-chip" id="confirm_chip">Качаем CTR!</div>
+      </div>
+    </div>
+
+    <img class="layer device" src="assets/step1.png" alt="frame">
+    <img class="layer s1" src="assets/step2.png" alt="">
+    <img class="layer s2" src="assets/step3.png" alt="">
+    <img class="layer s3" src="assets/step4.png" alt="">
+    <img class="layer s4" src="assets/step5.png" alt="">
+    <img class="layer s5" src="assets/step6.png" alt="">
+
+    <img class="layer veo webp" id="veo_webp" src="assets/veo.webp" alt="" loading="eager" fetchpriority="high">
+    <img class="layer veo apng" id="veo_apng" data-src="assets/veo.apng" alt="">
+  </div>
+</div>
+
+</div>
+</section>
 <!-- БЕГУЩАЯ СТРОКА -->
 <div class="hero-marquee">
 <div class="marquee-track">
@@ -1101,48 +1078,166 @@
   }
   raf = requestAnimationFrame(loop);
 </script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script><script>
-document.addEventListener('DOMContentLoaded', () => {
-  const isProductEl = el => {
-    const attrs = [
-      el.getAttribute('src') || '',
-      el.getAttribute('alt') || '',
-      el.id || '',
-      (el.className || '')
-    ].join(' ').toLowerCase();
-    return attrs.includes('product');
-  };
-  const kill = el => el && el.parentNode && el.parentNode.removeChild(el);
+<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
 
-  // Remove <img> with product anywhere (last resort; better to keep it scoped to hero)
-  document.querySelectorAll('img').forEach(img => {
-    if (isProductEl(img) || (img.currentSrc && img.currentSrc.toLowerCase().includes('product'))) {
-      // remove parent <a> if only wraps this image
-      const a = img.parentElement;
-      if (a && a.tagName === 'A' && a.querySelectorAll('img').length === 1) kill(a); else kill(img);
-    }
-  });
+<script>
+(() => {
+  const REF_W = 2048, REF_H = 1828;
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isMobile = window.matchMedia('(pointer: coarse), (max-width: 820px)').matches;
 
-  // Remove <picture> that references product in any <source> or its <img>
-  document.querySelectorAll('picture').forEach(pic => {
-    const hasProduct = [...pic.querySelectorAll('source,img')].some(s => {
-      const srcset = s.getAttribute('srcset') || '';
-      const src = s.getAttribute('src') || '';
-      const text = [srcset, src, s.id || '', s.className || ''].join(' ').toLowerCase();
-      return text.includes('product');
-    });
-    if (hasProduct) kill(pic);
-  });
+  const webp = document.getElementById('veo_webp');
+  let   apng = document.getElementById('veo_apng');
 
-  // Ensure hero visual iframe stays visible, sized, and above background
-  const fr = document.querySelector('.hero .hero-right iframe.hero-visual');
-  if (fr) {
-    fr.style.display = 'block';
-    fr.style.width = '100%';
-    fr.style.minHeight = fr.style.minHeight || '360px';
-    fr.style.border = '0';
-    fr.style.background = 'transparent';
+  const badge = document.getElementById('badge');
+  const hero  = document.getElementById('badge_hero');
+  const chip  = document.getElementById('confirm_chip');
+  if (hero && window.gsap) gsap.set(hero,{opacity:0});
+
+  )
+      .to(badge,{opacity:1, scale:1, y:0, duration:0.22, ease:'back.out(2)'})
+      .to(badge,{opacity:0, y:-8, scale:.96, duration:0.20, ease:'power2.in'}, '+=1.0');
   }
-});
-</script></body>
+  )
+      .to(hero,{opacity:1, scale:1, y:0, duration:0.32, ease:'back.out(1.8)'})
+      .set(chip,{opacity:0, y:6},'-=0.2')
+      .to(chip,{opacity:1, y:0, duration:0.24, ease:'power2.out'}, '-=0.05')
+      .to(chip,{opacity:0, y:-4, duration:0.32, ease:'power2.in'}, '+=1.2');
+  }
+
+  function applyClip(img){
+    const nw=img.naturalWidth||REF_W, nh=img.naturalHeight||REF_H;
+    const ar= nw/nh, ref= REF_W/REF_H;
+    if(Math.abs(ar-ref)<0.0001){ img.style.setProperty('--clip-t','0'); img.style.setProperty('--clip-b','0'); img.style.setProperty('--clip-l','0'); img.style.setProperty('--clip-r','0'); return; }
+    if(ar>ref){
+      const visibleW=REF_W/REF_H*nh; const side=Math.max(0,(nw-visibleW)/2/nw)*100;
+      img.style.setProperty('--clip-l',side+'%'); img.style.setProperty('--clip-r',side+'%'); img.style.setProperty('--clip-t','0'); img.style.setProperty('--clip-b','0');
+    } else {
+      const visibleH=REF_H/REF_W*nw; const top=Math.max(0,(nh-visibleH)/2/nh)*100;
+      img.style.setProperty('--clip-t',top+'%'); img.style.setProperty('--clip-b',top+'%'); img.style.setProperty('--clip-l','0'); img.style.setProperty('--clip-r','0');
+    }
+  }
+
+  let apngPrefetched = false;
+  let apngBlobURL = null;
+
+  async function backgroundPreloadAPNG(signal){
+    if (apngPrefetched || !apng) return;
+    const url = apng.getAttribute('data-src');
+    if (!url) return;
+    try {
+      const res = await fetch(url, { cache: 'force-cache', mode: 'cors', referrerPolicy: 'strict-origin-when-cross-origin', signal });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      apngBlobURL = URL.createObjectURL(blob);
+      apngPrefetched = true;
+    } catch (e) {
+      console.warn('[APNG preload] fail:', e);
+    }
+  }
+
+  function whenReady(img, msTimeout = 4000){
+    const loadOrDecode = ('decode' in img)
+      ? img.decode().catch(() => new Promise(res => img.complete ? res() : img.addEventListener('load', res, {once:true})))
+      : new Promise(res => img.complete ? res() : img.addEventListener('load', res, {once:true}));
+    const timeout = new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), msTimeout));
+    return Promise.race([loadOrDecode, timeout]);
+  }
+
+  async function showApngFromZero({maxRetries = 2} = {}){
+    if (!apng) return;
+    const dataURL = apng.getAttribute('data-src');
+    if (!dataURL) return;
+
+    if (!apngPrefetched) {
+      const ctrl = new AbortController();
+      try { await backgroundPreloadAPNG(ctrl.signal); } catch(_) {}
+    }
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++){
+      const fresh = apng.cloneNode(false);
+      fresh.removeAttribute('src');
+      fresh.style.opacity = '0';
+      fresh.setAttribute('loading','eager');
+      fresh.setAttribute('fetchpriority','high');
+      fresh.src = apngBlobURL || dataURL;
+
+      try {
+        await whenReady(fresh, 5000);
+        apng.replaceWith(fresh);
+        apng = fresh;
+
+        if (apng.complete) applyClip(apng);
+        else apng.addEventListener('load', ()=>applyClip(apng), {once:true});
+
+        if (window.gsap) gsap.to(apng,{opacity:1,duration:0.28,delay:0.04});
+
+        if (apngBlobURL) setTimeout(()=>{ URL.revokeObjectURL(apngBlobURL); apngBlobURL = null; }, 3000);
+        return;
+      } catch (e){
+        console.warn(`[APNG] attempt ${attempt+1} failed:`, e);
+        await new Promise(r=>setTimeout(r, 250));
+        apngBlobURL = null;
+      }
+    }
+    apng.setAttribute('loading','eager');
+    apng.setAttribute('fetchpriority','high');
+    apng.src = dataURL;
+    apng.addEventListener('load', ()=>applyClip(apng), {once:true});
+    if (window.gsap) gsap.to(apng,{opacity:1,duration:0.28,delay:0.04});
+  }
+
+  function buildTimeline(){
+    if (!window.gsap) return;
+    const tl=gsap.timeline({defaults:{ease:'power3.out'}});
+    gsap.set('.device',{opacity:0,yPercent:4,scale:0.985,rotateZ:-1,filter:'blur(6px)'});
+    gsap.set(['.s1','.s2','.s3','.s4','.s5'],{opacity:0,yPercent:3,rotateX:4,rotateZ:-1,scale:0.99});
+    gsap.set('.veo',{opacity:0});
+
+    tl.to('.device',{opacity:1,yPercent:0,scale:1,rotateZ:0,filter:'blur(0px)',duration:0.55,ease:'back.out(1.6)'});
+    tl.to('.s1',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.9,ease:'back.out(1.4)'}, '-=0.15');
+    tl.to('.s2',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.9,ease:'back.out(1.4)'}, '-=0.10');
+    tl.to('.s3',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.9,ease:'back.out(1.4)'}, '-=0.10');
+    tl.to('.s4',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.9,ease:'back.out(1.4)'}, '-=0.10');
+    tl.to('.s5',{opacity:1,yPercent:0,rotateX:0,rotateZ:0,scale:1,duration:0.9,ease:'back.out(1.4)'}, '-=0.10');
+
+    tl.add('switchMedia');
+    tl.call(async ()=>{
+      if(!isMobile){
+        if (webp && webp.complete) applyClip(webp);
+        else if (webp) webp.addEventListener('load', ()=>applyClip(webp), {once:true});
+        gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.25});
+        gsap.to(webp,{opacity:1,duration:0.25,delay:0.05});
+        setTimeout(()=>{  }, 1200);
+      } else {
+        gsap.to(['.device','.s1','.s2','.s3','.s4','.s5'],{opacity:0,duration:0.1});
+        await showApngFromZero();
+        setTimeout(()=>{  }, 1200);
+      }
+    }, null, 'switchMedia');
+
+    return tl;
+  }
+
+  async function init(){
+    const stage = document.getElementById('stage');
+    if (!stage) return;
+    if(prefersReduced){
+      document.querySelectorAll('.layer').forEach(el=>{ el.style.opacity = (el.classList.contains('veo')?1:0); el.style.transform='none'; el.style.filter='none'; });
+      return;
+    }
+    const aborter = new AbortController();
+    backgroundPreloadAPNG(aborter.signal);
+    buildTimeline();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+
+</body>
 </html>
