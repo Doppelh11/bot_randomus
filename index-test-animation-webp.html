@@ -3,13 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Safari WebP Test</title>
+  <title>Hero WebP Test</title>
   <style>
-    body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#111;}
-    img{max-width:90%;height:auto;display:block;}
+    body {
+      margin: 0;
+      background: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .hero {
+      position: relative;
+      max-width: 100%;
+      overflow: hidden;
+    }
+    .hero img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
   </style>
 </head>
 <body>
-  <img src="assets/animation.webp" alt="animation test" />
+  <section class="hero">
+    <img src="assets/animation_mobile.webp"
+         alt="Hero animation"
+         width="600"
+         height="540" />
+  </section>
 </body>
 </html>
