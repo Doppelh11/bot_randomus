@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scene Test (Timeline) — steps + APNG(iOS Safari) / WEBM(others)</title>
+  <style>
+    :root{ --bg:#121014; }
+    *{ box-sizing:border-box }
+    html,body{ height:100% }
+    body{
+      margin:0; background:var(--bg); color:#fff;
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;
+      display:flex; align-items:center; justify-content:center;
+      padding:20px;
+    }
+    .stage{
+      position:relative; width:min(760px, 96vw);
+      aspect-ratio: 2048 / 1828;
+      background:transparent; isolation:isolate;
+      border-radius:16px; overflow:hidden;
+      box-shadow:0 20px 80px rgba(0,0,0,.45);
+    }
+    .layer{
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      object-fit:contain; object-position:50% 50%;
+      pointer-events:none;
+      opacity:0; transition: opacity .45s ease;
+    }
+    .layer.show{ opacity:1; }
+    /* Порядок слоёв как в проекте */
+    .device, .s1, .s2, .s3, .s4, .s5{ z-index: 6; }
+    .veo{ z-index: 4; }
+    /* Медиа по умолчанию скрыты; показываем их в конце таймлайна */
+    #test_video, #test_apng{ display:none; }
+    /* Управление (перезапуск) */
+    .controls{ position:fixed; left:16px; bottom:16px; display:flex; gap:8px; }
+    .btn{ border:0; border-radius:999px; padding:10px 14px; font-weight:800; cursor:pointer; }
+    .btn-ghost{ background:#20232b; color:#fff; }
+  </style>
+</head>
+<body>
+  <div class="stage" id="stage" aria-hidden="true">
+    <!-- Пошаговые слои -->
+    <img class="layer device" src="assets/step1.webp" alt="step1">
+    <img class="layer s1"     src="assets/step2.webp" alt="step2">
+    <img class="layer s2"     src="assets/step3.webp" alt="step3">
+    <img class="layer s3"     src="assets/step4.webp" alt="step4">
+    <img class="layer s4"     src="assets/step5.webp" alt="step5">
+    <img class="layer s5"     src="assets/step6.webp" alt="step6">
+
+    <!-- Шаблоны медиа: вставляем в конце таймлайна -->
+    <template id="video_tpl">
+      <video class="layer veo" id="test_video"
+             autoplay loop muted playsinline webkit-playsinline preload="auto"
+             width="700" height="625" aria-hidden="true">
+        <source src="assets/output.webm" type="video/webm">
+      </video>
+    </template>
+
+    <template id="apng_tpl">
+      <img class="layer veo" id="test_apng" src="assets/veo.apng" alt="apng">
+    </template>
+  </div>
+
+  <div class="controls" aria-hidden="true">
+    <button class="btn btn-ghost" id="replay">Replay</button>
+  </div>
+
+  <script>
+    (function(){
+      // Детект: APNG только для iOS Safari; остальных — WEBM
+      var ua = navigator.userAgent;
+      var isIOS = /iPhone|iPad|iPod/i.test(ua);
+      var isSafari = /^((?!chrome|crios|fxios|edgios|android).)*safari/i.test(ua);
+      var isIOSSafari = isIOS && isSafari;
+
+      var stage = document.getElementById('stage');
+      var tplVideo = document.getElementById('video_tpl');
+      var tplApng  = document.getElementById('apng_tpl');
+
+      function qs(sel){ return stage.querySelector(sel); }
+      function show(sel){ var el = qs(sel); if (el) el.classList.add('show'); return el; }
+      function hide(sel){ var el = qs(sel); if (el) el.classList.remove('show'); return el; }
+      function hideSteps(){
+        ['.device','.s1','.s2','.s3','.s4','.s5'].forEach(hide);
+      }
+      function removeMedia(){
+        var v = qs('#test_video'); if (v) v.remove();
+        var a = qs('#test_apng');  if (a) a.remove();
+      }
+      function mountVideo(){
+        removeMedia();
+        var node = tplVideo.content.firstElementChild.cloneNode(true);
+        stage.appendChild(node);
+        node.style.display = 'block';
+        // гарантируем запуск
+        if (node.play) { var p = node.play(); if (p && p.catch) p.catch(function(){}); }
+        return node;
+      }
+      function mountAPNG(){
+        removeMedia();
+        var node = tplApng.content.firstElementChild.cloneNode(true);
+        stage.appendChild(node);
+        node.style.display = 'block';
+        return node;
+      }
+
+      // Простой таймлайн (без GSAP), приближённый к «оригиналу»
+      // Тайминги можно крутить по вкусу:
+      var timeline = [
+        { t:   0, sel: '.device', act: 'show' },
+        { t: 600, sel: '.s1',     act: 'show' },
+        { t:1200, sel: '.s2',     act: 'show' },
+        { t:1800, sel: '.s3',     act: 'show' },
+        { t:2400, sel: '.s4',     act: 'show' },
+        { t:3000, sel: '.s5',     act: 'show' },
+        // финал: скрываем стэп-слои и вставляем нужное медиа
+        { t:3600, final: true }
+      ];
+
+      var timers = [];
+      function run(){
+        // сброс
+        timers.forEach(clearTimeout); timers.length = 0;
+        hideSteps(); removeMedia();
+
+        timeline.forEach(function(kf){
+          timers.push(setTimeout(function(){
+            if (kf.final){
+              hideSteps();
+              if (isIOSSafari) { mountAPNG(); } else { mountVideo(); }
+            } else {
+              if (kf.act === 'show') show(kf.sel); else hide(kf.sel);
+            }
+          }, kf.t));
+        });
+      }
+
+      // Старт и replay
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', run);
+      } else { run(); }
+
+      var btn = document.getElementById('replay');
+      if (btn) btn.addEventListener('click', run);
+    })();
+  </script>
+</body>
+</html>
