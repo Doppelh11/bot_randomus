@@ -1230,7 +1230,6 @@ header { z-index: 1300 !important; }
   }
 }
 </style>
-
 <style id="veo-live-debug-css">
 /* === VEO live tuning (desktop only) === */
 :root{
@@ -1294,6 +1293,12 @@ header { z-index: 1300 !important; }
 }
 #veo-debug .tog{ display:flex; align-items:center; gap:8px; }
 #veo-debug .tog input{ transform: translateY(1px); }
+</style>
+
+<style id="force-step1-semi">
+.hero .stage .layer.device{
+  opacity: 0.5 !important;
+}
 </style>
 </head>
 <body class="no-js">
@@ -2339,7 +2344,6 @@ header { z-index: 1300 !important; }
   })();
 })();
 </script>
-
 <div aria-label="VEO tuning panel" id="veo-debug" role="dialog">
 <header>
 <div>WEBM tuning</div>
