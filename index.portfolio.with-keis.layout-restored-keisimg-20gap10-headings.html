@@ -1,0 +1,1948 @@
+<!DOCTYPE html>
+
+<html data-theme="dark" lang="ru">
+<head>
+<style id="visual-root-vars">
+      :root{
+  --pop: 1;
+        --scale-x: 1.139;
+        --scale-y: 1.182;
+        --edge: 1px; /* сильнее съедаем края PNG */
+      }
+    
+  @media (max-width: 820px){
+    .hero .stage .hero-progress{ top: 6px; }
+  }
+
+:root{
+  --nav-h: 76px;
+  --marquee-h: 44px;
+}
+.hero{
+  min-height: calc(100vh - var(--nav-h) - var(--marquee-h));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: var(--nav-h);
+}
+.hero-marquee{
+  --marquee-h: 44px;
+  min-height: var(--marquee-h);
+  margin-top: 0;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255,255,255,.1);
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.hero .stage{ position: relative; }
+/* === CTR ICONS ABOVE BAR === */
+.hero .stage .ctr-bar{
+  height:26px;
+  border-radius:0px;
+  background: #000;
+  border: 5px solid rgba(255,255,255,.18);
+  overflow:hidden; z-index: 1;
+  box-shadow: inset 0 1px 2px rgba(255,255,255,.05), 0 2px 10px rgba(0,0,0,.25);
+  position: relative;
+}
+
+@media (max-width: 600px){
+  .hero .stage .ctr-bar{ --ctr-h: 24px; }
+}
+.hero .stage .ctr-icons{display:flex;justify-content:space-between;align-items:flex-end;margin: 0 10px 10px 10px;gap:10px; z-index:2;}
+.hero .stage .ctr-icons img{height:35px;width:auto;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));}
+
+
+/* === QUICK LAYOUT TWEAKS (icons bigger, text higher, bar lower) === */
+@media (min-width: 1024px){
+  .hero .hero-text{ transform: translateY(-10px); }
+}
+.hero .stage .ctr-icons{display:flex;justify-content:space-between;align-items:flex-end;margin: 0 10px 6px 10px;gap:6px; z-index:2;}
+.hero .stage .ctr-icons img{height:46px;width:auto;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));}
+@media (max-width: 600px){
+  .hero .stage .ctr-icons img{height:38px;}
+}
+.hero .stage .ctr-bar{ margin-top:10px; position:relative; }
+@media (min-width: 1024px){
+  .hero .stage{ margin-top: 32px; }
+}
+@media (max-width: 1023.98px){
+  .hero .stage{ margin-top: 18px; }
+}
+
+/* === LAYOUT UPDATE (v5) === */
+
+/* Raise left hero text higher */
+.hero .hero-text{ transform: translateY(-60px); }
+
+/* Icons: move higher, enlarge ~3x, reduce gap */
+.hero .stage .ctr-icons{display:flex;justify-content:center;align-items:flex-end;margin: 0 10px 20px 10px;gap:4px; z-index:2;position:relative;top:-40px;}
+.hero .stage .ctr-icons img{height:90px;width:auto;display:block;filter:drop-shadow(0 3px 8px rgba(0,0,0,.4));}
+@media (max-width: 600px){
+  .hero .stage .ctr-icons img{height:70px;}
+}
+
+
+/* === ICONS FRONT & TRANSPARENT (v6) === */
+.hero .stage .ctr-icons{
+  display:flex;
+  justify-content:center;
+  align-items:flex-end;
+  margin:0 10px 20px 10px;
+  gap:4px;
+  position:relative;
+  top:-40px;
+  z-index:5000; /* bring to very front */
+  background:none !important;
+  border:none !important;
+}
+.hero .stage .ctr-icons img{
+  height:90px;
+  width:auto;
+  display:block;
+  filter:none; /* remove drop shadow if considered as border */
+  background:transparent !important;
+  border:none !important;
+}
+@media (max-width: 600px){
+  .hero .stage .ctr-icons img{height:70px;}
+}
+
+
+/* === ICONS ABOVE CTR (v7) === */
+.hero .stage .ctr-icons{
+  display:flex;
+  justify-content:center;
+  align-items:flex-end;
+  margin:0;
+  gap:6px;
+  position:relative;
+  top:-70px; /* lift higher above bar */
+  z-index:6000;
+  background:none !important;
+  border:none !important;
+  box-shadow:none !important;
+}
+.hero .stage .ctr-icons img{
+  height:90px;
+  width:auto;
+  display:block;
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+  filter:none !important;
+}
+
+
+/* === BRING ICONS ABOVE ANIMATION (v8) === */
+/* Ensure background/aurora stays behind */
+.hero .aurora-layer{ position:absolute; z-index:0 !important; mix-blend-mode:normal !important; }
+/* Lift the whole stage above background */
+.hero .stage{ position:relative; z-index: 2000 !important; overflow:visible !important; }
+/* Typical animation layers inside stage go lower */
+.hero .stage .layer,
+.hero .stage [class*="layer"],
+.hero .stage video,
+.hero .stage img{ z-index: 1 !important; mix-blend-mode:normal !important; }
+/* CTR bar on top of layers */
+.hero .stage .ctr-bar{ z-index: 3000 !important; }
+/* Icons above everything */
+.hero .stage .ctr-icons{
+  position: relative;
+  z-index: 99999 !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+  pointer-events: none;
+}
+.hero .stage .ctr-icons img{
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+  pointer-events: auto;
+}
+
+
+/* === FORCE ICONS ABOVE ALL (v9) === */
+.hero .stage{ position:relative; z-index:0; }
+.hero .stage .ctr-icons{
+  position:absolute !important;
+  top:-100px; /* lift further above stage */
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  z-index: 1200 !important; /* maximum */
+  mix-blend-mode:normal !important;
+  opacity:1 !important;
+  pointer-events:none;
+}
+.hero .stage .ctr-icons img{
+  height:100px;
+  width:auto;
+  display:block;
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+  mix-blend-mode:normal !important;
+  opacity:1 !important;
+}
+
+
+/* === ICONS VISIBLE & ON TOP (v10) === */
+.hero .stage{ position:relative !important; overflow:visible !important; }
+.hero .stage .ctr-icons{
+  position:relative !important;
+  top:auto !important;
+  left:auto !important;
+  transform:none !important;
+  display:flex;
+  justify-content:center;
+  align-items:flex-end;
+  gap:8px;
+  margin: 0 10px 10px 10px;
+  z-index: 1200 !important;
+  mix-blend-mode:normal !important;
+  opacity:1 !important;
+  pointer-events:none;
+  background:none !important;
+  border:none !important;
+  box-shadow:none !important;
+}
+.hero .stage .ctr-icons img{
+  height:100px;
+  width:auto;
+  display:block;
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+  mix-blend-mode:normal !important;
+  opacity:1 !important;
+}
+
+
+/* === ICONS ADJUSTABLE OFFSET (v11) === */
+:root{ --ctr-icons-offset: -50px; } /* adjust this variable to move icons up/down */
+.hero .stage .ctr-icons{
+  transform: translateY(var(--ctr-icons-offset)) !important;
+}
+
+
+/* === STACKING FIX (v12) === */
+.hero .aurora-layer{ position:absolute; z-index:0 !important; mix-blend-mode:normal !important; }
+.hero .stage{ position:relative !important; z-index: 100000 !important; overflow:visible !important; transform:none !important; }
+.hero .stage .layer,
+.hero .stage [class*="layer"],
+.hero .stage video,
+.hero .stage img{ z-index: 1 !important; mix-blend-mode:normal !important; }
+.hero .stage .ctr-bar{ position:relative; z-index: 100100 !important; }
+.hero .stage .ctr-icons{
+  position:relative !important;
+  z-index: 1200 !important;
+  transform: translateY(var(--ctr-icons-offset)) !important;
+  background:none !important;
+  border:none !important;
+  box-shadow:none !important;
+  pointer-events:none;
+}
+.hero .stage .ctr-icons img{
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+}
+
+
+/* === ICONS OFFSET ADJUST (v15, revert background to v12) === */
+:root{ --ctr-icons-offset: -50px; }
+.hero .stage .ctr-icons{
+  transform: translateY(var(--ctr-icons-offset)) !important;
+}
+
+
+/* === ABSOLUTE TOPMOST ICONS (v16) === */
+:root{
+  --ctr-icons-top: 140px;       /* Позиция сверху экрана (настраивай) */
+  --ctr-icons-offset: 0px;      /* Доп. подстройка по Y */
+  --ctr-icons-scale: 1.0;       /* Масштаб иконок */
+}
+/* Ставим иконки фиксированными — поверх всех слоёв и вне стэков */
+.hero .stage .ctr-icons,
+.hero .ctr-icons{
+  position: fixed !important;
+  top: calc(var(--ctr-icons-top) + var(--ctr-icons-offset));
+  left: 50%;
+  transform: translateX(-50%) scale(var(--ctr-icons-scale));
+  z-index: 1200 !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+  pointer-events: none; /* чтобы не перехватывали клики */
+  margin: 0 !important;
+  gap: 8px !important;
+}
+.hero .ctr-icons img{
+  height: 100px;
+  width: auto;
+  display: block;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+}
+@media (max-width: 600px){
+  .hero .ctr-icons img{ height: 72px; }
+  :root{ --ctr-icons-top: 120px; }
+}
+
+
+/* === UI OVERLAY PORTAL (v17) === */
+#ui-overlay{
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1200 !important;
+  pointer-events: none !important;
+}
+#ui-overlay .ctr-icons{
+  position: absolute !important;
+  left: 50% !important;
+  transform: translateX(-50%) scale(var(--ctr-icons-scale, 1));
+  top: calc(var(--ctr-icons-top, 140px) + var(--ctr-icons-offset, 0px)) !important;
+  display: flex !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+}
+#ui-overlay .ctr-icons img{
+  height: var(--ctr-icons-height, 100px) !important;
+  width: auto !important;
+  display: block !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+:root{
+  --ctr-icons-top: 140px;      /* регулируй вертикаль */
+  --ctr-icons-offset: 0px;     /* тонкая подстройка */
+  --ctr-icons-scale: 1;        /* масштаб всей группы */
+  --ctr-icons-height: 100px;   /* размер иконок */
+}
+
+
+/* === ADD HORIZONTAL OFFSET VARIABLE (v18) === */
+:root{
+  --ctr-icons-top: 140px;
+  --ctr-icons-offset: 0px;
+  --ctr-icons-scale: 1;
+  --ctr-icons-height: 100px;
+  --ctr-icons-left-offset: 0px; /* отрицательное — левее, положительное — правее */
+}
+#ui-overlay .ctr-icons{
+  transform: translateX(calc(-50% + var(--ctr-icons-left-offset))) scale(var(--ctr-icons-scale)) !important;
+}
+
+
+/* === HERO-SCOPED ICONS LAYER (v21) === */
+.hero{ position: relative !important; overflow: visible !important; }
+.hero .hero-icons-layer{
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 2147483000 !important; /* above aurora and stage */
+  pointer-events: none !important;
+}
+.hero .hero-icons-layer .ctr-icons{
+  position: absolute !important;
+  left: calc(50% + var(--ctr-icons-left-offset, 0px)) !important;
+  top: var(--ctr-icons-top, 140px) !important;
+  transform: translateX(-50%) translateY(var(--ctr-icons-offset, 0px)) scale(var(--ctr-icons-scale, 1)) !important;
+  display: flex !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  background: none !important; border: 0 !important; box-shadow: none !important; mix-blend-mode: normal !important;
+  opacity: 1 !important;
+}
+.hero .hero-icons-layer .ctr-icons img{
+  height: var(--ctr-icons-height, 100px) !important;
+  width: auto !important;
+  display: block !important;
+  background: transparent !important; border: 0 !important; box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+
+/* === ICONS OVER CTR — OVERLAY FOLLOW (v24) === */
+:root{
+  --icons-scale: 1;            /* масштаб всей группы */
+  --icons-height: 100px;       /* высота PNG */
+  --icons-offset-x: 0px;       /* горизонтальное смещение: + вправо, − влево */
+  --icons-offset-y: -24px;     /* вертикальное смещение: отрицательное — выше бара */
+  --icons-gap: 8px;            /* расстояние между иконками */
+}
+
+#ui-overlay{
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  pointer-events: none;
+}
+
+#ui-overlay .ctr-icons-row{
+  position: absolute;
+  left: 0; top: 0;
+  transform: translate(-9999px,-9999px);
+  display: flex;
+  align-items: center;
+  gap: var(--icons-gap);
+  background: none;
+}
+
+#ui-overlay .ctr-icons-row img{
+  height: var(--icons-height);
+  width: auto;
+  display: block;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+@media (max-width: 600px){
+  :root{ --icons-height: 72px; --icons-gap: 6px; }
+}
+
+
+/* === HERO TEXT & CTA SPACING FIX === */
+.hero .hero-text .lead {
+  margin-top: 28px !important; /* больше отступ сверху для читаемости */
+}
+
+.hero .hero-text .cta {
+  margin-top: 32px !important; /* кнопки чуть ниже текста */
+  display: flex;
+  gap: 18px; /* расстояние между кнопками больше */
+}
+
+@media (max-width: 600px) {
+  .hero .hero-text .cta {
+    flex-direction: column;
+    gap: 12px; /* на мобильных компактнее */
+  }
+}
+
+</style>
+<style id="visual-hero-styles">
+  /* === Сцена в HERO (scoped) === */
+  .hero .hero-image{ position:relative; }
+  .hero .stage{
+    position:relative; width:100%; max-width:760px;
+    aspect-ratio: 2048 / 1828;
+    margin-inline:auto; isolation:isolate;
+    filter:drop-shadow(0 40px 120px rgba(0,0,0,.45));
+    perspective:1200px; contain:layout paint;
+    background: transparent;
+    z-index: 5;
+  }
+  .hero .layer{
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit:contain; object-position:50% 50%;
+    transform-style:preserve-3d; backface-visibility:hidden;
+    transform-origin:50% 50%; will-change:transform,opacity,filter; opacity:0;
+  }
+  /* шаги: overscale + clip, чтобы убрать кайму */
+  .hero .device, .hero .s1, .hero .s2, .hero .s3, .hero .s4, .hero .s5{
+    
+    z-index:6;
+    clip-path: inset(var(--edge, 1px));
+  }
+  .hero .veo{
+    --pop: 1;
+    transform: translateZ(0)
+             scaleX(calc(var(--scale-x,1) * var(--pop)))
+             scaleY(calc(var(--scale-y,1) * var(--pop)));
+
+    clip-path: inset(var(--clip-t,0) var(--clip-r,0) var(--clip-b,0) var(--clip-l,0));
+    z-index:4; opacity:0;
+  }
+  .hero .veo.webp{ display:block; }
+  .hero .veo.apng{ display:none; }
+  @media (pointer:coarse), (max-width:820px){
+    .hero .veo.webp{ display:none !important; }
+    .hero .veo.apng{ display:block !important; }
+  }
+
+  /* === Нескалируемый слой бейджа поверх (чтобы не тянуло пропорции) === */
+  
+  .hero .confirm-chip{
+    position:absolute; left:0; top: calc(100% + 6px);
+    transform: translateY(6px); opacity:0;
+    background: #000; color:#fff;
+    padding:6px 10px; border-radius:12px; font-size:12px; font-weight:600;
+    backdrop-filter: blur(4px); white-space:nowrap;
+  }
+</style>
+<style id="hero-progress-styles">
+  /* === HERO: прогресс-бар над сценой === */
+  .hero .stage { position: relative; }
+  .hero .stage .hero-progress{
+    position:absolute; left:0; right:0; top: 0;
+    display:grid; gap:6px; pointer-events:none; z-index: 1002;
+  }
+  .hero .stage .hp-track{
+    position:relative; width:100%; height:10px; border-radius:999px;
+    background: #000; overflow:hidden;
+    box-shadow: 0 6px 20px rgba(0,0,0,.35);
+  }
+  .hero .stage .hp-fill{
+    position:absolute; inset:0 auto 0 0; width:0%; height:100%;
+    background: linear-gradient(90deg, #ff6b6b, #f5d36c, #8b5cf6);
+    transform-origin: 0 50%;
+    will-change: width, filter;
+  }
+  .hero .stage .hp-spark{
+    position:absolute; top:50%; transform:translate(-50%,-50%);
+    width:18px; height:18px; border-radius:50%;
+    background: white; filter: blur(1px); opacity:0;
+    box-shadow: 0 0 18px rgba(255,255,255,.95), 0 0 40px rgba(245,211,108,.45);
+    mix-blend-mode: screen;
+  }
+  .hero .stage .hp-chip{
+    justify-self:start; display:inline-flex; align-items:center; gap:6px;
+    padding:6px 10px; border-radius:12px; font-weight:800;
+    background: #000; color:#fff; backdrop-filter: blur(6px);
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    transform: translateY(4px); opacity:0; transition:opacity .25s ease, transform .25s ease;
+    font-variant-numeric: tabular-nums;
+  }
+  .hero .stage .hp-chip .hp-tag{ font-size:12px; padding:2px 6px; border-radius:999px; background: #000; }
+  .hero .stage .hp-chip .hp-val{ font-size:16px; }
+  .hero .stage .hp-chip .hp-pct{ font-size:13px; opacity:.9; }
+  .hero .stage .hero-progress.is-complete .hp-fill{
+    filter: saturate(1.15) drop-shadow(0 0 18px rgba(245,211,108,.45));
+    animation: hpSnap .35s ease-out 1;
+  }
+  .hero .stage .hero-progress.is-complete .hp-track{
+    box-shadow: 0 10px 34px rgba(0,0,0,.45), 0 0 0 2px rgba(245,211,108,.18) inset;
+  }
+  @keyframes hpSnap{
+    0% { transform: scaleY(1); }
+    45%{ transform: scaleY(1.22); }
+    100%{ transform: scaleY(1); }
+  }
+  .hero .stage .hero-progress.show-chip .hp-chip{
+    opacity:1; transform:none;
+  }
+  </style>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title>Инфографика и оформление карточек — wide + motion</title>
+<meta content="Крупная типографика, вау-анимации, продающая палитра. Широкий адаптив. Структура: услуги, кейсы, тарифы, о студии, блог, контакты." name="description"/>
+<link href="https://example.com/" rel="canonical"/>
+<meta content="telephone=no" name="format-detection"/>
+
+
+
+
+
+<style>
+/* Zoomer: isolated styles */
+.t-zoomer__wrapper{position:fixed;inset:0;background:#fff;display:none;opacity:0;z-index:2147483647;transition:opacity .25s ease;user-select:none;}
+.t-zoomer__wrapper.t-zoomer__show{display:block;opacity:1;}
+.t-zoomer__container{position:absolute;inset:0;text-align:center;}
+.t-carousel__zoomer__track{display:flex;align-items:center;height:100vh;width:100vw;overflow:hidden;touch-action:pan-y;}
+.t-carousel__zoomer__item{display:flex;flex-direction:column;justify-content:center;align-items:center;flex-shrink:0;height:100%;width:100vw;}
+.t-zoomer__img{max-width:92vw;max-height:92vh;width:auto;height:auto;object-fit:contain;transform:translate(0,0) scale(1);transition:transform .12s ease;display:block;box-shadow:0 8px 36px rgba(0,0,0,.18);border-radius:8px;cursor:zoom-in;}
+.t-zoomer__close{position:absolute;top:16px;right:20px;background:none;border:none;color:#111;font-size:40px;line-height:1;cursor:pointer;z-index:2;}
+.t-zoomer__prev,.t-zoomer__next{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.9);color:#333;border:none;border-radius:50%;width:56px;height:56px;font-size:42px;font-weight:700;cursor:pointer;z-index:2;box-shadow:0 2px 6px rgba(0,0,0,.2);}
+.t-zoomer__prev:hover,.t-zoomer__next:hover{background:#fff;}
+.t-zoomer__prev{left:16px;} .t-zoomer__next{right:16px;}
+html.zoomer-open,body.zoomer-open{height:100%;overflow:hidden;transform:none!important;}
+body.zoomer-open header,body.zoomer-open #progress,body.zoomer-open #ui-overlay,body.zoomer-open .to-top,body.zoomer-open .hero-ctr-layer,body.zoomer-open .ctr-bar{display:none!important;}
+/* box-sizing scoped only to zoomer */
+.t-zoomer__wrapper, .t-zoomer__wrapper *, .t-zoomer__wrapper *::before, .t-zoomer__wrapper *::after{box-sizing:content-box;}
+</style>
+
+
+<style>
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px; /* отступы между фото */
+  background: transparent; /* прозрачный фон */
+}
+</style>
+
+</head>
+<body class="no-js">
+<div aria-hidden="true" class="cursor" id="cursor"></div>
+<header>
+<div class="progress" id="progress"></div>
+<div class="wrap nav">
+<a class="brand" href="#top"><div aria-hidden="true" class="logo"></div><span>Maria SKU Lab</span></a>
+<nav aria-label="Главное меню" class="menu">
+<a href="#services">Услуги</a>
+<a href="#portfolio">Кейсы</a>
+<a href="#pricing">Тарифы</a>
+<a href="#about">О студии</a>
+<a href="#blog">Блог</a>
+<a class="btn btn-sec magnet" href="#contact" style="padding:10px 16px">Связаться</a>
+</nav>
+</div>
+</header>
+<main id="top">
+<!-- HERO -->
+<section class="hero fullwidth">
+<div aria-hidden="true" class="hero-icons-layer">
+</div>
+<div aria-hidden="true" class="aurora-layer"></div>
+<div class="wrap hero-inner">
+<div class="hero-text">
+<div>
+<h1>
+            Не картинки для галочки.<br/>
+<span class="accent">Инструменты роста продаж.</span>
+</h1>
+<p class="lead">
+            Оформляем карточки для Wildberries и Ozon так, чтобы они повышали CTR,
+            увеличивали конверсию и проходили модерацию без проблем.
+          </p>
+</div>
+<div class="cta">
+<a class="btn btn-prim magnet" href="#pricing">Выбрать пакет</a>
+<a class="btn btn-sec magnet" href="#portfolio">Смотреть кейсы</a>
+</div>
+</div>
+<div class="hero-image"><div aria-hidden="true" class="hero-ctr-layer"></div>
+<div aria-hidden="true" class="stage" id="stage"><img alt="step1" class="layer device" src="assets/step1.webp"/>
+<img alt="step2" class="layer s1" src="assets/step2.webp"/>
+<img alt="step3" class="layer s2" src="assets/step3.webp"/>
+<img alt="step4" class="layer s3" src="assets/step4.webp"/>
+<img alt="step5" class="layer s4" src="assets/step5.webp"/>
+<img alt="step6" class="layer s5" src="assets/step6.webp"/>
+<template id="video_tpl">
+<video aria-hidden="true" autoplay="" class="layer veo" height="625" id="test_video" loop="" muted="" playsinline="" preload="auto" webkit-playsinline="" width="700">
+<source src="assets/output.webm" type="video/webm"/>
+</video>
+</template>
+<template id="apng_tpl">
+<img alt="apng" class="layer veo" id="test_apng" src="assets/veo.apng"/>
+</template>
+</div>
+</div>
+</div>
+<!-- Пошаговые PNG-слои -->
+<!-- Desktop WEBP -->
+<!-- Mobile APNG — src подставит JS, чтобы стартовать с кадра 0 -->
+</section>
+<!-- БЕГУЩАЯ СТРОКА -->
+<div class="hero-marquee">
+<div class="marquee-track">
+<span>300+ карточек • до +65% CTR • 90% побед в A/B тестах • 15+ ниш • Карточки по правилам WB и Ozon •</span>
+<span aria-hidden="true">300+ карточек • до +65% CTR • 90% побед в A/B тестах • 15+ ниш • Карточки по правилам WB и Ozon •</span>
+</div>
+</div>
+<!-- Доп. стили под Hero + фиксы панелей -->
+<style>
+    .hero{ min-height:85vh; display:flex; flex-direction:column; justify-content:flex-start; padding-top:72px; }
+    .hero-inner{ display:flex; justify-content:space-between; align-items:center; gap:28px; flex:1; }
+    .hero-text{ flex:1; max-width:55%; display:flex; flex-direction:column; justify-content:space-between; }
+    .hero-text h1{
+  font-size: clamp(44px, 7vw, 110px);
+  font-weight: 900;
+  line-height: 1.02;
+  margin: 0 0 14px;
+}
+    .hero-text .accent{ background:linear-gradient(90deg,#ff6b6b,#f5d36c,#8b5cf6); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .hero-text .lead{ margin:0 0 18px; color:var(--muted); font-size:clamp(15px,1.4vw,20px); }
+    .hero-text .cta{ display:flex; gap:12px; flex-wrap:wrap; }
+    .hero-image{ flex:1; max-width:45%; display:flex; justify-content:center; align-items:center; }
+    .hero-image img{ width:100%; height:auto; max-height:56vh; border-radius:18px; box-shadow:0 12px 40px rgba(0,0,0,.4); }
+    .hero-marquee{ width:100%; overflow:hidden; border-top:1px solid rgba(255,255,255,.1); border-bottom:1px solid rgba(255,255,255,.1); margin-top:12px; padding:10px 0; text-align:center; }
+    .marquee-track{ display:inline-block; white-space:nowrap; animation:marquee 16s linear infinite; }
+    .marquee-track span{ display:inline-block; font-size:18px; font-weight:700; padding-right:60px; background:linear-gradient(90deg,#ff6b6b,#f5d36c,#8b5cf6); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    @keyframes marquee{ 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+    @media (max-width: 900px){
+      .hero{ min-height:auto; padding-top:64px; }
+      .hero-inner{ flex-wrap:wrap; gap:20px; }
+      .hero-text, .hero-image{ max-width:100%; }
+      .hero-image img{ max-height:40vh; }
+    }
+    .panel-block.panel-ink, .panel-block.panel-grad{
+      --p: clamp(18px, 2.2vw, 28px);
+      padding: var(--p) !important; border-radius: 16px; overflow: hidden; display: grid; gap: calc(var(--p) * .75);
+      padding-bottom: calc(var(--p) + 45px) !important;
+    }
+    .panel-block.panel-ink > *, .panel-block.panel-grad > *{ margin:0 !important; }
+    .panel-block.panel-ink .section-head, .panel-block.panel-grad .section-head{ margin:0 !important; }
+    .panel-block .card{ margin:0 !important; }
+    .panel-block .visual-strip, .panel-block .carousel{ padding-bottom:0 !important; scrollbar-gutter: stable both-edges; }
+    #portfolio .panel-block .visual-strip{ padding-bottom:0 !important; }
+    #portfolio .panel-block .grid{ margin:0 !important; }
+    #portfolio .panel-block .grid.three[style]{ margin-top:0 !important; }
+    #about .panel-block .grid, #contact .panel-block .grid{ margin:0 !important; }
+    @media (max-width: 720px){ .panel-block.panel-ink, .panel-block.panel-grad{ padding-bottom: var(--p) !important; } }
+  </style>
+<!-- SERVICES -->
+<section class="reveal" data-reveal="up" id="services">
+<div class="wrap">
+<div class="section-head reveal" data-delay="0.05">
+<h2>Что мы делаем</h2>
+<p class="muted">Услуги студии для селлеров WB и Ozon</p>
+</div>
+<div class="grid four">
+<a class="card glow service reveal hover" data-reveal="left" href="infografika-dlya-marketpleysov.html" style="text-decoration:none; --icon: url('assets/01.webp')">
+<span aria-hidden="true" class="svc-overlay"></span>
+<div class="service-text"><h3>Инфографика для маркетплейсов</h3>
+<p class="muted">Продающие слайды, которые закрывают возражения и повышают конверсию.</p></div>
+<div class="cta">
+<span class="btn btn-sec" style="padding:8px 12px">Подробнее</span>
+</div>
+</a>
+<article class="card glow service reveal hover" data-delay="0.05" data-reveal="up" style="--icon: url('assets/02.webp')">
+<span aria-hidden="true" class="svc-overlay"></span>
+<h3>Видеоинфографика и Rich контент</h3>
+<p class="muted">Динамика, которая цепляет взгляд. Видео-слайды и анимация поднимают вовлечение и доверие.</p><div class="cta"><a class="btn btn-sec magnet" href="#contact" style="padding:8px 12px">Подробнее</a></div>
+</article>
+<article class="card glow service reveal hover" data-delay="0.1" data-reveal="up" style="--icon: url('assets/03.webp')">
+<span aria-hidden="true" class="svc-overlay"></span>
+<h3>SEO оптимизация карточки товара</h3>
+<p class="muted">Заголовки и описания в поиске + правильные тексты на слайдах. Вас проще найти — вас чаще покупают.</p><div class="cta"><a class="btn btn-sec magnet" href="#contact" style="padding:8px 12px">Подробнее</a></div>
+</article>
+<article class="card glow service reveal hover" data-delay="0.15" data-reveal="up" style="--icon: url('assets/04.webp')">
+<span aria-hidden="true" class="svc-overlay"></span>
+<h3>Нейрофотосессии и ИИ услуги</h3>
+<p class="muted">Красивые ракурсы без студии. Быстро, стильно, с уникальностью, которой нет у конкурентов. ИИ модели примерят любую одежду.</p><div class="cta"><a class="btn btn-sec magnet" href="#contact" style="padding:8px 12px">Подробнее</a></div>
+</article>
+<article class="card glow service reveal hover" data-delay="0.2" data-reveal="up" style="--icon: url('assets/05.webp')">
+<span aria-hidden="true" class="svc-overlay"></span>
+<h3>Презентации</h3>
+<p class="muted">Питчи, КП, PDF для оптовиков и маркетинга.</p><div class="cta"><a class="btn btn-sec magnet" href="#contact" style="padding:8px 12px">Подробнее</a></div>
+</article>
+<article class="card glow service reveal hover" data-delay="0.25" data-reveal="up" style="--icon: url('assets/06.webp')">
+<span aria-hidden="true" class="svc-overlay"></span>
+<h3>Брендинг</h3>
+<p class="muted">Логотипы, фирменный стиль и маскоты, которые делают бренд узнаваемым и выделяют карточку среди конкурентов.</p><div class="cta"><a class="btn btn-sec magnet" href="#contact" style="padding:8px 12px">Подробнее</a></div>
+</article>
+<article class="card glow service reveal hover" data-delay="0.3" data-reveal="up" style="--icon: url('assets/07.webp')">
+<span aria-hidden="true" class="svc-overlay"></span>
+<h3>Полиграфия</h3>
+<p class="muted">Вкладыши, бирки, стикеры и упаковка, которые усиливают бренд-опыт после покупки и мотивируют клиента возвращаться.</p><div class="cta"><a class="btn btn-sec magnet" href="#contact" style="padding:8px 12px">Подробнее</a></div>
+</article>
+<article class="card glow service reveal hover" data-delay="0.35" data-reveal="up" style="--icon: url('assets/08.webp')">
+<span aria-hidden="true" class="svc-overlay"></span>
+<h3>Предметная/студийная/сборная фото и видеосъемка</h3>
+<p class="muted">Живые кадры и ракурсы, которые выделяют товар на полке маркетплейса. Съёмка, ретушь и видео под ключ.</p><div class="cta"><a class="btn btn-sec magnet" href="#contact" style="padding:8px 12px">Подробнее</a></div>
+</article>
+<article class="card glow service reveal hover" data-delay="0.4" data-reveal="up" style="--icon: url('assets/09.webp')">
+<span aria-hidden="true" class="svc-overlay"></span>
+<h3>Отзывы и самовыкупы</h3>
+<p class="muted">Организуем безопасные самовыкупы и собираем реальные отзывы для роста рейтинга. Повышаем доверие к товару и ускоряем продажи.</p><div class="cta"><a class="btn btn-sec magnet" href="#contact" style="padding:8px 12px">Подробнее</a></div>
+</article>
+<article class="card glow service reveal hover" data-delay="0.45" data-reveal="up" style="--icon: url('assets/10.webp')">
+<span aria-hidden="true" class="svc-overlay"></span>
+<h3>Менеджеры маркетплейса</h3>
+<p class="muted">Ведение аккаунта «под ключ»: акции, аналитика, отчёты и загрузка контента. Вы занимаетесь товаром — мы продажами.</p><div class="cta"><a class="btn btn-sec magnet" href="#contact" style="padding:8px 12px">Подробнее</a></div>
+</article>
+<article class="card glow service reveal hover" data-delay="0.5" data-reveal="up" style="--icon: url('assets/11.webp')">
+<span aria-hidden="true" class="svc-overlay"></span>
+<h3>Посевы и таргетированная реклама WB, Ozon, VK</h3>
+<p class="muted">Настраиваем внутреннюю и внешнюю рекламу. Приводим трафик, увеличиваем охваты и заказы.</p><div class="cta"><a class="btn btn-sec magnet" href="#contact" style="padding:8px 12px">Подробнее</a></div>
+</article>
+<article class="card glow service reveal hover" data-delay="0.55" data-reveal="up" style="--icon: url('assets/12.webp')">
+<span aria-hidden="true" class="svc-overlay"></span>
+<h3>Обучение дизайну карточек товара и нейросетям</h3>
+<p class="muted">Индивидуально или для команды. Покажем, как делать карточки, которые продают, на ваших товарах.</p><div class="cta"><a class="btn btn-sec magnet" href="#contact" style="padding:8px 12px">Подробнее</a></div>
+</article>
+</div>
+</div>
+</section>
+<!-- PORTFOLIO -->
+<section class="fullwidth reveal" data-reveal="up" id="portfolio">
+<div class="wrap">
+<div class="panel-block panel-ink">
+<div class="section-head reveal" data-delay="0.05"><h2>Портфолио</h2><a class="btn btn-sec magnet" href="/portfolio">Все кейсы</a></div>
+
+<!-- Portfolio 3x5 grid -->
+<div class="portfolio-grid" aria-label="Кейсы 3x5">
+  <a class="pg-item" href="assets/portfolio/Port1.webp"><img src="assets/portfolio/Port1.webp" alt="Кейс 1"></a>
+  <a class="pg-item" href="assets/portfolio/Port2.webp"><img src="assets/portfolio/Port2.webp" alt="Кейс 2"></a>
+  <a class="pg-item" href="assets/portfolio/Port3.webp"><img src="assets/portfolio/Port3.webp" alt="Кейс 3"></a>
+  <a class="pg-item" href="assets/portfolio/Port4.webp"><img src="assets/portfolio/Port4.webp" alt="Кейс 4"></a>
+  <a class="pg-item" href="assets/portfolio/Port5.webp"><img src="assets/portfolio/Port5.webp" alt="Кейс 5"></a>
+
+  <a class="pg-item" href="assets/portfolio/Port6.webp"><img src="assets/portfolio/Port6.webp" alt="Кейс 6"></a>
+  <a class="pg-item" href="assets/portfolio/Port7.webp"><img src="assets/portfolio/Port7.webp" alt="Кейс 7"></a>
+  <a class="pg-item" href="assets/portfolio/Port8.webp"><img src="assets/portfolio/Port8.webp" alt="Кейс 8"></a>
+  <a class="pg-item" href="assets/portfolio/Port9.webp"><img src="assets/portfolio/Port9.webp" alt="Кейс 9"></a>
+  <a class="pg-item" href="assets/portfolio/Port10.webp"><img src="assets/portfolio/Port10.webp" alt="Кейс 10"></a>
+
+  <a class="pg-item" href="assets/portfolio/Port11.webp"><img src="assets/portfolio/Port11.webp" alt="Кейс 11"></a>
+  <a class="pg-item" href="assets/portfolio/Port12.webp"><img src="assets/portfolio/Port12.webp" alt="Кейс 12"></a>
+  <a class="pg-item" href="assets/portfolio/Port13.webp"><img src="assets/portfolio/Port13.webp" alt="Кейс 13"></a>
+  <a class="pg-item" href="assets/portfolio/Port14.webp"><img src="assets/portfolio/Port14.webp" alt="Кейс 14"></a>
+  <a class="pg-item" href="assets/portfolio/Port15.webp"><img src="assets/portfolio/Port15.webp" alt="Кейс 15"></a>
+
+<a class="pg-item" data-src="assets/portfolio/Port16.webp">
+  <img src="assets/portfolio/Port16.webp" alt="Кейс 16" loading="lazy">
+</a>
+<a class="pg-item" data-src="assets/portfolio/Port17.webp">
+  <img src="assets/portfolio/Port17.webp" alt="Кейс 17" loading="lazy">
+</a>
+<a class="pg-item" data-src="assets/portfolio/Port18.webp">
+  <img src="assets/portfolio/Port18.webp" alt="Кейс 18" loading="lazy">
+</a>
+<a class="pg-item" data-src="assets/portfolio/Port19.webp">
+  <img src="assets/portfolio/Port19.webp" alt="Кейс 19" loading="lazy">
+</a>
+<a class="pg-item" data-src="assets/portfolio/Port20.webp">
+  <img src="assets/portfolio/Port20.webp" alt="Кейс 20" loading="lazy">
+</a>
+</div>
+
+<!-- Lightbox -->
+<div class="pg-lightbox" id="pgLightbox" hidden>
+  <button class="pg-close" type="button" aria-label="Закрыть">×</button>
+  <img id="pgLightboxImg" alt="">
+</div>
+
+<h2 class="section-title">Кейсы</h2>
+<div class="grid three" style="margin-top:22px">
+<article class="card glow reveal hover" data-reveal="left">
+<img alt="Кейс 1" loading="lazy" src="assets/portfolio/keis1.webp">
+<div style="margin-top:10px"><span class="chip">+38% CTR</span><span class="chip">+22% конверсия</span></div>
+</article>
+<article class="card glow reveal hover" data-delay="0.07" data-reveal="up">
+<img alt="Кейс 2" loading="lazy" src="assets/portfolio/keis2.webp">
+<div style="margin-top:10px"><span class="chip">+41% клики</span><span class="chip">–12% CPC</span></div>
+</article>
+<article class="card glow reveal hover" data-delay="0.14" data-reveal="right">
+<img alt="Кейс 1" loading="lazy" src="assets/portfolio/keis1.webp">
+<div style="margin-top:10px"><span class="chip">+29% продажи</span><span class="chip">A/B победа 73%</span></div>
+</article>
+</div>
+</div>
+</div>
+</section>
+<!-- PRICING + FAQ -->
+<section class="reveal" data-reveal="up" id="pricing">
+<div class="wrap">
+<div class="section-head reveal" data-delay="0.05"><h2>Тарифы</h2><p class="muted">Цены «от» — точный расчёт после брифа</p></div>
+<h2 class="section-title">Кейсы</h2>
+<div class="grid three">
+<article class="card glow price reveal hover" data-reveal="left"><h3>🎨 Старт</h3><div style="font-size:32px;font-weight:900">от 5 000 ₽</div><ul class="muted" style="margin:10px 0 16px;padding-left:18px"><li>3 инфо-слайда</li><li>1 обложка</li><li>Правки до согласования</li></ul><a class="btn btn-prim magnet" href="#contact">Заказать</a></article>
+<article class="card glow price emph reveal hover" data-delay="0.08" data-reveal="up"><h3>🚀 Продажи</h3><div style="font-size:32px;font-weight:900">от 15 000 ₽</div><ul class="muted" style="margin:10px 0 16px;padding-left:18px"><li>10 инфо-слайдов</li><li>Обложка + баннеры</li><li>SEO-описания</li></ul><a class="btn btn-prim magnet" href="#contact">Заказать</a></article>
+<article class="card glow price reveal hover" data-delay="0.16" data-reveal="right"><h3>👑 Под ключ</h3><div style="font-size:32px;font-weight:900">от 30 000 ₽</div><ul class="muted" style="margin:10px 0 16px;padding-left:18px"><li>Фото/ретушь</li><li>Инфографика + тексты</li><li>Загрузка и A/B-тесты</li></ul><a class="btn btn-prim magnet" href="#contact">Заказать</a></article>
+</div>
+<!-- FAQ -->
+<div class="section-head reveal" data-delay="0.05">
+<h2>Часто задаваемые вопросы</h2>
+<span class="muted">Ответы по процессу, срокам и оплате</span>
+</div>
+<div class="faq card reveal" data-reveal="clip">
+<details>
+<summary>
+<span class="q"><svg class="chev" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>Сколько стоит инфографика?</span>
+</summary>
+<p>От 5 000 ₽ за базовый комплект. Точная цена зависит от категории товара, количества слайдов и доп. опций (SEO, Rich контент). Быструю оценку можно посчитать в калькуляторе выше.</p>
+</details>
+<details>
+<summary>
+<span class="q"><svg class="chev" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>Какие сроки?</span>
+</summary>
+<p>Обычно 2–4 рабочих дня на комплект из 6–10 слайдов. Срок зависит от сложности и наличия исходных материалов (фото/USP/брендбук).</p>
+</details>
+<details>
+<summary>
+<span class="q"><svg class="chev" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>Что нужно от меня для старта?</span>
+</summary>
+<p>Ссылка на товар, ТЗ/бриф, целевая аудитория, УТП, ограничения площадки, фирменные цвета/логотипы. Если есть прототипы/референсы — отлично.</p>
+</details>
+<details>
+<summary>
+<span class="q"><svg class="chev" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>Сколько правок входит?</span>
+</summary>
+<p>Правим до согласования итогового макета в рамках ТЗ. Существенные изменения концепции считаются как новый этап.</p>
+</details>
+<details>
+<summary>
+<span class="q"><svg class="chev" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>Даете исходники?</span>
+</summary>
+<p>Да, по запросу передаём финальные макеты в PNG/JPG и исходники (Figma/PSD/AI), если это оговорено в пакете.</p>
+</details>
+<details>
+<summary>
+<span class="q"><svg class="chev" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>Что такое Rich контент?</span>
+</summary>
+<p>Это расширенные модули карточки: анимация, видеоинфографика, интерактивные блоки (если поддерживается площадкой). В нашем калькуляторе опция стоит 5 000 ₽.</p>
+</details>
+<details>
+<summary>
+<span class="q"><svg class="chev" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>SEO для карточки — что входит?</span>
+</summary>
+<p>Подбор ключей, теги, оптимизированные заголовки и описания без «воды». Корректно вписываем ключи в слайды и текст, чтобы не нарушать правила WB/Ozon.</p>
+</details>
+<details>
+<summary>
+<span class="q"><svg class="chev" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>Как оплачивать?</span>
+</summary>
+<p>50/50: предоплата 50%, затем финал. Работаем по договорённости удобным способом (СБП/счёт). Для юрлиц возможен акт и счёт.</p>
+</details>
+<details>
+<summary>
+<span class="q"><svg class="chev" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>Даете гарантию на A/B тест?</span>
+</summary>
+<p>Гарантировать конкретные цифры некорректно (влияют цена, остатки, конкуренция), но мы используем практики, которые статистически повышают CTR/конверсию. По желанию помогаем с настройкой теста.</p>
+</details>
+</div>
+</div>
+</section>
+<!-- ABOUT -->
+<section class="reveal" data-reveal="up" id="about">
+<div class="wrap">
+<div class="panel-block panel-grad">
+<div class="section-head reveal" data-delay="0.05"><h2>Руководитель студии</h2><p class="muted">Кто отвечает за результат</p></div>
+<div class="grid two" style="align-items:start">
+<div class="card glow reveal" data-reveal="left">
+<img alt="Кейс 2" loading="lazy" src="assets/portfolio/keis2.webp">
+<div style="margin-top:10px"><span class="chip">Верифицированная VK</span><span class="chip">10+ ниш</span><span class="chip">Figma/PS/AI</span></div>
+</div>
+<div class="reveal" data-delay="0.08" data-reveal="right">
+<h3 style="font-size:clamp(22px,2.2vw,30px);margin:0 0 8px">Мария Maska</h3>
+<p class="muted">Наставник, иллюстратор, графический и ИИдизайнер, основатель студии.</p>
+<div class="timeline" style="margin-top:12px">
+<div class="step"><div class="dot"></div><strong>Бриф</strong><div class="muted">Собираем цели, аудиторию и смыслы</div></div>
+<div class="step"><div class="dot"></div><strong>Прототип</strong><div class="muted">Сетка, иерархия, тексты</div></div>
+<div class="step"><div class="dot"></div><strong>Дизайн</strong><div class="muted">Слайды, обложки, адаптации</div></div>
+<div class="step"><div class="dot"></div><strong>Запуск</strong><div class="muted">Загрузка, тесты, оптимизация</div></div>
+</div>
+<div class="cta" style="margin-top:12px"><a class="btn btn-prim magnet" href="https://vk.com/designer.illustrator">Связаться в VK</a><a class="btn btn-sec magnet" href="#portfolio">Портфолио</a></div>
+<div class="muted" style="font-size:12px;margin-top:6px">*Подставьте ссылку на вашу верифицированную страницу VK.</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- REVIEWS -->
+<section class="reveal" data-reveal="up" id="reviews">
+<div class="wrap">
+<div class="section-head reveal" data-delay="0.05"><h2>Отзывы</h2><a class="btn btn-sec magnet" href="/reviews">Все отзывы</a></div>
+<div class="carousel reveal" data-reveal="clip" id="revCarousel">
+<div class="card glow"><p>«Новый комплект инфографики — CTR +40% за неделю. Всё объяснили простыми словами.»</p><div class="muted" style="font-size:12px">— Анна, товары для дома</div></div>
+<div class="card glow"><p>«Под ключ: фото, тексты, обложки. Пока мы занимались поставками, студия всё оформила и загрузила.»</p><div class="muted" style="font-size:12px">— Дмитрий, электроника</div></div>
+<div class="card glow"><p>«Быстро, аккуратно, без сюрпризов. Несколько вариантов, выбрали лучший после теста.»</p><div class="muted" style="font-size:12px">— Ирина, одежда</div></div>
+<div class="card glow"><p>«Результат ощущается: клики выросли, возвраты снизились. Рекомендуем!»</p><div class="muted" style="font-size:12px">— Елена, спорттовары</div></div>
+</div>
+</div>
+</section>
+<!-- QUICK CALC -->
+<section class="reveal" data-reveal="up" id="quickcalc">
+<div class="wrap">
+<div class="section-head reveal" data-delay="0.05">
+<h2>Быстрая оценка</h2>
+<p class="muted">Калькулятор стоимости</p>
+</div>
+<article class="card glow calc hover" id="quickCalc">
+<div class="qc-line">
+<!-- Слайды -->
+<div class="qc-field">
+<label class="qc-label">Слайды, шт.</label>
+<div class="qc-stepper">
+<button class="qc-stepper-btn" data-step="-1" data-target="qcSlides" type="button">–</button>
+<input class="qc-input" id="qcSlides" min="1" type="number" value="1"/>
+<button class="qc-stepper-btn" data-step="1" data-target="qcSlides" type="button">+</button>
+</div>
+</div>
+<!-- Отзывы -->
+<div class="qc-field">
+<label class="qc-label">Отзывы, шт.</label>
+<div class="qc-stepper">
+<button class="qc-stepper-btn" data-step="-1" data-target="qcReviews" type="button">–</button>
+<input class="qc-input" id="qcReviews" min="0" type="number" value="0"/>
+<button class="qc-stepper-btn" data-step="1" data-target="qcReviews" type="button">+</button>
+</div>
+</div>
+<!-- SEO -->
+<div class="qc-field">
+<label class="qc-label" for="qcSeo">SEO карточки</label>
+<div class="qc-toggle">
+<input class="qc-switch" id="qcSeo" type="checkbox"/>
+<label class="qc-switch-ui" for="qcSeo"></label>
+</div>
+</div>
+<!-- Rich -->
+<div class="qc-field">
+<label class="qc-label" for="qcRich">Rich контент</label>
+<div class="qc-toggle">
+<input class="qc-switch" id="qcRich" type="checkbox"/>
+<label class="qc-switch-ui" for="qcRich"></label>
+</div>
+</div>
+</div>
+<div class="qc-total">
+<div class="qc-sum" id="qcSum">Итог: 0 ₽</div>
+<div class="qc-breakdown muted" id="qcBreakdown"></div>
+<a class="btn btn-prim magnet qc-cta" href="#contact">Заказать</a>
+</div>
+</article>
+</div>
+</section>
+<!-- BLOG -->
+<section class="reveal" data-reveal="up" id="blog">
+<div class="wrap">
+<div class="section-head reveal" data-delay="0.05"><h2>Блог</h2><a class="btn btn-sec magnet" href="/blog">Все статьи</a></div>
+<h2 class="section-title">Кейсы</h2>
+<div class="grid three">
+<article class="card glow reveal hover" data-reveal="up"><h3><a href="/blog/infografika-wb-gid">Инфографика WB: чек-лист</a></h3><p class="muted">Структура слайдов, зоны внимания и типографика.</p></article>
+<article class="card glow reveal hover" data-delay="0.07" data-reveal="up"><h3><a href="/blog/ozon-mistakes">5 ошибок Ozon</a></h3><p class="muted">Контраст, иерархия, шум и логотипы.</p></article>
+<article class="card glow reveal hover" data-delay="0.14" data-reveal="up"><h3><a href="/blog/seo-keys">SEO-описания без спама</a></h3><p class="muted">Где брать ключи и как интегрировать.</p></article>
+</div>
+</div>
+</section>
+<!-- CTA финальный -->
+<section class="fullwidth reveal" data-reveal="up" id="contact">
+<div class="wrap">
+<div class="panel-block panel-ink">
+<div class="section-head reveal" data-delay="0.05"><h2>Обсудить проект</h2><p class="muted">Ответим в течение рабочего дня</p></div>
+<div class="grid two">
+<form action="mailto:hello@example.com" class="card glow reveal" data-reveal="left" enctype="text/plain" method="post">
+<label>Имя<br/><input name="Имя" required="" style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)"/></label><br/><br/>
+<label>Телеграм/WhatsApp<br/><input name="Контакт" required="" style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)"/></label><br/><br/>
+<label>Товар/ниша<br/><input name="Ниша" style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)"/></label><br/><br/>
+<label>Какая услуга нужна?<br/>
+<select name="Услуга" style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)">
+<option>Инфографика для маркетплейсов</option>
+<option>Видеоинфографика и Rich контент</option>
+<option>SEO оптимизация карточки товара</option>
+<option>Нейрофотосессии и ИИ услуги</option>
+<option>Презентации</option>
+<option>Брендинг (Логотипы, бирки, упаковка, маскоты, гайдлайн)</option>
+<option>Полиграфия</option>
+<option>Предметная/студийная/сборная фото и видеосъемка</option>
+<option>Отзывы и самовыкупы</option>
+<option>Менеджеры маркетплейса</option>
+<option>Посевы и таргетированная реклама WB, Ozon, VK</option>
+<option>Обучение дизайну карточек товара</option>
+<option>Быстрый старт (пакетные предложения)</option>
+</select>
+</label><br/><br/>
+<label>Комментарий<br/><textarea name="Комментарий" rows="4" style="width:100%;padding:12px;border-radius:12px;margin-top:6px;background:#0b0b0f;border:1px solid var(--border);color:var(--text)"></textarea></label><br/><br/>
+<button class="btn btn-prim magnet" type="submit">Отправить</button>
+</form>
+<div class="card glow reveal" data-delay="0.08" data-reveal="right">
+<h3>Контакты</h3>
+<p class="muted">Пишите в мессенджер — быстрее всего ответим:</p>
+<p><strong>Telegram:</strong> <a href="#" id="tgCopy">@your_studio</a></p>
+<p><strong>WhatsApp:</strong> <a href="#" id="waCopy">+7 (900) 000-00-00</a></p>
+<p><strong>Почта:</strong> <a href="mailto:hello@example.com">hello@example.com</a></p>
+<div style="margin-top:10px"><span class="chip">VK</span><span class="chip">Instagram*</span><span class="chip">YouTube</span></div>
+<div class="muted" style="font-size:12px;margin-top:6px">*Соцсеть, принадлежащая компании Meta, деятельность которой запрещана в РФ.</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<footer class="fullwidth">
+<div class="wrap foot">
+<div>
+<div class="brand"><div aria-hidden="true" class="logo"></div><strong>Studio</strong></div>
+<div class="muted" style="font-size:12px">© 2025. Инфографика и оформление карточек для маркетплейсов.</div>
+</div>
+</div>
+</footer>
+<!-- Кнопка «вверх» -->
+<button aria-label="Наверх" class="to-top" id="toTop" title="Наверх">
+<svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24">
+<polyline points="18 15 12 9 6 15"></polyline>
+</svg>
+</button>
+<!-- УДАЛЕНО: панель тюнера и её скрипт -->
+<script>
+  (function(){
+    document.body.classList.remove('no-js');
+    const $=(s,p=document)=>p.querySelector(s); const $$=(s,p=document)=>Array.from(p.querySelectorAll(s));
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const progress=$('#progress');
+    const header=document.querySelector('header');
+    const secIds=['services','portfolio','pricing','about','blog','contact'];
+    const sections=secIds.map(id=>document.getElementById(id)).filter(Boolean);
+    const links=$$('.menu a').filter(a=>a.getAttribute('href')?.startsWith('#'));
+    function onScroll(){
+      const h=document.documentElement;
+      const scrolled=(h.scrollTop)/(h.scrollHeight-h.clientHeight);
+      if(progress){progress.style.transform=`scaleX(${scrolled})`}
+      header?.classList.toggle('shrink', window.scrollY>8);
+      let current=null, offset=140;
+      sections.forEach(sec=>{const r=sec.getBoundingClientRect(); if(r.top - offset <= 0) current=sec.id;});
+      links.forEach(a=>a.classList.toggle('active', a.getAttribute('href')==='#'+current));
+    }
+    window.addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+    // Reveal
+    (function(){
+      const els = document.querySelectorAll('.reveal');
+      if(reduce){ els.forEach(el=>el.classList.add('in')); return; }
+      if(!('IntersectionObserver' in window) || els.length===0){
+        els.forEach(el=>el.classList.add('in'));
+        return;
+      }
+      const io = new IntersectionObserver((entries)=>{
+        entries.forEach(entry=>{
+          if(!entry.isIntersecting) return;
+          const el = entry.target;
+          const delay = parseFloat(el.dataset.delay || '0');
+          if (delay) el.style.transitionDelay = `${delay}s`;
+          const dur = parseFloat(el.dataset.dur || '0');
+          if (dur) el.style.transitionDuration = `${dur}s`;
+          el.classList.add('in');
+          io.unobserve(el);
+        });
+      }, { root:null, rootMargin:'0px 0px -12% 0px', threshold:0.12 });
+      els.forEach(el=>io.observe(el));
+    })();
+
+    // Быстрый калькулятор
+    (function(){
+      const root = document.getElementById('quickCalc');
+      if(!root) return;
+
+      const $ = (s,p=root)=>p.querySelector(s);
+      const slidesEl  = $('#qcSlides');
+      const seoChk    = $('#qcSeo');
+      const richChk   = $('#qcRich');
+      const reviewsEl = $('#qcReviews');
+      const sumEl     = $('#qcSum');
+      const brEl      = $('#qcBreakdown');
+
+      const PRICE_SLIDE     = 800;
+      const PRICE_SEO       = 2000;
+      const PRICE_RICH      = 5000;
+      const DISCOUNT_9PLUS  = 0.10;
+      const PRICE_REV_LT50  = 100;
+      const PRICE_REV_GE50  = 70;
+
+      const rub = n => new Intl.NumberFormat('ru-RU').format(Math.round(n)) + ' ₽';
+      const declOfNum = (n, forms) => {
+        const a = Math.abs(n) % 100, b = a % 10;
+        if (a > 10 && a < 20) return forms[2];
+        if (b > 1 && b < 5) return forms[1];
+        if (b === 1) return forms[0];
+        return forms[2];
+      };
+
+      [slidesEl, reviewsEl].forEach(inp=>{
+        inp?.addEventListener('keydown',(e)=>{
+          if(e.key === 'ArrowUp' || e.key === 'ArrowDown'){ e.preventDefault(); }
+        });
+      });
+
+      root.addEventListener('click', (e)=>{
+        const btn = e.target.closest('.qc-stepper-btn');
+        if(!btn) return;
+        const step = Number(btn.dataset.step)||0;
+        const targetId = btn.dataset.target;
+        const input = targetId ? root.querySelector('#'+targetId) : btn.parentElement.querySelector('input');
+        if(!input) return;
+        const min = Number(input.min)||-Infinity, max = Number(input.max)||Infinity;
+        let val = Number(input.value)||0;
+        val += step; val = Math.max(min, Math.min(max, val));
+        input.value = val;
+        input.dispatchEvent(new Event('input', {bubbles:true}));
+      });
+
+      function compute(){
+        const slides  = Math.max(1, Number(slidesEl.value)||1);
+        const seoOn   = !!seoChk?.checked;
+        const richOn  = !!richChk?.checked;
+        const reviews = Math.max(0, Number(reviewsEl.value)||0);
+
+        const baseSlides = slides * PRICE_SLIDE;
+        const discount   = (slides >= 9) ? baseSlides * DISCOUNT_9PLUS : 0;
+        const slidesCost = baseSlides - discount;
+
+        const seoCost     = seoOn ? PRICE_SEO : 0;
+        const richCost    = richOn ? PRICE_RICH : 0;
+        const reviewPrice = (reviews >= 50) ? PRICE_REV_GE50 : PRICE_REV_LT50;
+        const reviewsCost = reviews * reviewPrice;
+
+        const total = slidesCost + seoCost + richCost + reviewsCost;
+
+        if(sumEl) sumEl.textContent = 'Итог: ' + rub(total);
+
+        const parts = [];
+        const slidesLineBase = `${slides} ${declOfNum(slides,['слайд','слайда','слайдов'])} × ${rub(PRICE_SLIDE)} = ${rub(baseSlides)}`;
+        if(discount>0){
+          parts.push(`${slidesLineBase} − скидка 10% (${rub(discount)}) → ${rub(slidesCost)}`);
+        } else {
+          parts.push(slidesLineBase);
+        }
+        if(seoOn)   parts.push(`SEO = ${rub(seoCost)}`);
+        if(richOn)  parts.push(`Rich контент = ${rub(richCost)}`);
+        if(reviews>0){
+          parts.push(`${reviews} ${declOfNum(reviews,['отзыв','отзыва','отзывов'])} × ${rub(reviewPrice)} = ${rub(reviewsCost)}`);
+        }
+
+        if(brEl) brEl.innerHTML = parts.join('\n');
+      }
+
+      [slidesEl, reviewsEl].forEach(el=>el?.addEventListener('input', compute));
+      seoChk?.addEventListener('change', compute);
+      richChk?.addEventListener('change', compute);
+
+      compute();
+    })();
+
+    // копирование контактов
+    const copy=async t=>{ try{ await navigator.clipboard.writeText(t); alert('Скопировано: '+t);}catch(e){console.log(e);} };
+    document.getElementById('tgCopy')?.addEventListener('click',e=>{e.preventDefault();copy('@your_studio');});
+    document.getElementById('waCopy')?.addEventListener('click',e=>{e.preventDefault();copy('+79000000000');});
+
+    // Кастомный курсор — только внутри HERO
+    const cursor=document.getElementById('cursor');
+    const hero=document.querySelector('.hero');
+    if(hero && cursor){
+      let cx=0, cy=0, txc=0, tyc=0, rafc=0;
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      const onMove=(e)=>{ cx=e.clientX; cy=e.clientY; cursor.style.opacity=.9; if(!rafc && !reduce) rafc=requestAnimationFrame(loopC); };
+      const onLeave=()=>{ cursor.style.opacity=0; };
+
+      function loopC(){
+        txc+=(cx-txc)*0.15; tyc+=(cy-tyc)*0.15;
+        cursor.style.left=txc+'px'; cursor.style.top=tyc+'px';
+        rafc = Math.hypot(cx-txc, cy-tyc) < .5 ? 0 : requestAnimationFrame(loopC);
+      }
+
+      hero.addEventListener('pointermove', onMove, {passive:true});
+      hero.addEventListener('pointerleave', onLeave);
+
+      // магнитные кнопки
+      document.querySelectorAll('.magnet').forEach(el=>{
+        let r;
+        el.addEventListener('mousemove',(e)=>{
+          r=el.getBoundingClientRect();
+          const x=(e.clientX-(r.left+r.width/2))/(r.width/2);
+          const y=(e.clientY-(r.top+r.height/2))/(r.height/2);
+          el.style.transform=`translate(${x*6}px, ${y*6}px)`;
+          cursor.style.width='54px'; cursor.style.height='54px';
+        });
+        el.addEventListener('mouseleave',()=>{
+          el.style.transform='translate(0,0)';
+          cursor.style.width='42px'; cursor.style.height='42px';
+        });
+      });
+    }
+
+    // отзывы авто-скролл
+    (function(){
+      const car=document.getElementById('revCarousel');
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if(!car || reduce) return;
+      let sc=0;
+      function tick(){
+        car.scrollTo({left:sc, behavior:'smooth'});
+        sc += 2;
+        if(sc > car.scrollWidth - car.clientWidth) sc = 0;
+        setTimeout(tick, 30);
+      }
+      tick();
+    })();
+
+    // Кнопка «вверх»
+    (function(){
+      const btn = document.getElementById('toTop');
+      if(!btn) return;
+      const showAfter = 480;
+      function toggle(){
+        if(window.scrollY > showAfter){ btn.classList.add('is-visible'); }
+        else{ btn.classList.remove('is-visible'); }
+      }
+      window.addEventListener('scroll', toggle, {passive:true});
+      toggle();
+      btn.addEventListener('click', (e)=>{ e.preventDefault(); window.scrollTo({top:0, behavior:'smooth'}); });
+    })();
+
+    /* УДАЛЕНО: генератор слайдеров для тюнера */
+  })();
+  </script>
+<script type="module">
+  import { Renderer, Program, Mesh, Color, Triangle } from 'https://esm.sh/ogl@0.0.109';
+
+  const container = document.querySelector('.aurora-layer');
+  if (!container) throw new Error('Не найден .aurora-layer');
+
+  const props = {
+    colorStops: ['#1F232B', '#F9A86B', '#B3B7E2'],
+    amplitude: 0.6,
+    blend: 0.5,
+    speed: 1.3,
+    intensity: 1.0,
+  };
+
+  const VERT = `#version 300 es
+  in vec2 position;
+  void main(){ gl_Position = vec4(position, 0.0, 1.0); }`;
+
+  const FRAG = `#version 300 es
+  precision highp float;
+  uniform float uTime, uAmplitude, uBlend, uIntensity;
+  uniform vec3 uColorStops[3];
+  uniform vec2 uResolution;
+  out vec4 fragColor;
+
+  vec3 permute(vec3 x){ return mod(((x*34.0)+1.0)*x,289.0); }
+  float snoise(vec2 v){
+    const vec4 C=vec4(0.211324865405187,0.366025403784439,-0.577350269189626,0.024390243902439);
+    vec2 i=floor(v+dot(v,C.yy)); vec2 x0=v-i+dot(i,C.xx);
+    vec2 i1 = (x0.x>x0.y)?vec2(1.0,0.0):vec2(0.0,1.0);
+    vec4 x12=x0.xyxy+C.xxzz; x12.xy-=i1; i=mod(i,289.0);
+    vec3 p=permute(permute(i.y+vec3(0.0,i1.y,1.0))+i.x+vec3(0.0,i1.x,1.0));
+    vec3 m=max(0.5-vec3(dot(x0,x0),dot(x12.xy,x12.xy),dot(x12.zw,x12.zw)),0.0);
+    m*=m; m*=m;
+    vec3 x=2.0*fract(p*C.www)-1.0; vec3 h=abs(x)-0.5; vec3 ox=floor(x+0.5); vec3 a0=x-ox;
+    m*=1.79284291400159-0.85373472095314*(a0*a0+h*h);
+    vec3 g; g.x=a0.x*x0.x+h.x*x0.y; g.yz=a0.yz*x12.xz+h.yz*x12.yw;
+    return 130.0*dot(m,g);
+  }
+
+  struct ColorStop{ vec3 color; float position; };
+
+  #define COLOR_RAMP(colors, factor, finalColor) {     int index=0;     for (int i=0;i<2;i++){ ColorStop cc=colors[i]; bool ok=cc.position<=factor; index=int(mix(float(index),float(i),float(ok))); }     ColorStop c=colors[index]; ColorStop n=colors[index+1];     float range=n.position-c.position; float t=(factor-c.position)/range;     finalColor=mix(c.color,n.color,t);   }
+
+  void main(){
+    vec2 uv = gl_FragCoord.xy / uResolution;
+    ColorStop colors[3];
+    colors[0] = ColorStop(uColorStops[0], 0.0);
+    colors[1] = ColorStop(uColorStops[1], 0.5);
+    colors[2] = ColorStop(uColorStops[2], 1.0);
+    vec3 rampColor; COLOR_RAMP(colors, uv.x, rampColor);
+    vec2 nUv = vec2(uv.x*2.0 + uTime*0.1, (uv.y+0.37)*0.8 + uTime*0.25);
+    float h = snoise(nUv + 10.123) * 0.5 * uAmplitude;
+    h = exp(h);
+    h = (uv.y*2.0 - h + 0.2);
+    float intensity = 0.6 * h;
+    float midPoint = 0.20;
+    float auroraAlpha = smoothstep(midPoint - uBlend*0.5, midPoint + uBlend*0.5, intensity);
+    float finalAlpha = auroraAlpha * smoothstep(0.0, 0.5, intensity) * uIntensity;
+    float dither = fract(sin(dot(gl_FragCoord.xy , vec2(12.9898,78.233))) * 43758.5453) * 0.004;
+    fragColor = vec4(rampColor * (finalAlpha + dither), finalAlpha + dither);
+  }`;
+
+  const renderer = new Renderer({ alpha:true, premultipliedAlpha:true, antialias:true });
+  const gl = renderer.gl;
+  gl.clearColor(0,0,0,0);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.canvas.style.backgroundColor = 'transparent';
+
+  const geometry = new Triangle(gl);
+  if (geometry.attributes.uv) delete geometry.attributes.uv;
+
+  const colorStopsArray = props.colorStops.map(hex => {
+    const c = new Color(hex); return [c.r, c.g, c.b];
+  });
+
+  const program = new Program(gl, {
+    vertex: VERT, fragment: FRAG,
+    uniforms: {
+      uTime: { value: 0 },
+      uAmplitude: { value: props.amplitude },
+      uColorStops: { value: colorStopsArray },
+      uResolution: { value: [1,1] },
+      uBlend: { value: props.blend },
+      uIntensity: { value: props.intensity },
+    }
+  });
+
+  const mesh = new Mesh(gl, { geometry, program });
+  container.appendChild(gl.canvas);
+  Object.assign(gl.canvas.style, { position:'absolute', inset:'0', width:'100%', height:'100%', display:'block' });
+
+  const hero = document.querySelector('.hero');
+  function resize(){
+    const w = hero?.clientWidth || container.clientWidth || window.innerWidth;
+    const h = hero?.clientHeight || container.clientHeight || window.innerHeight;
+    renderer.setSize(Math.max(300,w), Math.max(300,h));
+    program.uniforms.uResolution.value = [Math.max(300,w), Math.max(300,h)];
+  }
+  window.addEventListener('resize', resize, { passive:true });
+  resize();
+
+  const prefersReduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let raf = 0;
+  const speedFactor = prefersReduce ? 0.3 : 1.0; // при reduce-motion просто медленнее
+  function loop(t){
+    program.uniforms.uTime.value = (t*0.001) * props.speed * 0.6 * speedFactor; // быстрее x6 для заметной динамики
+    renderer.render({ scene: mesh });
+    raf = requestAnimationFrame(loop);
+  }
+  raf = requestAnimationFrame(loop);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+<script id="hero-scena-script">
+(function(){
+  var hero = document.querySelector('.hero .hero-image');
+  if(!hero) return;
+  var stage = hero.querySelector('.stage');
+  if(!stage){ console.warn('[SCENA] stage not found'); return; }
+
+  var ua = navigator.userAgent;
+  var isIOS = /iPhone|iPad|iPod/i.test(ua);
+  var isSafari = /^((?!chrome|crios|fxios|edgios|android).)*safari/i.test(ua);
+  var isIOSSafari = isIOS && isSafari;
+
+  function qs(sel){ return stage.querySelector(sel); }
+  function show(sel){ var el=qs(sel); if(el) el.classList.add('show'); }
+  function hide(sel){ var el=qs(sel); if(el) el.classList.remove('show'); }
+  function hideSteps(){ ['.device','.s1','.s2','.s3','.s4','.s5'].forEach(hide); }
+  function removeMedia(){ var v=qs('#test_video'); if(v) v.remove(); var a=qs('#test_apng'); if(a) a.remove(); }
+
+  function mountVideo(){
+    removeMedia();
+    var tpl = stage.querySelector('#video_tpl');
+    if(!tpl || !tpl.content || !tpl.content.firstElementChild) return;
+    var node = tpl.content.firstElementChild.cloneNode(true);
+    stage.appendChild(node);
+    node.style.display='block';
+    var revealed=false; function reveal(){ if(!revealed){ revealed=true; node.classList.add('show'); } }
+    node.addEventListener('loadeddata',reveal,{once:true});
+    node.addEventListener('canplay',reveal,{once:true});
+    setTimeout(reveal,800);
+    if(node.play){ var p=node.play(); if(p && p.catch) p.catch(function(){}); }
+  }
+  function mountAPNG(){
+    removeMedia();
+    var tpl = stage.querySelector('#apng_tpl');
+    if(!tpl || !tpl.content || !tpl.content.firstElementChild) return;
+    var node = tpl.content.firstElementChild.cloneNode(true);
+    stage.appendChild(node);
+    node.style.display='block';
+    var revealed=false; function reveal(){ if(!revealed){ revealed=true; node.classList.add('show'); } }
+    node.addEventListener('load',reveal,{once:true});
+    setTimeout(reveal,500);
+  }
+
+  var timeline=[
+    {t:   0, sel:'.device', act:'show'},
+    {t:1200, sel:'.s1', act:'show'},
+    {t:2400, sel:'.s2', act:'show'},
+    {t:3600, sel:'.s3', act:'show'},
+    {t:4800, sel:'.s4', act:'show'},
+    {t:6000, sel:'.s5', act:'show'},
+    {t:7200, final:true}
+  ];
+
+  var timers=[];
+  function run(){
+    timers.forEach(clearTimeout); timers.length=0;
+    hideSteps(); removeMedia();
+    timeline.forEach(function(kf){
+      timers.push(setTimeout(function(){
+        if(kf.final){
+          hideSteps();
+          if(isIOSSafari){ mountAPNG(); } else { mountVideo(); }
+        } else {
+          if(kf.act==='show') show(kf.sel); else hide(kf.sel);
+        }
+      }, kf.t));
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
+</script>
+<script>
+(function(){
+  const stage = document.getElementById('stage');
+  if (!stage) return;
+
+  // Add bar if missing
+  let bar = stage.querySelector('.ctr-bar');
+  if (!bar){
+    bar = document.createElement('div');
+    bar.className = 'ctr-bar';
+    bar.innerHTML = '<div class="fill" id="ctrFill"></div><div class="label">Загрузка ваших продаж<span class="dots"></span></div><div class="val" id="ctrVal">0.0% CTR</div>';
+    stage.prepend(bar);
+  }
+  const fillEl = bar.querySelector('#ctrFill');
+  const valEl  = bar.querySelector('#ctrVal');
+
+  const MAX = 5.5;
+  const STEP_PCT = new Map([
+    ['device', 0.0], // step1.webp
+    ['s1',     1.1], // step2.webp
+    ['s2',     1.9], // step3.webp
+    ['s3',     2.4], // step4.webp
+    ['s4',     3.5], // step5.webp
+    ['s5',     4.2], // step6.webp
+    ['veo',    5.5], // output.webm / veo.apng
+  ]);
+
+  let layers = [];
+  function refreshLayers(){
+    layers = Array.from(stage.querySelectorAll('.layer'));
+  }
+  refreshLayers();
+
+  function getActiveLayer(){
+    // Re-query just in case
+    if (!layers.length) refreshLayers();
+    const shown = layers.filter(el => el.classList.contains('show'));
+    if (shown.length){
+      return shown.sort((a,b)=> (+(getComputedStyle(a).zIndex||0)) - (+(getComputedStyle(b).zIndex||0))).pop();
+    }
+    // by opacity
+    return layers.reduce((best, el) => {
+      const op = parseFloat(getComputedStyle(el).opacity) || 0;
+      return op > (best.op||0) ? {el, op} : best;
+    }, {el:null, op:0}).el;
+  }
+
+  function isVeo(el){
+    if (!el) return false;
+    const cls = (el.className || "").toString();
+    return el.tagName === 'VIDEO' || /(^|\s)veo(\s|$)/i.test(cls);
+  }
+
+  function pctFor(el){
+    if (!el) return 0;
+    for (const key of STEP_PCT.keys()){
+      if (el.classList.contains(key)) return STEP_PCT.get(key);
+    }
+    if (isVeo(el)) return STEP_PCT.get('veo');
+    return 0;
+  }
+
+  // Animation and render
+  let currentPct = 0;
+  let lastCommittedPct = 0; // monotonic cap
+  let rafId = 0;
+  function lerp(a,b,t){ return a + (b-a)*t; }
+  function animateTo(target, dur=450){
+    const start = performance.now();
+    const from  = currentPct;
+    cancelAnimationFrame(rafId);
+    function tick(t){
+      const p = Math.min(1, (t - start)/dur);
+      currentPct = lerp(from, target, p);
+      render(currentPct);
+      if (p < 1) rafId = requestAnimationFrame(tick);
+      else lastCommittedPct = currentPct;
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function render(pct){
+    const ratio = Math.max(0, Math.min(1, pct / MAX));
+    fillEl.style.width = (ratio * 100).toFixed(1) + '%';
+    valEl.textContent = pct.toFixed(1) + '% CTR';
+  }
+
+  let lastEl = null;
+  function loop(){
+    const active = getActiveLayer();
+    if (active && active !== lastEl){
+      lastEl = active;
+      if (isVeo(active)){
+        // smooth gain from last static step up to 5.5
+        const startFrom = Math.max(currentPct, lastCommittedPct, 4.2);
+        animateTo(startFrom, 150);
+        const startTime = performance.now();
+        const run = (t)=>{
+          const dt = (t - startTime) / 1200; // ~1.2s
+          const target = Math.min(5.5, startFrom + 1.3 * Math.max(0, Math.min(1, dt)));
+          render(target);
+          currentPct = target;
+          if (currentPct < 5.5) requestAnimationFrame(run);
+          else lastCommittedPct = currentPct;
+        };
+        requestAnimationFrame(run);
+      } else {
+        const mapped = pctFor(active);
+        const target = Math.max(mapped, lastCommittedPct);
+        animateTo(target, 450);
+      }
+    }
+    requestAnimationFrame(loop);
+  }
+
+  // Update layers list if templates swap in/out
+  const mo = new MutationObserver(()=>{ refreshLayers(); });
+  mo.observe(stage, {childList:true, subtree:true});
+
+  render(0.0);
+  requestAnimationFrame(loop);
+})();
+</script><script>
+(function(){
+  const dots = document.querySelector('.ctr-bar .dots');
+  if (dots){
+    let i = 0;
+    setInterval(()=>{
+      i = (i+1) % 4;
+      dots.textContent = '.'.repeat(i);
+    }, 450);
+  }
+})();
+</script><script>
+(function(){
+  function portalIcons(){
+    try{
+      var overlay = document.getElementById('ui-overlay');
+      var stage = document.getElementById('stage');
+      if(!overlay || !stage) return;
+      var icons = stage.querySelector('.ctr-icons');
+      if(!icons) return;
+      // Move the icons node to the overlay to escape any stacking/overflow
+      overlay.appendChild(icons);
+    }catch(e){/* noop */}
+  }
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', portalIcons);
+  }else{
+    portalIcons();
+  }
+})();
+</script>
+<!-- Overlay for CTR icons -->
+<div aria-hidden="true" id="ui-overlay">
+<div class="ctr-icons-row" id="ctrIconsRow">
+<img alt="" src="assets/Frame 496.webp"/>
+<img alt="" src="assets/Frame 497.webp"/>
+<img alt="" src="assets/Frame 498.webp"/>
+<img alt="" src="assets/Frame 499.webp"/>
+</div>
+</div>
+<script>
+(function(){
+  const row = document.getElementById('ctrIconsRow');
+  if (!row) return;
+
+  function findBar(){
+    return document.querySelector('.ctr-bar')
+        || document.getElementById('progress')
+        || document.querySelector('.progress');
+  }
+
+  function cssVar(name, fallback){
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name);
+    const n = parseFloat(v);
+    return isNaN(n) ? (fallback||0) : n;
+  }
+
+  function place(){
+    const bar = findBar();
+    if (!bar){
+      requestAnimationFrame(place);
+      return;
+    }
+    const r = bar.getBoundingClientRect();
+    const x = Math.round(r.left + r.width/2) + cssVar('--icons-offset-x', 0);
+    const y = Math.round(r.top) + cssVar('--icons-offset-y', -24);
+    const scale = cssVar('--icons-scale', 1) || 1;
+
+    row.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%) scale(${scale})`;
+  }
+
+  function tick(){ place(); }
+  window.addEventListener('resize', tick, {passive:true});
+  window.addEventListener('scroll', tick, {passive:true});
+
+  let tries = 0;
+  (function kick(){
+    place();
+    if (++tries < 60) requestAnimationFrame(kick);
+  })();
+})();
+</script>
+<script id="ctr-bar-portal-js">
+(function(){
+  function moveCtrBar(){
+    var stageBar = document.querySelector('.hero .stage .ctr-bar');
+    var layer = document.querySelector('.hero .hero-ctr-layer');
+    if (!stageBar || !layer) return;
+    if (stageBar.parentElement === layer) return; // already moved
+    layer.appendChild(stageBar);
+    stageBar.classList.add('is-ported');
+  }
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', moveCtrBar);
+  } else {
+    moveCtrBar();
+  }
+})();
+</script>
+
+<script id="frame-icons-magnet-js">
+(function(){
+  const row = document.getElementById('ctrIconsRow');
+  if(!row) return;
+  let raf = 0, mx = 0, my = 0, active = false;
+
+  function apply(){
+    const imgs = row.querySelectorAll('img');
+    imgs.forEach((img)=>{
+      const r = img.getBoundingClientRect();
+      const cx = r.left + r.width/2;
+      const cy = r.top  + r.height/2;
+      const dist = Math.hypot(mx - cx, my - cy);
+      const influence = Math.max(0, 1 - dist / 420); // радиус «магнита»
+      const pullX = (mx - cx) * 0.08 * influence;
+      const pullY = (my - cy) * 0.08 * influence;
+      const scale = 1.04 + 0.02*influence;
+      img.style.transform = active
+        ? `translate(${pullX}px, ${-4 + pullY}px) scale(${scale})`
+        : '';
+    });
+    raf = 0;
+  }
+
+  function onMove(e){
+    mx = e.clientX; my = e.clientY;
+    active = true;
+    if(!raf) raf = requestAnimationFrame(apply);
+  }
+
+  function onLeave(){
+    active = false;
+    row.querySelectorAll('img').forEach(img=>{ img.style.transform = ''; });
+  }
+
+  row.addEventListener('mousemove', onMove, {passive:true});
+  row.addEventListener('mouseleave', onLeave, {passive:true});
+  // touch support: лёгкий «подскок» к пальцу и авто-сброс
+  row.addEventListener('touchmove', (e)=>{
+    if(!e.touches || !e.touches[0]) return;
+    mx = e.touches[0].clientX; my = e.touches[0].clientY;
+    active = true;
+    if(!raf) raf = requestAnimationFrame(apply);
+  }, {passive:true});
+  row.addEventListener('touchend', onLeave, {passive:true});
+})();
+</script>
+
+
+<script id="frame-icons-piano-soft-expressive-js">
+(function(){
+  const row = document.getElementById('ctrIconsRow');
+  if(!row) return;
+  const icons = [...row.querySelectorAll('img')];
+
+  icons.forEach((icon, idx)=>{
+    icon.addEventListener('mouseenter', ()=>{
+      icons.forEach((el,i)=>{
+        const distance = Math.abs(i - idx);
+        const delay = distance * 80; // волна: чем дальше, тем позже
+        el.style.animation = `pianoBounceSoft 0.9s ease-in-out ${delay}ms`;
+      });
+    });
+    icon.addEventListener('mouseleave', ()=>{
+      icons.forEach(el=>{
+        el.style.animation = '';
+      });
+    });
+  });
+})();
+</script>
+
+
+<!-- Zoomer overlay (top-layer, no layout impact) -->
+<div class="t-zoomer__wrapper" id="zoomer" aria-hidden="true">
+  <div class="t-zoomer__container" role="dialog" aria-modal="true" aria-label="Просмотр изображений">
+    <button class="t-zoomer__close" type="button" aria-label="Закрыть">×</button>
+    <div class="t-carousel__zoomer__track" id="zoomerTrack"></div>
+    <button class="t-zoomer__prev" type="button" aria-label="Предыдущая">&#10094;</button>
+    <button class="t-zoomer__next" type="button" aria-label="Следующая">&#10095;</button>
+  </div>
+</div>
+
+
+<script>
+(function(){
+  function initZoomer(){
+    const grid = document.querySelector('.portfolio-grid');
+    const items = grid ? Array.from(grid.querySelectorAll('.pg-item')) : [];
+    const wrapper = document.getElementById('zoomer');
+    const track   = document.getElementById('zoomerTrack');
+    const btnPrev = wrapper ? wrapper.querySelector('.t-zoomer__prev') : null;
+    const btnNext = wrapper ? wrapper.querySelector('.t-zoomer__next') : null;
+    const btnClose= wrapper ? wrapper.querySelector('.t-zoomer__close') : null;
+    if (!grid || !items.length || !wrapper || !track) return;
+
+    // Slides from DOM order (сохраняем порядок как на странице)
+    track.innerHTML = items.map((a,i)=>{
+      const src = a.getAttribute('data-src') || a.getAttribute('href') || (a.querySelector('img') && a.querySelector('img').src) || '';
+      const alt = (a.querySelector('img') && a.querySelector('img').alt) || ('Кейс ' + (i+1));
+      return '<div class="t-carousel__zoomer__item"><img class="t-zoomer__img" src="'+src+'" alt="'+alt+'"></div>';
+    }).join('');
+
+    const slides = Array.from(track.querySelectorAll('.t-carousel__zoomer__item'));
+    const imgs   = Array.from(track.querySelectorAll('.t-zoomer__img'));
+    let idx = 0, scale = 1, tx=0, ty=0, dragging=false, sx=0, sy=0, lockScrollY=0;
+    let slideWidth = 0;
+
+    function layout(){
+      slideWidth = wrapper.clientWidth || window.innerWidth;
+      const slideHeight = wrapper.clientHeight || window.innerHeight;
+      slides.forEach(s => { s.style.width = slideWidth + 'px'; s.style.height = slideHeight + 'px'; });
+      track.style.width = (slides.length * slideWidth) + 'px';
+      track.style.height = '100vh';
+    }
+
+    function applyTransform(){ const im = imgs[idx]; if (im) im.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')'; }
+    function resetTransform(){ scale=1; tx=0; ty=0; const im = imgs[idx]; if (im) im.style.cursor='zoom-in'; applyTransform(); }
+
+    function goTo(i, animate=true){
+      idx = (i + slides.length) % slides.length;
+      track.style.transition = animate ? 'transform .3s ease-out' : 'none';
+      track.style.transform = 'translateX(' + (-idx * (slideWidth||window.innerWidth)) + 'px)';
+      resetTransform();
+    }
+    function open(i){
+      idx = i;
+      // lock scroll without jump
+      lockScrollY = window.scrollY || window.pageYOffset || 0;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${lockScrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
+      document.documentElement.classList.add('zoomer-open');
+      document.body.classList.add('zoomer-open');
+      layout(); goTo(idx, false);
+      wrapper.classList.add('t-zoomer__show');
+    }
+    function close(){
+      wrapper.classList.remove('t-zoomer__show');
+      document.documentElement.classList.remove('zoomer-open');
+      document.body.classList.remove('zoomer-open');
+      // restore instantly without visible scroll
+      const y = lockScrollY || 0;
+      const htmlEl = document.documentElement;
+      const prevBehavior = htmlEl.style.scrollBehavior;
+      htmlEl.style.scrollBehavior = 'auto';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      window.scrollTo(0, y);
+      requestAnimationFrame(()=>{ htmlEl.style.scrollBehavior = prevBehavior; });
+    }
+    function next(){ goTo(idx+1); }
+    function prev(){ goTo(idx-1); }
+
+    // thumbs -> open (сохраняем порядок, запрещаем переходы)
+    items.forEach((a,i)=> a.addEventListener('click', (e)=>{ e.preventDefault(); open(i); }));
+
+    // controls
+    btnPrev && btnPrev.addEventListener('click', (e)=>{ e.stopPropagation(); prev(); });
+    btnNext && btnNext.addEventListener('click', (e)=>{ e.stopPropagation(); next(); });
+    btnClose && btnClose.addEventListener('click', close);
+    wrapper.addEventListener('click', (e)=>{ if (e.target === wrapper) close(); });
+
+    // keys
+    window.addEventListener('keydown', (e)=>{
+      if (!wrapper.classList.contains('t-zoomer__show')) return;
+      if (e.key === 'Escape') close();
+      else if (e.key === 'ArrowRight') next();
+      else if (e.key === 'ArrowLeft') prev();
+    });
+
+    // wheel: nav by default; Ctrl or zoomed -> zoom
+    let wheelLock=0;
+    wrapper.addEventListener('wheel', (e)=>{
+      if (!wrapper.classList.contains('t-zoomer__show')) return;
+      e.preventDefault();
+      if (e.ctrlKey || scale > 1){
+        zoomAtPointer(e, e.deltaY < 0 ? 1.12 : 1/1.12);
+      } else {
+        const now = Date.now();
+        if (now - wheelLock > 150){ (e.deltaY>0?next():prev()); wheelLock = now; }
+      }
+    }, {passive:false});
+
+    // zoom helpers
+    const activeImg = ()=> imgs[idx];
+    function zoomAtPointer(e,f){
+      const im = activeImg(); if (!im) return;
+      const rect = im.getBoundingClientRect();
+      const cx = (e.clientX ?? (e.touches && e.touches[0].clientX)) - rect.left;
+      const cy = (e.clientY ?? (e.touches && e.touches[0].clientY)) - rect.top;
+      zoomAtPoint(rect.left + cx, rect.top + cy, f);
+    }
+    function zoomAtPoint(clientX, clientY, factor){
+      const im = activeImg(); if (!im) return;
+      const rect = im.getBoundingClientRect();
+      const prev=scale, next = Math.min(6, Math.max(1, prev*factor));
+      if (next === prev) return;
+      const ix = clientX - rect.left, iy = clientY - rect.top;
+      tx = (tx - (ix - rect.width/2)) * (next/prev) + (ix - rect.width/2);
+      ty = (ty - (iy - rect.height/2)) * (next/prev) + (iy - rect.height/2);
+      scale = next;
+      im.style.cursor = scale > 1 ? 'move' : 'zoom-in';
+      applyTransform();
+    }
+
+    // click / dblclick zoom
+    track.addEventListener('dblclick', (e)=>{
+      if (!wrapper.classList.contains('t-zoomer__show')) return;
+      if (scale === 1) zoomAtPointer(e, 2.2); else resetTransform();
+    });
+    track.addEventListener('click', (e)=>{
+      const im = activeImg(); if (!im) return;
+      if (scale === 1) zoomAtPointer(e, 1.6); else resetTransform();
+      e.stopPropagation();
+    });
+
+    // drag to pan & swipe
+    let swiping=false, startX=0, startY=0;
+    function getPoint(e){ return e.touches && e.touches.length ? {x:e.touches[0].clientX, y:e.touches[0].clientY} : {x:e.clientX, y:e.clientY}; }
+    function onDown(e){
+      const p = getPoint(e);
+      startX = p.x; startY = p.y; swiping = true;
+      if (scale > 1){ dragging=true; sx=p.x - tx; sy=p.y - ty; activeImg().style.cursor='grabbing'; }
+      e.preventDefault();
+    }
+    function onMove(e){
+      if (!swiping) return;
+      const p = getPoint(e);
+      const dx = p.x - startX, dy = p.y - startY;
+      if (dragging){ tx = p.x - sx; ty = p.y - sy; applyTransform(); }
+      else if (Math.abs(dx) > 12 && scale === 1){
+        track.style.transition = 'none';
+        track.style.transform = 'translateX(' + ((-idx * (slideWidth||window.innerWidth)) + dx) + 'px)';
+      }
+    }
+    function onUp(e){
+      const p = getPoint(e);
+      const dx = p.x - startX;
+      if (!dragging && scale===1){
+        if (dx > 80) prev(); else if (dx < -80) next(); else goTo(idx);
+      }
+      dragging=false; swiping=false;
+      if (scale > 1) activeImg().style.cursor='move';
+    }
+    wrapper.addEventListener('touchstart', onDown, {passive:false});
+    wrapper.addEventListener('touchmove',  onMove, {passive:false});
+    wrapper.addEventListener('touchend',   onUp);
+    wrapper.addEventListener('mousedown',  onDown);
+    window.addEventListener('mousemove',   onMove, {passive:false});
+    window.addEventListener('mouseup',     onUp);
+
+    // initial layout + resize
+    layout();
+    window.addEventListener('resize', ()=>{ const cur = idx; layout(); goTo(cur, false); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initZoomer);
+  else initZoomer();
+})();
+</script>
+
+</body>
+</html>
